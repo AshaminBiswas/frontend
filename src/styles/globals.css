@@ -1,0 +1,51 @@
+/* ─────────────────────────────────────────────
+   PRC Hardware — Custom Scrollbar
+   Brand: #34150F (dark brown) · #D39858 (gold) · #EACEAA (cream)
+   Only shown on md+ (768px+). Hidden on mobile.
+───────────────────────────────────────────── */
+
+/* ── Hide scrollbar on small devices (mobile/tablet < 768px) ── */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}
+
+/* ── Custom scrollbar on desktop (md+) ── */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1a0a07;
+    border-radius: 100px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #D39858 0%, #85431E 100%);
+    border-radius: 100px;
+    border: 1px solid #1a0a07;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #EACEAA 0%, #D39858 100%);
+    box-shadow: 0 0 6px rgba(211, 152, 88, 0.6);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: #1a0a07;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #D39858 #1a0a07;
+  }
+}
