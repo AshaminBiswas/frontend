@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Heart, ShoppingCart, Check, Star, ShieldCheck, Truck, Package, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
 import { Product } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
+import { getProductStockStatus } from "../../utils/stock";
 
 interface QuickViewModalProps {
   product: Product;
@@ -23,20 +24,36 @@ export function QuickViewModal({
   const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Dynamic gallery images array
   const galleryImages = useMemoGallery(product);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [imgErrored, setImgErrored] = useState<Record<number, boolean>>({});
+  const [isImgChanging, setIsImgChanging] = useState(false);
+
+  // Smooth entrance animation effect
+  useEffect(() => {
+    const timer = setTimeout(() => setIsOpen(true), 15);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Smooth exit animation before calling parent onClose
+  const handleClose = () => {
+    setIsOpen(false);
+    setTimeout(() => {
+      onClose();
+    }, 200);
+  };
 
   // Close on ESC key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, []);
 
   // Prevent background body scroll when modal is open
   useEffect(() => {
@@ -46,7 +63,17 @@ export function QuickViewModal({
     };
   }, []);
 
+  const handleThumbnailClick = (idx: number) => {
+    if (idx === activeImageIdx) return;
+    setIsImgChanging(true);
+    setTimeout(() => {
+      setActiveImageIdx(idx);
+      setIsImgChanging(false);
+    }, 120);
+  };
+
   const effective = getEffectivePrice(product, user, quantity);
+  const stockInfo = getProductStockStatus(product.stock, (product as any).reorderLevel, (product as any).inStock);
   const discountPercent =
     effective.originalPrice > effective.unitPrice
       ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
@@ -56,38 +83,40 @@ export function QuickViewModal({
     ? (product.category as any).name || "Architectural Hardware"
     : String(product.category || "Architectural Hardware");
 
-  const materialText = typeof product.material === 'object' && product.material !== null
-    ? String((product.material as any).name || "Solid Stainless Steel / Brass")
-    : String(product.material || product.finish || "");
-
   const handleAddToCart = () => {
     onAddToCart(product, quantity);
     setAdded(true);
     setTimeout(() => {
       setAdded(false);
-      onClose();
+      handleClose();
     }, 1200);
   };
 
-  const activeSrc = galleryImages[activeImageIdx] || product.image;
+  const activeSrc = galleryImages[activeImageIdx] || (Array.isArray((product as any).images) && (product as any).images[0]) || (product as any).thumbnail || product.image;
 
   const modalContent = (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/65 p-4 animate-in fade-in duration-200"
-      style={{ zIndex: 10000 }}
-      onClick={onClose}
+      className={`fixed inset-0 flex items-center justify-center p-4 transition-all duration-300 ease-out z-[10000] ${
+        isOpen
+          ? "bg-black/60 backdrop-blur-md opacity-100"
+          : "bg-black/0 backdrop-blur-none opacity-0 pointer-events-none"
+      }`}
+      onClick={handleClose}
     >
       <div
-        className="bg-[#EACEAA] rounded-tr-3xl rounded-bl-3xl w-full max-w-3xl overflow-hidden shadow-2xl relative max-h-[92vh] overflow-y-auto"
-        style={{ zIndex: 10001 }}
+        className={`bg-[#EACEAA] rounded-tr-3xl rounded-bl-3xl w-full max-w-3xl overflow-hidden shadow-2xl relative max-h-[92vh] overflow-y-auto transform transition-all duration-300 cubic-bezier(0.16, 1, 0.3, 1) ${
+          isOpen
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-95 translate-y-4"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
+        {/* Close Button with Smooth Rotation Hover */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Close modal"
-          className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-[#34150F] text-[#EACEAA] hover:bg-[#85431E] flex items-center justify-center transition-transform hover:scale-110 active:scale-95 shadow-xl"
+          className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-[#34150F] text-[#EACEAA] hover:bg-[#85431E] flex items-center justify-center transition-all duration-300 hover:rotate-90 hover:scale-110 active:scale-90 shadow-xl cursor-pointer"
         >
           <X size={18} />
         </button>
@@ -95,8 +124,8 @@ export function QuickViewModal({
         <div className="flex flex-col md:flex-row">
           {/* Image & Thumbnails Gallery Section */}
           <div className="w-full md:w-1/2 p-5 flex flex-col justify-between bg-[#f0ddbf] flex-shrink-0">
-            {/* Main Preview Image */}
-            <div className="relative w-full h-64 md:h-72 rounded-tr-2xl rounded-bl-2xl overflow-hidden bg-[#EACEAA]/40 shadow-inner flex items-center justify-center">
+            {/* Main Preview Image with Hover Zoom Micro-interaction */}
+            <div className="relative w-full h-64 md:h-72 rounded-tr-2xl rounded-bl-2xl overflow-hidden bg-[#EACEAA]/40 shadow-inner flex items-center justify-center group">
               {imgErrored[activeImageIdx] || !activeSrc ? (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-[#34150F]/10">
                   <Package size={42} className="text-[#85431E]/40 mb-1" />
@@ -107,7 +136,9 @@ export function QuickViewModal({
                   src={activeSrc}
                   alt={product.name}
                   onError={() => setImgErrored((prev) => ({ ...prev, [activeImageIdx]: true }))}
-                  className="w-full h-full object-cover transition-all duration-300"
+                  className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+                    isImgChanging ? "opacity-30 scale-98" : "opacity-100 scale-100"
+                  }`}
                 />
               )}
 
@@ -123,15 +154,15 @@ export function QuickViewModal({
                 <>
                   <button
                     type="button"
-                    onClick={() => setActiveImageIdx((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#34150F]/70 text-[#EACEAA] flex items-center justify-center hover:bg-[#34150F] transition-colors"
+                    onClick={() => handleThumbnailClick(activeImageIdx > 0 ? activeImageIdx - 1 : galleryImages.length - 1)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#34150F]/75 text-[#EACEAA] flex items-center justify-center hover:bg-[#34150F] active:scale-90 transition-all shadow-md"
                   >
                     <ChevronLeft size={16} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveImageIdx((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#34150F]/70 text-[#EACEAA] flex items-center justify-center hover:bg-[#34150F] transition-colors"
+                    onClick={() => handleThumbnailClick(activeImageIdx < galleryImages.length - 1 ? activeImageIdx + 1 : 0)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#34150F]/75 text-[#EACEAA] flex items-center justify-center hover:bg-[#34150F] active:scale-90 transition-all shadow-md"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -139,17 +170,17 @@ export function QuickViewModal({
               )}
             </div>
 
-            {/* Gallery Thumbnails Switcher */}
+            {/* Gallery Thumbnails Switcher with Smooth Micro-scale */}
             {galleryImages.length > 1 && (
               <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-1 scrollbar-none justify-center">
                 {galleryImages.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setActiveImageIdx(idx)}
-                    className={`w-12 h-12 rounded-tr-lg rounded-bl-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    onClick={() => handleThumbnailClick(idx)}
+                    className={`w-12 h-12 rounded-tr-lg rounded-bl-lg overflow-hidden border-2 transition-all duration-200 flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95 ${
                       activeImageIdx === idx
-                        ? "border-[#34150F] scale-105 shadow-md"
+                        ? "border-[#34150F] scale-105 shadow-md ring-2 ring-[#D39858]/40"
                         : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
@@ -178,29 +209,32 @@ export function QuickViewModal({
                 {product.name}
               </h3>
 
-              {/* Material tag */}
-              {materialText && (
-                <span className="inline-block bg-[#34150F]/10 text-[#85431E] text-xs font-bold px-3 py-1 rounded-full mb-4">
-                  Material: {materialText}
+              {/* Dynamic Material, Stock Status & Review Rating */}
+              <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+                <span className="inline-block bg-[#34150F]/10 text-[#85431E] text-xs font-bold px-3 py-1 rounded-full">
+                  Material: {product.material || (product as any).finish || ((product as any).specifications?.material) || "Solid Brass / Stainless Steel"}
                 </span>
-              )}
 
-              {/* Rating stars */}
-              <div className="flex items-center gap-1.5 mb-4">
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      size={14}
-                      fill={s <= (product.rating || 5) ? "#D39858" : "none"}
-                      stroke="#D39858"
-                      strokeWidth={1.5}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-bold text-[#85431E]">
-                  ({product.rating || 5}.0) • Verified PRC Quality
+                <span className={`inline-block text-xs font-extrabold px-3 py-1 rounded-full border ${stockInfo.badgeClass}`}>
+                  {stockInfo.label}
                 </span>
+
+                <div className="flex items-center gap-1.5">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={14}
+                        fill={s <= Math.round(Number(product.rating || 5)) ? "#D39858" : "none"}
+                        stroke="#D39858"
+                        strokeWidth={1.5}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-bold text-[#85431E]">
+                    review ({Number(product.rating || 5.0).toFixed(1)})
+                  </span>
+                </div>
               </div>
 
               {/* Price Row */}
@@ -229,30 +263,30 @@ export function QuickViewModal({
               </div>
 
               {/* Description */}
-              <p className="text-xs text-[#85431E] leading-relaxed mb-6">
-                {product.description ||
-                  (product as any).shortDesc ||
-                  "Precision-engineered architectural fitting manufactured with premium grade materials. Perfect for modern residential and commercial interiors."}
-              </p>
+              {(product.description || (product as any).shortDesc) && (
+                <p className="text-xs text-[#85431E] leading-relaxed mb-6">
+                  {product.description || (product as any).shortDesc}
+                </p>
+              )}
 
               {/* Quantity selector */}
               <div className="flex items-center gap-4 mb-6">
                 <span className="text-xs font-bold text-[#34150F]">Quantity:</span>
-                <div className="flex items-center border border-[#85431E]/30 rounded-tr-lg rounded-bl-lg overflow-hidden bg-[#f5e8d4]">
+                <div className="flex items-center border border-[#85431E]/30 rounded-tr-lg rounded-bl-lg overflow-hidden bg-[#f5e8d4] shadow-xs">
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="px-3 py-1.5 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
+                    className="px-3 py-1.5 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] active:scale-90 transition-all duration-150 cursor-pointer"
                   >
                     -
                   </button>
-                  <span className="px-4 py-1.5 text-xs font-black text-[#34150F]">
+                  <span className="px-4 py-1.5 text-xs font-black text-[#34150F] select-none min-w-[32px] text-center">
                     {quantity}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="px-3 py-1.5 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
+                    className="px-3 py-1.5 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] active:scale-90 transition-all duration-150 cursor-pointer"
                   >
                     +
                   </button>
@@ -266,13 +300,18 @@ export function QuickViewModal({
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className={`flex-1 py-3 px-5 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
-                    added
-                      ? "bg-emerald-600 text-white"
-                      : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
+                  disabled={!stockInfo.isAvailable}
+                  className={`flex-1 py-3.5 px-5 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 shadow-md active:scale-95 cursor-pointer ${
+                    !stockInfo.isAvailable
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300"
+                      : added
+                      ? "bg-emerald-600 text-white scale-102"
+                      : "bg-[#34150F] text-[#EACEAA] hover:bg-[#85431E] hover:shadow-lg"
                   }`}
                 >
-                  {added ? (
+                  {!stockInfo.isAvailable ? (
+                    "Out of Stock"
+                  ) : added ? (
                     <>
                       <Check size={16} /> Added to Cart!
                     </>
@@ -287,7 +326,7 @@ export function QuickViewModal({
                   type="button"
                   onClick={() => onWishlist(product)}
                   aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                  className={`px-4 rounded-tr-xl rounded-bl-xl border border-[#85431E] transition-all flex items-center justify-center ${
+                  className={`px-4 rounded-tr-xl rounded-bl-xl border border-[#85431E] transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 ${
                     wishlisted
                       ? "bg-red-50 text-red-500 border-red-200"
                       : "bg-[#f5e8d4] text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA]"
@@ -317,17 +356,13 @@ export function QuickViewModal({
   return createPortal(modalContent, document.body);
 }
 
-/* Helper hook to generate gallery images list */
+/* Helper hook to generate gallery images list from product.images */
 function useMemoGallery(product: Product): string[] {
-  if (product.images && product.images.length > 0) {
-    return product.images;
+  const imgs = (product as any).images || product.images;
+  if (Array.isArray(imgs) && imgs.length > 0) {
+    const validList = imgs.filter((img: any) => typeof img === "string" && img.trim().length > 0);
+    if (validList.length > 0) return validList;
   }
-  // Generate sample alternative perspective angles if single image
-  const main = product.image;
-  if (!main) return [];
-  return [
-    main,
-    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&h=600&fit=crop&auto=format",
-  ];
+  const single = (product as any).thumbnail || product.image;
+  return single ? [single] : [];
 }

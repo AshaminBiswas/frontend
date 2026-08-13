@@ -1,14 +1,15 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, Component, ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '../context/AuthContext';
+import { AuthProvider } from '../context/AuthContext';
 import { AuthModal } from '../components/auth/AuthModal';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { ScrollToTop } from '../components/common/ScrollToTop';
+import { CartDrawer } from '../components/cart/CartDrawer';
 
-// Pages — eagerly loaded (core)
+// Eagerly imported pages for instantaneous, zero-error reloading across all routes
 import { HomePage } from '../pages/HomePage';
 import { ProductsCatalogPage } from '../pages/ProductsCatalogPage';
 import { ProductDetailPage } from '../pages/ProductDetailPage';
@@ -21,67 +22,60 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { AppointmentsPage } from '../pages/AppointmentsPage';
 import { RequestQuotePage } from '../pages/RequestQuotePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { WishlistPage } from '../pages/WishlistPage';
+import { BestSellersPage } from '../pages/BestSellersPage';
+import { NewArrivalsPage } from '../pages/NewArrivalsPage';
+import { OffersPage } from '../pages/OffersPage';
+import { NotificationsPage } from '../pages/NotificationsPage';
+import { TrackOrderPage } from '../pages/TrackOrderPage';
+import { AboutPage } from '../pages/AboutPage';
+import { ContactPage } from '../pages/ContactPage';
+import { PolicyPage } from '../pages/PolicyPage';
+import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
+import { RefundPolicyPage } from '../pages/RefundPolicyPage';
+import { ShippingPolicyPage } from '../pages/ShippingPolicyPage';
+import { TermsOfServicePage } from '../pages/TermsOfServicePage';
+import { FaqPage } from '../pages/FaqPage';
+import { WarrantyClaimPage } from '../pages/WarrantyClaimPage';
 
-// Pages — lazy loaded (new)
-const WishlistPage = lazy(() =>
-  import('../pages/WishlistPage').then(m => ({ default: m.WishlistPage }))
-);
-const BestSellersPage = lazy(() =>
-  import('../pages/BestSellersPage').then(m => ({ default: m.BestSellersPage }))
-);
-const NewArrivalsPage = lazy(() =>
-  import('../pages/NewArrivalsPage').then(m => ({ default: m.NewArrivalsPage }))
-);
-const OffersPage = lazy(() =>
-  import('../pages/OffersPage').then(m => ({ default: m.OffersPage }))
-);
-const NotificationsPage = lazy(() =>
-  import('../pages/NotificationsPage').then(m => ({ default: m.NotificationsPage }))
-);
-const TrackOrderPage = lazy(() =>
-  import('../pages/TrackOrderPage').then(m => ({ default: m.TrackOrderPage }))
-);
-const AboutPage = lazy(() =>
-  import('../pages/AboutPage').then(m => ({ default: m.AboutPage }))
-);
-const ContactPage = lazy(() =>
-  import('../pages/ContactPage').then(m => ({ default: m.ContactPage }))
-);
-const PolicyPage = lazy(() =>
-  import('../pages/PolicyPage').then(m => ({ default: m.PolicyPage }))
-);
-const PrivacyPolicyPage = lazy(() =>
-  import('../pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage }))
-);
-const RefundPolicyPage = lazy(() =>
-  import('../pages/RefundPolicyPage').then(m => ({ default: m.RefundPolicyPage }))
-);
-const ShippingPolicyPage = lazy(() =>
-  import('../pages/ShippingPolicyPage').then(m => ({ default: m.ShippingPolicyPage }))
-);
-const TermsOfServicePage = lazy(() =>
-  import('../pages/TermsOfServicePage').then(m => ({ default: m.TermsOfServicePage }))
-);
-const FaqPage = lazy(() =>
-  import('../pages/FaqPage').then(m => ({ default: m.FaqPage }))
-);
-const WarrantyClaimPage = lazy(() =>
-  import('../pages/WarrantyClaimPage').then(m => ({ default: m.WarrantyClaimPage }))
-);
-
-const CartDrawer = lazy(() =>
-  import('../components/cart/CartDrawer').then(m => ({ default: m.CartDrawer }))
-);
-
-function PageLoader() {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center bg-[#EACEAA]">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 bg-[#34150F] rounded-tr-2xl rounded-bl-2xl animate-pulse" />
-        <p className="text-[#85431E] text-sm font-semibold" style={{ fontFamily: "'Nunito', sans-serif" }}>Loading...</p>
-      </div>
-    </div>
-  );
+// Error Boundary Component to prevent white screens on reload
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error('[PRC Frontend ErrorBoundary]:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#EACEAA] flex flex-col items-center justify-center p-6 text-center" style={{ fontFamily: "'Nunito', sans-serif" }}>
+          <div className="bg-[#f5e8d4] p-8 rounded-tr-3xl rounded-bl-3xl border border-[rgba(52,21,15,0.12)] max-w-md shadow-xl space-y-4">
+            <h2 className="text-xl font-extrabold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
+              Unable to load view
+            </h2>
+            <p className="text-xs text-[#85431E] leading-relaxed">
+              We encountered a temporary network issue during page reload. Please click below to refresh the page.
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false });
+                window.location.reload();
+              }}
+              className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function AppContent() {
@@ -94,7 +88,8 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSelectCategory = (categoryName: string) => {
-    navigate(`/products?category=${encodeURIComponent(categoryName)}`);
+    const slug = categoryName.toLowerCase().trim().replace(/\s+/g, '-');
+    navigate(`/category/${slug}`);
   };
 
   const handleClearCart = () => {
@@ -118,7 +113,7 @@ function AppContent() {
           onAddToCart={addToCart}
         />
 
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary>
           <Routes>
             {/* Core routes */}
             <Route path="/" element={<HomePage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} onSelectCategory={handleSelectCategory} />} />
@@ -138,13 +133,14 @@ function AppContent() {
             <Route path="/services/appointments" element={<AppointmentsPage />} />
             <Route path="/request-quote" element={<RequestQuotePage />} />
 
-            {/* New routes */}
+            {/* Navigation routes */}
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/track-order" element={<TrackOrderPage />} />
             <Route path="/track-order/:orderId" element={<TrackOrderPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            {/* Dedicated Policy Routes */}
+
+            {/* Policy & FAQ Routes */}
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/faqs" element={<FaqPage />} />
             <Route path="/warranty-claim" element={<WarrantyClaimPage />} />
@@ -158,16 +154,14 @@ function AppContent() {
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        </Suspense>
+        </ErrorBoundary>
       </div>
 
       <Footer />
 
       {/* Cart Drawer */}
       {cartOpen && (
-        <Suspense fallback={null}>
-          <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onRemove={removeFromCart} onQty={changeQty} />
-        </Suspense>
+        <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onRemove={removeFromCart} onQty={changeQty} />
       )}
 
       {/* Auth Modal */}

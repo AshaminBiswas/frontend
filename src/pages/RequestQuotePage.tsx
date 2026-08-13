@@ -10,7 +10,9 @@ const ALL_PRODUCTS = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_
 export function RequestQuotePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, openAuthModal } = useAuth();
+
+  const isB2B = !!(user && (user.companyName || user.gstin || user.role === "B2B"));
 
   const productId = searchParams.get("productId") || "";
   const initialQty = searchParams.get("qty") || "50";
@@ -28,6 +30,7 @@ export function RequestQuotePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isB2B) return;
     const ref = `QTE-${Date.now().toString().slice(-6)}`;
     setQuoteRef(ref);
 
@@ -45,6 +48,66 @@ export function RequestQuotePage() {
 
     setSubmitted(true);
   };
+
+  if (!isB2B) {
+    return (
+      <div className="min-h-screen bg-[#EACEAA]/20 py-12 px-4 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <div className="max-w-2xl mx-auto">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-[#85431E] hover:text-[#34150F] font-bold text-xs mb-6 transition-colors"
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
+
+          <div className="bg-white rounded-tr-3xl rounded-bl-3xl p-8 border border-[#34150F]/8 shadow-sm text-center">
+            <div className="w-16 h-16 bg-[#34150F]/10 text-[#34150F] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Building2 size={32} />
+            </div>
+            <h1 className="text-2xl font-black text-[#34150F] mb-2" style={{ fontFamily: "'Gilda Display', serif" }}>
+              B2B & Wholesale Quotes Restricted
+            </h1>
+            <p className="text-xs text-[#85431E] max-w-md mx-auto mb-6 leading-relaxed">
+              Custom bulk price negotiation and B2B quotes are reserved exclusively for verified business accounts with GSTIN and Company credentials.
+            </p>
+
+            {user ? (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-amber-800 bg-amber-50 p-3 rounded-tr-xl rounded-bl-xl border border-amber-200">
+                  Logged in as retail customer (<strong>{user.email}</strong>). Please update your profile with company & GSTIN details to activate B2B access.
+                </p>
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center gap-2 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
+                >
+                  Update Profile to B2B Account
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openAuthModal("login")}
+                  className="w-full sm:w-auto bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
+                >
+                  Sign In to B2B Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAuthModal("register")}
+                  className="w-full sm:w-auto bg-[#D39858] text-[#34150F] font-bold text-xs px-6 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#34150F] hover:text-[#EACEAA] transition-all shadow"
+                >
+                  Register Business Account
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-[#EACEAA]/20 py-8 px-4 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>

@@ -53,9 +53,12 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
   }, 0);
 
   const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.discount) / 100) : 0;
-  const grandTotal = Math.max(0, subtotal - discountAmount);
+  const productSubtotal = Math.max(0, subtotal - discountAmount);
+  const gstAmount = Math.round(productSubtotal * 0.18);
+  const freeShipping = productSubtotal >= 2000;
+  const amountNeededForFreeShipping = Math.max(0, 2000 - productSubtotal);
+  const grandTotal = productSubtotal + gstAmount;
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
-  const freeShipping = grandTotal >= 2000;
 
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,13 +310,15 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
                 {!freeShipping && (
                   <div>
                     <div className="flex justify-between text-[10px] text-[#85431E] mb-1.5">
-                      <span className="font-semibold">Add ₹{(2000 - grandTotal).toLocaleString("en-IN")} more for free shipping</span>
+                      <span className="font-semibold">
+                        Add ₹{amountNeededForFreeShipping.toLocaleString("en-IN")} more for free shipping
+                      </span>
                       <span className="font-bold">₹2,000</span>
                     </div>
                     <div className="h-1.5 bg-[#EACEAA] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-[#D39858] rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (grandTotal / 2000) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (productSubtotal / 2000) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -338,20 +343,23 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-[#85431E] font-semibold">Shipping</span>
+                    <span className="text-[#85431E] font-semibold">GST (18%)</span>
+                    <span className="text-[#34150F] font-bold">+₹{gstAmount.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#85431E] font-semibold">Shipping Fee</span>
                     <span className={freeShipping ? "text-emerald-600 font-bold" : "text-[#34150F] font-bold"}>
                       {freeShipping ? "FREE" : "Calculated at checkout"}
                     </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#85431E] font-semibold">GST</span>
-                    <span className="text-[#34150F] font-bold">{isB2B ? "B2B Input Tax Credit" : "Included"}</span>
                   </div>
                 </div>
 
                 {/* Grand Total */}
                 <div className="bg-[#34150F] rounded-tr-xl rounded-bl-xl px-4 py-3 flex justify-between items-center">
-                  <span className="text-[#EACEAA]/80 text-xs font-semibold">Total Amount</span>
+                  <div>
+                    <span className="text-[#EACEAA]/80 text-xs font-semibold block">Total Amount</span>
+                    <span className="text-[10px] text-[#D39858]/80 font-medium">Includes 18% GST</span>
+                  </div>
                   <span
                     className="text-[#D39858] text-xl font-black"
                     style={{ fontFamily: "'DM Mono', monospace" }}

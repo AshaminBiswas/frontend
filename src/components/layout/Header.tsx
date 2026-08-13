@@ -39,7 +39,13 @@ export function Header({
   const navigate = useNavigate();
   const [notifCount, setNotifCount] = useState(0);
 
+
+  const isB2B = !!(user && (user.companyName || user.gstin || user.role === 'B2B'));
+  const visibleNavLinks = NAV_LINKS.filter((link) => link !== 'B2B / Bulk' || isB2B);
+
   // Poll unread notification count every 60s for authenticated users
+
+
   useEffect(() => {
     if (!isAuthenticated) { setNotifCount(0); return; }
     const fetchCount = async () => {
@@ -89,7 +95,7 @@ export function Header({
         {/* Drawer Nav Links — scrollable */}
         <nav className="flex-1 overflow-y-auto py-3">
           <ul className="flex flex-col">
-            {NAV_LINKS.map((link) => {
+            {visibleNavLinks.map((link) => {
               if (link === 'By Category') return <CategoryDropdown key={link} onSelectCategory={(cat) => { navigate(`/products?category=${encodeURIComponent(cat)}`); setMenuOpen(false); }} />;
               if (link === 'Products') return <ProductsDropdown key={link} onSelectProduct={(prod) => { navigate(`/products?search=${encodeURIComponent(prod)}`); setMenuOpen(false); }} />;
               if (link === 'By Materials') return <MaterialsDropdown key={link} onSelectMaterial={(mat) => { navigate(`/products?material=${encodeURIComponent(mat)}`); setMenuOpen(false); }} />;
@@ -289,7 +295,7 @@ export function Header({
         {/* Desktop Nav — inline, hidden on mobile */}
         <nav className="hidden md:block border-t border-[#EACEAA]/10">
           <ul className="flex flex-row items-center justify-between px-4 md:px-8 lg:px-16 py-0 overflow-visible relative">
-            {NAV_LINKS.map((link) => {
+            {visibleNavLinks.map((link) => {
               if (link === 'By Category') return <CategoryDropdown key={link} onSelectCategory={(cat) => { navigate(`/products?category=${encodeURIComponent(cat)}`); setMenuOpen(false); }} />;
               if (link === 'Products') return <ProductsDropdown key={link} onSelectProduct={(prod) => { navigate(`/products?search=${encodeURIComponent(prod)}`); setMenuOpen(false); }} />;
               if (link === 'By Materials') return <MaterialsDropdown key={link} onSelectMaterial={(mat) => { navigate(`/products?material=${encodeURIComponent(mat)}`); setMenuOpen(false); }} />;

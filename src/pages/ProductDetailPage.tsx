@@ -10,9 +10,13 @@ import { Product } from "../types";
 import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../data/products";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
+import { getProductStockStatus } from "../utils/stock";
 import { fetchApi } from "../services/api";
 import { ProductCard } from "../components/product/ProductCard";
 import { ProductDetailSkeleton } from "../components/common/Skeletons";
+import { ProductReviewSection } from "../components/review/ProductReviewSection";
+
+import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 
 // Fallback master catalog
 const LOCAL_CATALOG: Product[] = [
@@ -63,66 +67,120 @@ export function ProductDetailPage({
   const [activeTab, setActiveTab] = useState<"SPECS" | "DESC" | "MANUFACTURER" | "REVIEWS">("SPECS");
   const [added, setAdded] = useState(false);
 
-  // 1. Fetch Product by ID or Slug dynamically from Backend API
+  // 1. Fetch Product by ID or Slug dynamically from Backend API & Live Catalog
   useEffect(() => {
-    setLoading(true);
     if (!id) return;
 
-    // Search local catalog by numeric id, apiId, or string id
-    const foundLocal = LOCAL_CATALOG.find(
-      (p) => String(p.id) === String(id) || String((p as any).apiId) === String(id)
-    );
+    const loadProductData = () => {
+      const liveCatalog = getLiveCatalog(LOCAL_CATALOG);
+      const foundLocal = liveCatalog.find(
+        (p) => String(p.id) === String(id) || String((p as any).apiId) === String(id)
+      );
 
-    fetchApi<Product>(`/products/${id}`)
-      .then((res) => {
-        if (res.success && res.data) {
-          const raw = res.data as any;
-          const categoryNameStr = typeof raw.category === 'object' && raw.category?.name
-            ? raw.category.name
-            : (typeof raw.category === 'string' ? raw.category : (foundLocal?.category || "Architectural Hardware"));
+      fetchApi<Product>(`/products/${id}`)
+        .then((res) => {
+          if (res.success && res.data) {
+            const raw = res.data as any;
+            const categoryNameStr = typeof raw.category === 'object' && raw.category?.name
+              ? raw.category.name
+              : (typeof raw.category === 'string' ? raw.category : (foundLocal?.category || "Hardware"));
 
-          const normalized: Product = {
-            ...raw,
-            id: typeof raw.id === 'number' ? raw.id : (foundLocal?.id || parseInt(String(id).replace(/\D/g, ''), 10) || Math.floor(Math.random() * 900000) + 100000),
-            apiId: String(raw._id || raw.id || id),
-            name: raw.name || raw.title || foundLocal?.name || "Architectural Hardware",
-            price: Number(raw.price || raw.mrp || foundLocal?.price || 0),
-            originalPrice: Number(raw.originalPrice || raw.mrp || raw.price || foundLocal?.originalPrice || 0),
-            discount: Number(raw.discount || foundLocal?.discount || 0),
-            image: raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.image || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop",
-            category: categoryNameStr,
-            material: typeof raw.material === 'string' ? raw.material : (raw.specifications?.material || raw.finish || foundLocal?.material || "Solid Brass / Stainless Steel"),
-            description: raw.description || raw.shortDescription || foundLocal?.description || "",
-          };
-          setProduct(normalized);
-          if (normalized.colours && normalized.colours.length > 0) {
-            setSelectedColor(normalized.colours[0]);
+            const salePriceVal = Number(raw.salePrice ?? raw.offerPrice ?? raw.salesPrice ?? raw.price ?? foundLocal?.price ?? 0);
+            const regularPriceVal = Number(raw.price ?? raw.originalPrice ?? raw.regularPrice ?? raw.mrp ?? foundLocal?.originalPrice ?? salePriceVal);
+            const discountVal = regularPriceVal > salePriceVal ? Math.round(((regularPriceVal - salePriceVal) / regularPriceVal) * 100) : Number(raw.discount || foundLocal?.discount || 0);
+
+            const normalized: Product = {
+              ...raw,
+              id: typeof raw.id === 'number' ? raw.id : (foundLocal?.id || parseInt(String(id).replace(/\D/g, ''), 10) || 1),
+              apiId: String(raw._id || raw.id || id),
+              name: raw.name || raw.title || foundLocal?.name || "Product",
+              price: salePriceVal,
+              salePrice: salePriceVal,
+              offerPrice: salePriceVal,
+              regularPrice: regularPriceVal,
+              originalPrice: regularPriceVal,
+              discount: discountVal,
+              thumbnail: raw.thumbnail || raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.thumbnail || foundLocal?.image || "",
+              image: raw.thumbnail || raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.image || "",
+              images: Array.isArray(raw.images) && raw.images.length > 0 ? raw.images : (raw.thumbnail ? [raw.thumbnail] : (foundLocal?.images || [])),
+              category: categoryNameStr,
+              material: typeof raw.material === 'string' ? raw.material : (raw.specifications?.material || raw.finish || foundLocal?.material || "Solid Brass / Stainless Steel"),
+              description: raw.description || raw.shortDesc || raw.shortDescription || foundLocal?.description || "",
+              shortDesc: raw.shortDesc || raw.shortDescription || raw.description || foundLocal?.shortDesc || "",
+              stock: raw.stock !== undefined ? Number(raw.stock) : (foundLocal?.stock ?? 50),
+              reorderLevel: raw.reorderLevel !== undefined ? Number(raw.reorderLevel) : (foundLocal?.reorderLevel ?? 10),
+              inStock: raw.inStock !== undefined ? raw.inStock : foundLocal?.inStock,
+              sku: raw.sku || foundLocal?.sku || "",
+            };
+
+            const finalMerged = foundLocal ? { ...normalized, ...foundLocal } : normalized;
+            setProduct(finalMerged);
+            if (finalMerged.colours && finalMerged.colours.length > 0) {
+              setSelectedColor(finalMerged.colours[0]);
+            }
+          } else if (foundLocal) {
+            setProduct(foundLocal);
           }
-        } else if (foundLocal) {
-          setProduct(foundLocal);
-        } else {
-          // Robust Fallback when API returns 422 or 404
-          const fallbackProduct: Product = {
-            id: parseInt(String(id).replace(/\D/g, ''), 10) || LOCAL_CATALOG[0].id,
-            apiId: String(id),
-            name: `Architectural Hardware Fitting #${String(id).slice(-4)}`,
-            price: 499,
-            originalPrice: 699,
-            discount: 28,
-            image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop&auto=format",
-            category: "Architectural Hardware",
-            material: "Solid Brass & 304 Grade Stainless Steel",
-            description: "High-grade architectural fitting engineered for extreme durability and luxury interior finishing."
-          };
-          setProduct(fallbackProduct);
-        }
-      })
-      .catch(() => {
-        if (foundLocal) setProduct(foundLocal);
-        else setProduct(LOCAL_CATALOG[0]);
-      })
-      .finally(() => setLoading(false));
+        })
+        .catch(() => {
+          if (foundLocal) setProduct(foundLocal);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    };
+
+    setLoading(true);
+    loadProductData();
+    return subscribeToProductSync(loadProductData);
   }, [id]);
+
+  // 2. Automatically update Document Title, Meta Description, and Meta Keywords for SEO from API
+  useEffect(() => {
+    if (!product) return;
+
+    // Meta Title
+    const pageTitle =
+      (product as any).metaTitle ||
+      (product as any).seo?.metaTitle ||
+      `${product.name} | PRC Architectural Hardware`;
+
+    document.title = pageTitle;
+
+    // Meta Description
+    const metaDescText =
+      (product as any).metaDescription ||
+      (product as any).seo?.metaDescription ||
+      product.shortDesc ||
+      (typeof product.description === "string" ? product.description : "") ||
+      `Buy ${product.name} online from PRC Hardware India. Precision architectural fittings.`;
+
+    let metaDescTag = document.querySelector('meta[name="description"]');
+    if (!metaDescTag) {
+      metaDescTag = document.createElement("meta");
+      metaDescTag.setAttribute("name", "description");
+      document.head.appendChild(metaDescTag);
+    }
+    metaDescTag.setAttribute("content", metaDescText);
+
+    // Meta Keywords
+    const metaKeywordsText =
+      (product as any).metaKeywords ||
+      (product as any).seo?.metaKeywords ||
+      `${product.name}, ${product.category || "hardware"}, PRC Hardware, architectural fittings`;
+
+    let metaKeywordsTag = document.querySelector('meta[name="keywords"]');
+    if (!metaKeywordsTag) {
+      metaKeywordsTag = document.createElement("meta");
+      metaKeywordsTag.setAttribute("name", "keywords");
+      document.head.appendChild(metaKeywordsTag);
+    }
+    metaKeywordsTag.setAttribute("content", metaKeywordsText);
+
+    return () => {
+      document.title = "PRC Hardware | Premium Architectural Hardware & Fittings";
+    };
+  }, [product]);
 
   // Gallery Images Array
   const galleryImages = useMemo(() => {
@@ -153,6 +211,7 @@ export function ProductDetailPage({
     wishlist.has(String(product.id)) ||
     ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
   const effective = getEffectivePrice(product, user, qty);
+  const stockInfo = getProductStockStatus(product.stock, (product as any).reorderLevel, (product as any).inStock);
   const discountPercent =
     effective.originalPrice > effective.unitPrice
       ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
@@ -299,7 +358,14 @@ export function ProductDetailPage({
               </h1>
 
               {/* Rating & Reviews */}
-              <div className="flex items-center gap-2 mb-5">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("REVIEWS");
+                  document.getElementById("product-reviews-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="flex items-center gap-2 mb-5 cursor-pointer hover:opacity-80 transition-opacity text-left"
+              >
                 <div className="flex gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
@@ -314,10 +380,11 @@ export function ProductDetailPage({
                 <span className="text-xs font-bold text-[#34150F]">
                   {product.rating || 4.9} ★
                 </span>
-                <span className="text-xs text-[#85431E]/70 font-semibold">
-                  ({(product as any).reviewCount || 48} verified ratings)
+                <span className="text-xs text-[#85431E]/70 font-semibold underline decoration-dotted">
+                  See customer reviews
                 </span>
-              </div>
+              </button>
+
 
               {/* Pricing Box */}
               <div className="bg-[#EACEAA]/40 p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.1)] mb-6">
@@ -412,8 +479,8 @@ export function ProductDetailPage({
                     +
                   </button>
                 </div>
-                <span className="text-xs text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
-                  In Stock ({product.stock ?? 150} Units Available)
+                <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${stockInfo.badgeClass}`}>
+                  {stockInfo.label} ({product.stock ?? 0} Available)
                 </span>
               </div>
             </div>
@@ -424,13 +491,18 @@ export function ProductDetailPage({
                 <button
                   type="button"
                   onClick={handleAddToCart}
+                  disabled={!stockInfo.isAvailable}
                   className={`flex-1 py-3.5 px-6 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
-                    added
+                    !stockInfo.isAvailable
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300 opacity-80"
+                      : added
                       ? "bg-emerald-600 text-white"
                       : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
                   }`}
                 >
-                  {added ? (
+                  {!stockInfo.isAvailable ? (
+                    "Out of Stock"
+                  ) : added ? (
                     <>
                       <Check size={16} /> Added to Cart!
                     </>
@@ -443,11 +515,17 @@ export function ProductDetailPage({
 
                 <button
                   type="button"
+                  disabled={!stockInfo.isAvailable}
                   onClick={() => {
+                    if (!stockInfo.isAvailable) return;
                     handleAddToCart();
                     navigate("/checkout");
                   }}
-                  className="bg-[#D39858] text-[#34150F] font-black text-xs py-3.5 px-6 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all shadow-md active:scale-95"
+                  className={`font-black text-xs py-3.5 px-6 rounded-tr-xl rounded-bl-xl transition-all shadow-md active:scale-95 ${
+                    !stockInfo.isAvailable
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed hidden"
+                      : "bg-[#D39858] text-[#34150F] hover:bg-[#EACEAA]"
+                  }`}
                 >
                   Buy Now →
                 </button>
@@ -476,7 +554,8 @@ export function ProductDetailPage({
       </div>
 
       {/* ═══════════════ TABBED SPECIFICATIONS & SCHEMA DETAILS ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 pb-16">
+      <section id="product-reviews-section" className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 pb-16">
+
         <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-6 md:p-8 border border-[rgba(52,21,15,0.08)] shadow-sm">
 
           {/* Tab Strip */}
@@ -552,62 +631,30 @@ export function ProductDetailPage({
                 <p className="text-sm font-black text-[#34150F]">India</p>
               </div>
               <div className="p-4 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
-                <p className="text-[10px] font-bold text-[#85431E] uppercase">HSN Code / Tax Slab</p>
-                <p className="text-sm font-black text-[#34150F]">8302.42.00 (18% GST Applicable)</p>
+                <p className="text-[10px] font-bold text-[#85431E] uppercase">Manufacturer / Dispatch Address</p>
+                <p className="text-sm font-black text-[#34150F]">
+                  {(product as any).manufacturerInfo?.address || (product as any).address || "H -3, J.R. COMPLEX GATE NO 4, MELA RAM FARM, MANDOLI, DELHI 110093, INDIA"}
+                </p>
               </div>
               <div className="p-4 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
                 <p className="text-[10px] font-bold text-[#85431E] uppercase">Quality Standards</p>
-                <p className="text-sm font-black text-[#34150F]">IS 2062 / Grade 304 Certified</p>
+                <p className="text-sm font-black text-[#34150F]">
+                  {(product as any).manufacturerInfo?.qualityStandards || (product as any).qualityStandards || "ISO 9001 : 2015"}
+                </p>
               </div>
             </div>
           )}
 
           {/* TAB 4: CUSTOMER REVIEWS */}
           {activeTab === "REVIEWS" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="flex flex-col md:flex-row items-center justify-between bg-[#EACEAA]/40 p-6 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] gap-4">
-                <div className="text-center md:text-left">
-                  <p className="text-4xl font-black text-[#34150F]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    {product.rating || 4.9} / 5.0
-                  </p>
-                  <div className="flex gap-1 justify-center md:justify-start my-1">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} size={16} fill="#D39858" stroke="#D39858" />
-                    ))}
-                  </div>
-                  <p className="text-xs text-[#85431E] font-semibold">Based on verified customer orders</p>
-                </div>
-
-                <Link
-                  to="/contact"
-                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
-                >
-                  Write a Product Review
-                </Link>
-              </div>
-
-              {/* Sample Review Cards */}
-              <div className="space-y-3">
-                {[
-                  { name: "Rahul Deshmukh", date: "2 weeks ago", rating: 5, comment: "Installed these handles on our oak cabinet doors. Solid weight and smooth finish." },
-                  { name: "Siddharth Jain", date: "1 month ago", rating: 5, comment: "Excellent build quality. Order arrived in 2 days in perfect condition." },
-                ].map((rev, i) => (
-                  <div key={i} className="p-4 bg-[#EACEAA]/20 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-[#34150F]">{rev.name}</span>
-                      <span className="text-[10px] text-[#85431E]/60">{rev.date}</span>
-                    </div>
-                    <div className="flex gap-0.5 mb-2">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} size={12} fill={s <= rev.rating ? "#D39858" : "none"} stroke="#D39858" />
-                      ))}
-                    </div>
-                    <p className="text-xs text-[#85431E] italic">&ldquo;{rev.comment}&rdquo;</p>
-                  </div>
-                ))}
-              </div>
+            <div className="animate-in fade-in duration-200">
+              <ProductReviewSection
+                productId={(product as any).apiId || String(product.id) || id || ""}
+                productName={product.name}
+              />
             </div>
           )}
+
 
         </div>
       </section>

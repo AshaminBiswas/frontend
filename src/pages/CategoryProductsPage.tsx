@@ -2,14 +2,20 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Filter, ArrowUpDown, ArrowLeft } from "lucide-react";
 import { Product } from "../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../data/products";
+import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS, CUBICLE_HARDWARE_PRODUCTS, LOCKER_HARDWARE_PRODUCTS } from "../data/products";
 import { useAuth } from "../context/AuthContext";
 import { getCategoryBySlugApi, ApiCategoryDetail } from "../services/categoryService";
 import { getProductsByCategorySlugApi } from "../services/productService";
 import { ProductCard } from "../components/product/ProductCard";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 
-const ALL_PRODUCTS: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
+const ALL_PRODUCTS: Product[] = [
+  ...SUPER_SAVER_PRODUCTS,
+  ...VALUE_MONEY_PRODUCTS,
+  ...BEST_SELLER_PRODUCTS,
+  ...CUBICLE_HARDWARE_PRODUCTS,
+  ...LOCKER_HARDWARE_PRODUCTS,
+];
 
 // In-memory cache for category metadata to prevent re-loading flicker on category switches
 const categoryCacheMap = new Map<string, ApiCategoryDetail>();
@@ -100,21 +106,30 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
 
   const filteredProducts = useMemo(() => {
     let baseList = apiProducts.length > 0
-      ? apiProducts
+      ? apiProducts.filter((p) => {
+          if (!slug) return true;
+          const catStr = (p.category || "").toLowerCase();
+          const targetSlug = slug.toLowerCase().replace(/-/g, ' ');
+          if (targetSlug.includes("cubicle")) return catStr.includes("cubicle");
+          if (targetSlug.includes("locker")) return catStr.includes("locker");
+          return catStr.includes(targetSlug) || targetSlug.includes(catStr);
+        })
       : ALL_PRODUCTS.filter((p) => {
           const catStr = (p.category || "").toLowerCase();
-          const targetSlug = (slug || "").toLowerCase();
+          const targetSlug = (slug || "").toLowerCase().replace(/-/g, ' ');
           const targetName = categoryName.toLowerCase();
+          if (targetSlug.includes("cubicle") || targetName.includes("cubicle")) {
+            return catStr.includes("cubicle");
+          }
+          if (targetSlug.includes("locker") || targetName.includes("locker")) {
+            return catStr.includes("locker");
+          }
           return (
             catStr.includes(targetSlug) ||
             catStr.includes(targetName) ||
             targetSlug.includes(catStr)
           );
         });
-
-    if (baseList.length === 0 && ALL_PRODUCTS.length > 0) {
-      baseList = ALL_PRODUCTS.slice(0, 8);
-    }
 
     return [...baseList].sort((a, b) => {
       const priceA = a.price || 0;
@@ -131,14 +146,13 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
       <div className="max-w-7xl mx-auto">
 
         {/* Back Link */}
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[#85431E] hover:text-[#34150F] font-bold text-xs mb-6 transition-colors group"
+        <Link
+          to="/categories"
+          className="inline-flex items-center gap-2 text-[#85431E] hover:text-[#34150F] font-bold text-xs mb-6 transition-colors group"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
           <span>Back to All Categories</span>
-        </button>
+        </Link>
 
         {/* Controls Bar */}
         <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-4 shadow-sm border border-[#34150F]/8 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">

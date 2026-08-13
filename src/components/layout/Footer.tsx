@@ -2,10 +2,24 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
 import { Reveal } from '../common/Reveal';
+import { useAuth } from '../../context/AuthContext';
 
 export function Footer() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+
+  const isB2B = !!(user && (user.companyName || user.gstin || user.role === 'B2B'));
+
+  const quickLinks = [
+    { label: 'About Us', to: '/about' },
+    { label: 'Contact Us', to: '/contact' },
+    { label: 'Products', to: '/products' },
+    { label: "FAQ's", to: '/faq' },
+    { label: 'Book Appointment', to: '/services/appointments' },
+    ...(isB2B ? [{ label: 'Bulk Order / B2B', to: '/request-quote' }] : []),
+  ];
+
 
   return (
     <footer className="bg-[#34150F] border-t border-[#EACEAA]/10">
@@ -33,14 +47,8 @@ export function Footer() {
           <div>
             <h4 className="text-[#D39858] font-bold text-base mb-4 uppercase tracking-wider">Quick Links</h4>
             <ul className="space-y-2.5">
-              {[
-                { label: 'About Us', to: '/about' },
-                { label: 'Contact Us', to: '/contact' },
-                { label: 'Products', to: '/products' },
-                { label: "FAQ's", to: '/faq' },
-                { label: 'Book Appointment', to: '/services/appointments' },
-                { label: 'Bulk Order / B2B', to: '/request-quote' },
-              ].map(({ label, to }) => (
+
+              {quickLinks.map(({ label, to }) => (
                 <li key={label}>
                   <Link to={to} className="text-[#EACEAA]/65 text-sm hover:text-[#D39858] transition-colors">
                     {label}
@@ -48,6 +56,8 @@ export function Footer() {
                 </li>
               ))}
             </ul>
+
+
           </div>
         </Reveal>
 

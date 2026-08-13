@@ -129,6 +129,18 @@ export const BEST_SELLER_PRODUCTS: Product[] = [
   { id: 15, name: "Matte Black T-Bar Handle", price: 599, originalPrice: 950, discount: 36, image: "https://images.unsplash.com/photo-1556909048-f6d8e1e4b5e7?w=400&h=400&fit=crop&auto=format", category: "Handles", material: "Aluminium", description: "Minimalist architect-grade matte black T-bar cabinet pull." },
 ];
 
+export const CUBICLE_HARDWARE_PRODUCTS: Product[] = [
+  { id: 101, name: "Office Cubicle Privacy Lock & Indicator Set", price: 899, originalPrice: 1499, discount: 40, image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=400&fit=crop&auto=format", category: "Cubicle Hardware", material: "304 Grade Steel", description: "Heavy-duty stainless steel indicator latch and occupancy lock set for toilet and office cubicles." },
+  { id: 102, name: "Adjustable Stainless Steel Cubicle Support Leg", price: 649, originalPrice: 1099, discount: 41, image: "https://images.unsplash.com/photo-1497366412874-3415097a27e7?w=400&h=400&fit=crop&auto=format", category: "Cubicle Hardware", material: "316 Grade Steel", description: "Height-adjustable marine grade stainless steel support leg for commercial partition panels." },
+  { id: 103, name: "Heavy-Duty Cubicle Hinge & Latch Kit", price: 799, originalPrice: 1299, discount: 38, image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&h=400&fit=crop&auto=format", category: "Cubicle Hardware", material: "304 Grade Steel", description: "Gravity fall-close cubicle door hinge set with integrated bumper stop." },
+  { id: 104, name: "Glass Partition Corner Clamp Bracket", price: 549, originalPrice: 899, discount: 39, image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop&auto=format", category: "Cubicle Hardware", material: "Aluminium", description: "Precision machined 90-degree corner bracket clamp for glass cubicles and office dividers." },
+];
+
+export const LOCKER_HARDWARE_PRODUCTS: Product[] = [
+  { id: 201, name: "Digital Cam Lock for Gym & School Lockers", price: 1299, originalPrice: 2199, discount: 41, image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&h=400&fit=crop&auto=format", category: "Locker Hardware", material: "Nylon Polyamide 6", description: "Keyless electronic PIN combo cam lock engineered for gym lockers, spas, and office storage." },
+  { id: 202, name: "Heavy Duty Stainless Steel Locker Hasp & Latch", price: 349, originalPrice: 599, discount: 42, image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=400&fit=crop&auto=format", category: "Locker Hardware", material: "304 Grade Steel", description: "Padlockable heavy gauge stainless steel hasp latch for metal and wooden lockers." },
+];
+
 export const TESTIMONIALS: Testimonial[] = [
   {
     id: 1,

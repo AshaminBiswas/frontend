@@ -10,6 +10,10 @@ export interface EffectivePriceResult {
   tierName?: string;
 }
 
+export function isB2BUser(user: User | null): boolean {
+  return !!(user && (user.companyName || user.gstin || user.role === "B2B"));
+}
+
 /**
  * Calculates the effective price for a product based on user account type (B2C vs B2B)
  * and purchase quantity.
@@ -19,7 +23,7 @@ export function getEffectivePrice(
   user: User | null,
   qty: number = 1
 ): EffectivePriceResult {
-  const isB2B = !!(user && (user.companyName || user.gstin || user.role === "B2B"));
+  const isB2B = isB2BUser(user);
   const basePrice = Number(product.price || (product as any).salePrice || (product as any).unitPrice || 0);
   const originalPrice = Number(product.originalPrice || (product as any).mrp || (product as any).compareAtPrice || (product as any).regularPrice || (product as any).listPrice || basePrice);
 
@@ -48,7 +52,7 @@ export function getEffectivePrice(
 
   const totalPrice = unitPrice * qty;
   const savings = Math.max(0, originalPrice - unitPrice) * qty;
-  const b2bDiscountPercent = Math.round(((originalPrice - unitPrice) / originalPrice) * 100);
+  const b2bDiscountPercent = isB2B && originalPrice > 0 ? Math.round(((originalPrice - unitPrice) / originalPrice) * 100) : 0;
 
   return {
     unitPrice,
@@ -60,3 +64,4 @@ export function getEffectivePrice(
     tierName,
   };
 }
+

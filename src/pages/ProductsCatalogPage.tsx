@@ -6,17 +6,19 @@ import {
   ChevronRight, Star, Flame, ShieldCheck, Truck, Layers
 } from "lucide-react";
 import { Product } from "../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../data/products";
+import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS, CUBICLE_HARDWARE_PRODUCTS, LOCKER_HARDWARE_PRODUCTS } from "../data/products";
 import { QuickViewModal } from "../components/product/QuickViewModal";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
-import { fetchApi } from "../services/api";
-import { ProductGridSkeleton } from "../components/common/Skeletons";
+import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
+import { ProductCard } from "../components/product/ProductCard";
 
 const LOCAL_PRODUCTS: Product[] = [
   ...SUPER_SAVER_PRODUCTS,
   ...VALUE_MONEY_PRODUCTS,
   ...BEST_SELLER_PRODUCTS,
+  ...CUBICLE_HARDWARE_PRODUCTS,
+  ...LOCKER_HARDWARE_PRODUCTS,
 ];
 
 /* ── Safe Image Thumbnail ── */
@@ -54,8 +56,14 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [products, setProducts] = useState<Product[]>(LOCAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(() => getLiveCatalog(LOCAL_PRODUCTS));
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const refresh = () => setProducts(getLiveCatalog(LOCAL_PRODUCTS));
+    refresh();
+    return subscribeToProductSync(refresh);
+  }, []);
 
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
@@ -111,8 +119,16 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
         const matchesMat = p.material && p.material.toLowerCase().includes(query);
         if (!matchesName && !matchesCat && !matchesMat) return false;
       }
-      if (categoryFilter && p.category?.toLowerCase() !== categoryFilter.toLowerCase()) {
-        return false;
+      if (categoryFilter) {
+        const catStr = (p.category || "").toLowerCase();
+        const targetFilter = categoryFilter.toLowerCase();
+        if (targetFilter.includes("cubicle")) {
+          if (!catStr.includes("cubicle")) return false;
+        } else if (targetFilter.includes("locker")) {
+          if (!catStr.includes("locker")) return false;
+        } else if (catStr !== targetFilter && !catStr.includes(targetFilter) && !targetFilter.includes(catStr)) {
+          return false;
+        }
       }
       if (materialFilter && p.material?.toLowerCase() !== materialFilter.toLowerCase()) {
         return false;
@@ -325,137 +341,19 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 mb-10">
-            {displayedProducts.map((product) => {
-              const effective = getEffectivePrice(product, user);
-              const isWishlisted =
-                wishlist.has(product.id) ||
-                wishlist.has(String(product.id)) ||
-                ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
-              const isAdded = addedIds.has(product.id);
-              const discountPercent =
-                product.originalPrice && product.originalPrice > product.price
-                  ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                  : product.discount || 0;
-
-              return (
-                <div
-                  key={product.id}
-                  className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
-                >
-                  <div>
-                    {/* Thumbnail + Overlay Controls */}
-                    <div className="relative">
-                      <ProductThumb src={product.image} name={product.name} />
-
-                      {/* Discount Tag */}
-                      {discountPercent > 0 && (
-                        <span className="absolute top-3 left-3 bg-[#34150F] text-[#D39858] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-tr-lg rounded-bl-lg shadow-md border border-[#D39858]/30">
-                          {discountPercent}% OFF
-                        </span>
-                      )}
-
-                      {/* Quick View Button (Top-Right Eye Icon) */}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setQuickViewProduct(product); }}
-                        className="absolute top-3 right-12 z-20 w-8 h-8 rounded-full bg-[#34150F]/80 text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F] flex items-center justify-center transition-all shadow-md active:scale-95"
-                        title="Quick View"
-                      >
-                        <Eye size={14} />
-                      </button>
-
-                      {/* Wishlist Button */}
-                      <button
-                        type="button"
-                        onClick={() => onWishlist(product)}
-                        className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full backdrop-blur-sm shadow flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ${
-                          isWishlisted ? "bg-red-50 text-red-500" : "bg-white/85 text-[#34150F] hover:bg-white"
-                        }`}
-                        title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
-                      >
-                        <Heart size={15} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
-                      </button>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5">
-                      <Link to={`/product/${(product as any).apiId || product.id}`}>
-                        <h3 className="text-sm font-bold text-[#34150F] leading-snug line-clamp-2 hover:text-[#D39858] transition-colors mb-1">
-                          {product.name}
-                        </h3>
-                      </Link>
-
-                      {((product as any).shortDesc || product.description) && (
-                        <p className="text-[10px] text-[#85431E]/65 leading-relaxed line-clamp-2 mb-2">
-                          {(product as any).shortDesc || product.description}
-                        </p>
-                      )}
-
-                      {/* Star Rating */}
-                      <div className="flex items-center gap-1 mb-3">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              size={12}
-                              fill={s <= (product.rating || 5) ? "#D39858" : "none"}
-                              stroke="#D39858"
-                              strokeWidth={1.5}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[10px] text-[#85431E]/60 font-bold">
-                          ({product.rating || 5}.0)
-                        </span>
-                      </div>
-
-                      {/* Pricing */}
-                      <div className="flex items-baseline gap-2">
-                        <span
-                          className="text-lg font-black text-[#34150F]"
-                          style={{ fontFamily: "'DM Mono', monospace" }}
-                        >
-                          ₹{effective.unitPrice.toLocaleString("en-IN")}
-                        </span>
-                        {effective.originalPrice > effective.unitPrice && (
-                          <span className="text-xs text-[#85431E]/50 line-through font-semibold">
-                            ₹{effective.originalPrice.toLocaleString("en-IN")}
-                          </span>
-                        )}
-                        {effective.isB2B && (
-                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                            B2B Rate
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Add to Cart CTA */}
-                  <div className="p-5 pt-0">
-                    <button
-                      type="button"
-                      onClick={() => handleAddToCart(product)}
-                      className={`w-full py-2.5 px-4 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-95 ${
-                        isAdded
-                          ? "bg-emerald-600 text-white"
-                          : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
-                      }`}
-                    >
-                      {isAdded ? (
-                        <>
-                          <Check size={14} /> Added to Cart!
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart size={14} /> Add to Cart
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {displayedProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={onAddToCart}
+                onWishlist={onWishlist}
+                wishlisted={
+                  wishlist.has(product.id) ||
+                  wishlist.has(String(product.id)) ||
+                  ((product as any).apiId ? wishlist.has((product as any).apiId) : false)
+                }
+              />
+            ))}
           </div>
         )}
 
