@@ -11,7 +11,18 @@ export interface EffectivePriceResult {
 }
 
 export function isB2BUser(user: User | null): boolean {
-  return !!(user && (user.companyName || user.gstin || user.role === "B2B"));
+  if (!user) return false;
+  const roleSlug = typeof user.role === "object" && user.role !== null
+    ? ((user.role as any).slug || (user.role as any).name || "")
+    : String(user.role || "");
+  return (
+    !!user.companyName ||
+    !!user.gstin ||
+    roleSlug.toLowerCase().includes("b2b") ||
+    roleSlug === "B2B" ||
+    roleSlug === "b2b-customer" ||
+    roleSlug === "b2b_customer"
+  );
 }
 
 /**

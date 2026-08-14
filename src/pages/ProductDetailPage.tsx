@@ -71,63 +71,71 @@ export function ProductDetailPage({
   useEffect(() => {
     if (!id) return;
 
-    const loadProductData = () => {
+    const loadProductData = async () => {
       const liveCatalog = getLiveCatalog(LOCAL_CATALOG);
       const foundLocal = liveCatalog.find(
-        (p) => String(p.id) === String(id) || String((p as any).apiId) === String(id)
+        (p) => String(p.id) === String(id) || String((p as any).apiId) === String(id) || String(p.slug) === String(id)
       );
 
-      fetchApi<Product>(`/products/${id}`)
-        .then((res) => {
-          if (res.success && res.data) {
-            const raw = res.data as any;
-            const categoryNameStr = typeof raw.category === 'object' && raw.category?.name
-              ? raw.category.name
-              : (typeof raw.category === 'string' ? raw.category : (foundLocal?.category || "Hardware"));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-            const salePriceVal = Number(raw.salePrice ?? raw.offerPrice ?? raw.salesPrice ?? raw.price ?? foundLocal?.price ?? 0);
-            const regularPriceVal = Number(raw.price ?? raw.originalPrice ?? raw.regularPrice ?? raw.mrp ?? foundLocal?.originalPrice ?? salePriceVal);
-            const discountVal = regularPriceVal > salePriceVal ? Math.round(((regularPriceVal - salePriceVal) / regularPriceVal) * 100) : Number(raw.discount || foundLocal?.discount || 0);
+      try {
+        let res = isUUID
+          ? await fetchApi<Product>(`/products/${id}`)
+          : await fetchApi<Product>(`/products/slug/${encodeURIComponent(id)}`);
 
-            const normalized: Product = {
-              ...raw,
-              id: typeof raw.id === 'number' ? raw.id : (foundLocal?.id || parseInt(String(id).replace(/\D/g, ''), 10) || 1),
-              apiId: String(raw._id || raw.id || id),
-              name: raw.name || raw.title || foundLocal?.name || "Product",
-              price: salePriceVal,
-              salePrice: salePriceVal,
-              offerPrice: salePriceVal,
-              regularPrice: regularPriceVal,
-              originalPrice: regularPriceVal,
-              discount: discountVal,
-              thumbnail: raw.thumbnail || raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.thumbnail || foundLocal?.image || "",
-              image: raw.thumbnail || raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.image || "",
-              images: Array.isArray(raw.images) && raw.images.length > 0 ? raw.images : (raw.thumbnail ? [raw.thumbnail] : (foundLocal?.images || [])),
-              category: categoryNameStr,
-              material: typeof raw.material === 'string' ? raw.material : (raw.specifications?.material || raw.finish || foundLocal?.material || "Solid Brass / Stainless Steel"),
-              description: raw.description || raw.shortDesc || raw.shortDescription || foundLocal?.description || "",
-              shortDesc: raw.shortDesc || raw.shortDescription || raw.description || foundLocal?.shortDesc || "",
-              stock: raw.stock !== undefined ? Number(raw.stock) : (foundLocal?.stock ?? 50),
-              reorderLevel: raw.reorderLevel !== undefined ? Number(raw.reorderLevel) : (foundLocal?.reorderLevel ?? 10),
-              inStock: raw.inStock !== undefined ? raw.inStock : foundLocal?.inStock,
-              sku: raw.sku || foundLocal?.sku || "",
-            };
+        if (!res.success && !isUUID) {
+          // If slug lookup wasn't successful, try direct ID lookup
+          res = await fetchApi<Product>(`/products/${encodeURIComponent(id)}`);
+        }
 
-            const finalMerged = foundLocal ? { ...normalized, ...foundLocal } : normalized;
-            setProduct(finalMerged);
-            if (finalMerged.colours && finalMerged.colours.length > 0) {
-              setSelectedColor(finalMerged.colours[0]);
-            }
-          } else if (foundLocal) {
-            setProduct(foundLocal);
+        if (res.success && res.data) {
+          const raw = res.data as any;
+          const categoryNameStr = typeof raw.category === 'object' && raw.category?.name
+            ? raw.category.name
+            : (typeof raw.category === 'string' ? raw.category : (foundLocal?.category || "Hardware"));
+
+          const salePriceVal = Number(raw.salePrice ?? raw.offerPrice ?? raw.salesPrice ?? raw.price ?? foundLocal?.price ?? 0);
+          const regularPriceVal = Number(raw.price ?? raw.originalPrice ?? raw.regularPrice ?? raw.mrp ?? foundLocal?.originalPrice ?? salePriceVal);
+          const discountVal = regularPriceVal > salePriceVal ? Math.round(((regularPriceVal - salePriceVal) / regularPriceVal) * 100) : Number(raw.discount || foundLocal?.discount || 0);
+
+          const normalized: Product = {
+            ...raw,
+            id: raw.id || (foundLocal?.id ?? id),
+            apiId: String(raw._id || raw.id || id),
+            name: raw.name || raw.title || foundLocal?.name || "Product",
+            price: salePriceVal,
+            salePrice: salePriceVal,
+            offerPrice: salePriceVal,
+            regularPrice: regularPriceVal,
+            originalPrice: regularPriceVal,
+            discount: discountVal,
+            thumbnail: raw.thumbnail || raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.thumbnail || foundLocal?.image || "",
+            image: raw.thumbnail || raw.image || (Array.isArray(raw.images) ? raw.images[0] : "") || foundLocal?.image || "",
+            images: Array.isArray(raw.images) && raw.images.length > 0 ? raw.images : (raw.thumbnail ? [raw.thumbnail] : (foundLocal?.images || [])),
+            category: categoryNameStr,
+            material: typeof raw.material === 'string' ? raw.material : (raw.specifications?.material || raw.finish || foundLocal?.material || "Solid Brass / Stainless Steel"),
+            description: raw.description || raw.shortDesc || raw.shortDescription || foundLocal?.description || "",
+            shortDesc: raw.shortDesc || raw.shortDescription || raw.description || foundLocal?.shortDesc || "",
+            stock: raw.stock !== undefined ? Number(raw.stock) : (foundLocal?.stock ?? 50),
+            reorderLevel: raw.reorderLevel !== undefined ? Number(raw.reorderLevel) : (foundLocal?.reorderLevel ?? 10),
+            inStock: raw.inStock !== undefined ? raw.inStock : foundLocal?.inStock,
+            sku: raw.sku || foundLocal?.sku || "",
+          };
+
+          const finalMerged = foundLocal ? { ...normalized, ...foundLocal } : normalized;
+          setProduct(finalMerged);
+          if (finalMerged.colours && finalMerged.colours.length > 0) {
+            setSelectedColor(finalMerged.colours[0]);
           }
-        })
-        .catch(() => {
-          if (foundLocal) setProduct(foundLocal);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+        } else if (foundLocal) {
+          setProduct(foundLocal);
+        }
+      } catch {
+        if (foundLocal) setProduct(foundLocal);
+      } finally {
+        setLoading(false);
+      }
     };
 
     setLoading(true);

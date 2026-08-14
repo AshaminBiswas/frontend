@@ -41,9 +41,9 @@ export function SearchOverlay({ searchQuery, setSearchQuery, onClose, onAddToCar
     const q = searchQuery.toLowerCase().trim();
     if (!q) return false;
     return (
-      p.name.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      (p.material && p.material.toLowerCase().includes(q))
+      (typeof p.name === "string" && p.name.toLowerCase().includes(q)) ||
+      (typeof p.category === "string" ? p.category : (p.category?.name || "")).toLowerCase().includes(q) ||
+      (typeof p.material === "string" && p.material.toLowerCase().includes(q))
     );
   });
 

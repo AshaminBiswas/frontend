@@ -12,6 +12,8 @@ import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
+import { fetchApi } from "../services/api";
+import { ProductGridSkeleton } from "../components/common/Skeletons";
 
 const LOCAL_PRODUCTS: Product[] = [
   ...SUPER_SAVER_PRODUCTS,
@@ -20,6 +22,15 @@ const LOCAL_PRODUCTS: Product[] = [
   ...CUBICLE_HARDWARE_PRODUCTS,
   ...LOCKER_HARDWARE_PRODUCTS,
 ];
+
+function safeCategoryString(category: any): string {
+  if (!category) return "";
+  if (typeof category === "string") return category;
+  if (typeof category === "object") {
+    return category.name || category.slug || category.title || "";
+  }
+  return String(category);
+}
 
 /* ── Safe Image Thumbnail ── */
 function ProductThumb({ src, name }: { src?: string; name: string }) {
@@ -84,10 +95,25 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   // 1. Fetch Dynamic Products from Backend API
   useEffect(() => {
     setLoading(true);
-    fetchApi<{ products: Product[] }>("/products")
+    fetchApi<any>("/products")
       .then((res) => {
-        if (res.success && res.data && res.data.products && res.data.products.length > 0) {
-          setProducts(res.data.products);
+        if (res && res.success && res.data) {
+          const rawList = Array.isArray(res.data.products)
+            ? res.data.products
+            : (Array.isArray(res.data) ? res.data : (Array.isArray(res.data.items) ? res.data.items : []));
+
+          if (rawList.length > 0) {
+            const normalized = rawList.map((p: any) => ({
+              ...p,
+              category: safeCategoryString(p.category),
+              price: Number(p.salePrice || p.offerPrice || p.price || 0),
+              originalPrice: Number(p.regularPrice || p.originalPrice || p.price || 0),
+              image: p.thumbnail || (Array.isArray(p.images) && p.images[0]) || p.image || "",
+            }));
+            setProducts(normalized);
+          } else {
+            setProducts(LOCAL_PRODUCTS);
+          }
         } else {
           setProducts(LOCAL_PRODUCTS);
         }
@@ -99,7 +125,10 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   // Extract unique categories & materials
   const categories = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => p.category && set.add(p.category));
+    products.forEach((p) => {
+      const cat = safeCategoryString(p.category);
+      if (cat) set.add(cat);
+    });
     return Array.from(set);
   }, [products]);
 
@@ -112,15 +141,15 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   // Filter & Sort products
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
+      const catStr = safeCategoryString(p.category).toLowerCase();
       if (searchFilter) {
         const query = searchFilter.toLowerCase();
-        const matchesName = p.name.toLowerCase().includes(query);
-        const matchesCat = p.category && p.category.toLowerCase().includes(query);
-        const matchesMat = p.material && p.material.toLowerCase().includes(query);
+        const matchesName = (p.name || "").toLowerCase().includes(query);
+        const matchesCat = catStr.includes(query);
+        const matchesMat = typeof p.material === "string" && p.material.toLowerCase().includes(query);
         if (!matchesName && !matchesCat && !matchesMat) return false;
       }
       if (categoryFilter) {
-        const catStr = (p.category || "").toLowerCase();
         const targetFilter = categoryFilter.toLowerCase();
         if (targetFilter.includes("cubicle")) {
           if (!catStr.includes("cubicle")) return false;
@@ -130,10 +159,10 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
           return false;
         }
       }
-      if (materialFilter && p.material?.toLowerCase() !== materialFilter.toLowerCase()) {
+      if (materialFilter && typeof p.material === "string" && p.material.toLowerCase() !== materialFilter.toLowerCase()) {
         return false;
       }
-      if (inStockFilter && p.stock !== undefined && p.stock <= 0) {
+      if (inStockFilter && (p.inStock === false || (typeof p.stock === "number" && p.stock <= 0))) {
         return false;
       }
       return true;

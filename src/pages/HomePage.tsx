@@ -1,19 +1,13 @@
 import { lazy, Suspense } from "react";
 import { Product } from "../types";
+import { HeroSlider } from "../components/hero/HeroSlider";
+import { UpcomingSlider } from "../components/hero/UpcomingSlider";
 import {
-  HeroSkeleton,
-  UpcomingSkeleton,
   ProductSliderSkeleton,
   AestheticBannerSkeleton,
   TestimonialSkeleton,
 } from "../components/common/Skeletons";
 
-const HeroSlider = lazy(() =>
-  import("../components/hero/HeroSlider").then((m) => ({ default: m.HeroSlider }))
-);
-const UpcomingSlider = lazy(() =>
-  import("../components/hero/UpcomingSlider").then((m) => ({ default: m.UpcomingSlider }))
-);
 const ShopByAestheticSection = lazy(() =>
   import("../components/sections/ShopByAestheticSection").then((m) => ({ default: m.ShopByAestheticSection }))
 );
@@ -47,14 +41,10 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
   return (
     <>
       {/* Hero Slider */}
-      <Suspense fallback={<HeroSkeleton />}>
-        <HeroSlider />
-      </Suspense>
+      <HeroSlider />
 
       {/* Upcoming Slider */}
-      <Suspense fallback={<UpcomingSkeleton />}>
-        <UpcomingSlider />
-      </Suspense>
+      <UpcomingSlider />
 
       {/* Shop by Aesthetic */}
       <Suspense fallback={<AestheticBannerSkeleton />}>

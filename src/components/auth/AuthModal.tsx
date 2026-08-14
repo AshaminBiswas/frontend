@@ -15,6 +15,8 @@ export function AuthModal() {
     forgotPassword,
     resetPassword,
     pendingEmail,
+    pendingPassword,
+    changePassword,
     user,
     logout,
   } = useAuth();
@@ -31,6 +33,9 @@ export function AuthModal() {
   const [gstin, setGstin] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resetToken, setResetToken] = useState("");
+  const [currentTempPassword, setCurrentTempPassword] = useState("");
+  const [newPermanentPassword, setNewPermanentPassword] = useState("");
+  const [confirmPermanentPassword, setConfirmPermanentPassword] = useState("");
 
   // Feedback State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +48,10 @@ export function AuthModal() {
   useEffect(() => {
     setErrorMsg("");
     setSuccessMsg("");
-  }, [authModalView]);
+    if (authModalView === "force-change-password" && pendingPassword) {
+      setCurrentTempPassword(pendingPassword);
+    }
+  }, [authModalView, pendingPassword]);
 
   // Resend OTP Countdown Timer
   useEffect(() => {
@@ -67,6 +75,36 @@ export function AuthModal() {
   if (!authModalOpen) return null;
   // Profile view is handled by UserProfilePage at App level
   if (authModalView === "profile") return null;
+
+  // Handler: Force Change Password
+  const handleForceChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    if (!currentTempPassword.trim()) {
+      setErrorMsg("Please enter your current temporary password.");
+      return;
+    }
+    if (newPermanentPassword.length < 8) {
+      setErrorMsg("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPermanentPassword !== confirmPermanentPassword) {
+      setErrorMsg("New passwords do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await changePassword(currentTempPassword.trim(), newPermanentPassword);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setSuccessMsg("Permanent password set successfully! Welcome to Pacific Hardware.");
+    } else {
+      setErrorMsg(res.message || "Failed to update password. Current temporary password may be incorrect.");
+    }
+  };
 
   // Handler: Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -127,6 +165,7 @@ export function AuthModal() {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone.trim(),
+      accountType: accountType === "b2b" ? "B2B" : "B2C",
       companyName: companyName.trim() ? companyName.trim() : undefined,
       gstin: gstin.trim() ? gstin.trim() : undefined,
     });
@@ -259,6 +298,7 @@ export function AuthModal() {
             {authModalView === "forgot" && "Reset Password"}
             {authModalView === "reset" && "Set New Password"}
             {authModalView === "profile" && "Account Profile"}
+            {authModalView === "force-change-password" && "Update Temporary Password"}
           </h3>
           <p className="text-xs text-[#EACEAA]/60 mt-1">
             {authModalView === "login" && "Access your account, track orders & exclusive pricing"}
@@ -267,6 +307,7 @@ export function AuthModal() {
             {authModalView === "forgot" && "We'll send a password reset code to your email"}
             {authModalView === "reset" && "Enter token and create your new secure password"}
             {authModalView === "profile" && "Manage your PRC account details & orders"}
+            {authModalView === "force-change-password" && "Create your permanent password to unlock full B2B wholesale access"}
           </p>
         </div>
 
@@ -713,6 +754,80 @@ export function AuthModal() {
               Sign Out of Account
             </button>
           </div>
+        )}
+
+        {/* ── VIEW 7: FORCE CHANGE PASSWORD (MANDATORY FOR B2B FIRST LOGIN) ── */}
+        {authModalView === "force-change-password" && (
+          <form onSubmit={handleForceChangePasswordSubmit} className="space-y-4">
+            <div className="p-3.5 bg-[#D39858]/15 border border-[#D39858]/30 rounded-tr-xl rounded-bl-xl text-xs text-[#EACEAA] flex items-start gap-2.5">
+              <ShieldCheck size={18} className="text-[#D39858] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-[#D39858]">Set Your Permanent Password</p>
+                <p className="text-[11px] text-[#EACEAA]/80 mt-0.5">
+                  Welcome to Pacific Hardware! Because this is your first time logging in with a temporary password, please create your secure permanent password to unlock custom B2B pricing and bulk ordering privileges.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#D39858] mb-1">
+                Current Temporary Password *
+              </label>
+              <input
+                type="password"
+                value={currentTempPassword}
+                onChange={(e) => setCurrentTempPassword(e.target.value)}
+                placeholder="Temporary password from email"
+                className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#D39858] mb-1">
+                New Permanent Password *
+              </label>
+              <input
+                type="password"
+                value={newPermanentPassword}
+                onChange={(e) => setNewPermanentPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                minLength={8}
+                className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#D39858] mb-1">
+                Confirm New Permanent Password *
+              </label>
+              <input
+                type="password"
+                value={confirmPermanentPassword}
+                onChange={(e) => setConfirmPermanentPassword(e.target.value)}
+                placeholder="Confirm new password"
+                minLength={8}
+                className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-[#D39858] text-[#34150F] font-bold py-3 px-4 rounded-tr-2xl rounded-bl-2xl hover:bg-[#EACEAA] transition-all duration-300 shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 mt-2"
+            >
+              {isSubmitting ? (
+                <span className="animate-pulse">Updating Password...</span>
+              ) : (
+                <>
+                  <span>Save Password & Unlock B2B Access</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
         )}
       </div>
     </div>

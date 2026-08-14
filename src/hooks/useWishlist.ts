@@ -52,12 +52,11 @@ export function useWishlist() {
     }
 
     const strTargetId = String(targetId);
-    const numTargetId = typeof targetId === "number" ? targetId : parseInt(strTargetId.replace(/\D/g, ""), 10);
 
     // Fallback if targetProduct is not found in static catalog
     if (!targetProduct && targetId) {
       targetProduct = {
-        id: !isNaN(numTargetId) ? numTargetId : Math.floor(Math.random() * 900000) + 100000,
+        id: targetId,
         apiId: strTargetId,
         name: `Architectural Hardware Item #${strTargetId.slice(-4)}`,
         price: 499,
@@ -70,16 +69,14 @@ export function useWishlist() {
 
     setWishlist((prev) => {
       const next = new Set(prev);
-      const isAlreadySaved = next.has(targetId) || next.has(strTargetId) || (!isNaN(numTargetId) && next.has(numTargetId));
+      const isAlreadySaved = next.has(targetId) || next.has(strTargetId);
 
       if (isAlreadySaved) {
         next.delete(targetId);
         next.delete(strTargetId);
-        if (!isNaN(numTargetId)) next.delete(numTargetId);
       } else {
         next.add(targetId);
         if (strTargetId) next.add(strTargetId);
-        if (!isNaN(numTargetId)) next.add(numTargetId);
       }
       return next;
     });
@@ -108,12 +105,10 @@ export function useWishlist() {
       targetId = productOrId;
     }
     const strTargetId = String(targetId);
-    const numTargetId = typeof targetId === "number" ? targetId : parseInt(strTargetId.replace(/\D/g, ""), 10);
 
     return (
       wishlist.has(targetId) ||
       wishlist.has(strTargetId) ||
-      (!isNaN(numTargetId) && wishlist.has(numTargetId)) ||
       wishlistItems.some(item => String(item.id) === strTargetId || String(item.apiId || '') === strTargetId)
     );
   };

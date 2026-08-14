@@ -10,6 +10,7 @@ interface AuthContextType {
   authModalOpen: boolean;
   authModalView: AuthModalView;
   pendingEmail: string;
+  pendingPassword?: string;
   openAuthModal: (view?: AuthModalView, email?: string) => void;
   closeAuthModal: () => void;
   login: (payload: LoginPayload) => Promise<{ success: boolean; message?: string }>;
@@ -18,6 +19,7 @@ interface AuthContextType {
   resendOtp: () => Promise<{ success: boolean; message?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
   resetPassword: (payload: ResetPasswordPayload) => Promise<{ success: boolean; message?: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>;
 }
@@ -48,6 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Keep saved user session active immediately
       if (savedUser) {
         setUser(savedUser);
+        if (savedUser.mustChangePassword) {
+          setPendingEmail(savedUser.email);
+          setAuthModalView("force-change-password");
+          setAuthModalOpen(true);
+        }
       }
 
       // Background profile sync
@@ -56,6 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.success && res.data) {
           setUser(res.data);
           setStoredUser(res.data);
+          if (res.data.mustChangePassword) {
+            setPendingEmail(res.data.email);
+            setAuthModalView("force-change-password");
+            setAuthModalOpen(true);
+          }
         } else if (res.error?.code === "HTTP_401") {
           clearStoredTokens();
           setUser(null);
@@ -77,8 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const closeAuthModal = useCallback(() => {
+    // If mandatory password change is pending, prevent dismissal
+    if (user?.mustChangePassword && authModalView === "force-change-password") {
+      return;
+    }
     setAuthModalOpen(false);
-  }, []);
+  }, [user, authModalView]);
 
   // 1. Login
   const login = async (payload: LoginPayload) => {
@@ -86,6 +102,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (res.success && res.data) {
       setStoredTokens(res.data.accessToken, res.data.refreshToken, res.data.user);
       setUser(res.data.user);
+      setPendingEmail(res.data.user.email);
+      setPendingPassword(payload.password);
+
+      if (res.data.user.mustChangePassword) {
+        setAuthModalView("force-change-password");
+        setAuthModalOpen(true);
+        return {
+          success: true,
+          message: "Welcome! Please set a permanent password for your B2B account to continue.",
+        };
+      }
+
       setAuthModalOpen(false);
       return { success: true, message: res.message || "Logged in successfully!" };
     }
@@ -192,7 +220,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  // 7. Logout
+  // 7. Change Password (For forced reset or settings)
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const res = await authService.changePassword(currentPassword, newPassword);
+    if (res.success) {
+      if (user) {
+        const updated = { ...user, mustChangePassword: false };
+        setUser(updated);
+        setStoredUser(updated);
+      }
+      setAuthModalOpen(false);
+      return { success: true, message: "Password updated successfully! Welcome to your wholesale portal." };
+    }
+    return {
+      success: false,
+      message: res.error?.message || res.message || "Failed to update password. Current temporary password may be incorrect.",
+    };
+  };
+
+  // 8. Logout
   const logout = async () => {
     await authService.logout();
     clearStoredTokens();
@@ -200,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthModalOpen(false);
   };
 
-  // 8. Update User Profile
+  // 9. Update User Profile
   const updateUser = async (data: Partial<User>) => {
     const res = await authService.updateProfile(data);
     if (res.success && res.data) {
@@ -223,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authModalOpen,
         authModalView,
         pendingEmail,
+        pendingPassword,
         openAuthModal,
         closeAuthModal,
         login,
@@ -231,6 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         resendOtp,
         forgotPassword,
         resetPassword,
+        changePassword,
         logout,
         updateUser,
       }}

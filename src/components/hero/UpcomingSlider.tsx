@@ -1,10 +1,86 @@
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { UPCOMING_SLIDES } from "../../data/products";
+import { useNavigate } from "react-router-dom";
 import { useSlider } from "../../hooks/useSlider";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { bannerService, Banner } from "../../services/bannerService";
 
 export function UpcomingSlider() {
-  const upcoming = useSlider(UPCOMING_SLIDES.length, true, 5000);
+  const [slides, setSlides] = useState<Array<{
+    id: string;
+    title: string;
+    sub: string;
+    image: string;
+    desktopImage?: string;
+    mobileImage?: string;
+    linkUrl?: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    bannerService.getPublicBanners("HOME_UPCOMING").then((data) => {
+      if (mounted) {
+        if (Array.isArray(data) && data.length > 0) {
+          const formatted = data.map((b: Banner) => ({
+            id: b.id,
+            title: b.title,
+            sub: b.badgeText || b.subtitle || "Coming Soon",
+            image: b.desktopImage || b.image || "",
+            desktopImage: b.desktopImage || b.image,
+            mobileImage: b.mobileImage || b.desktopImage || b.image,
+            linkUrl: b.linkUrl || b.link || "/products"
+          }));
+          setSlides(formatted);
+        } else {
+          setSlides([]);
+        }
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (mounted) {
+        setSlides([]);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const upcoming = useSlider(slides.length, true, 5000);
+
+  // 1. Skeleton Loading State for Upcoming Banners
+  if (loading) {
+    return (
+      <section className="py-10 px-4 md:px-8 lg:px-16">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-7 w-28 bg-[#85431E]/40 rounded-tr-lg rounded-bl-lg animate-pulse" />
+          <div className="h-px flex-1 bg-[#34150F]/15" />
+          <div className="flex gap-2">
+            <div className="w-9 h-9 border border-[#85431E]/20 rounded-tr-lg rounded-bl-lg bg-white/5 animate-pulse" />
+            <div className="w-9 h-9 border border-[#85431E]/20 rounded-tr-lg rounded-bl-lg bg-white/5 animate-pulse" />
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl h-[220px] sm:h-[280px] md:h-[340px] w-full bg-[#1e0a06] animate-pulse">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#240c07] via-[#3d1810] to-[#240c07] animate-pulse" />
+          <div className="absolute inset-0 z-20 flex flex-col justify-center pl-4 sm:pl-6 md:pl-16 pr-4 sm:pr-6 max-w-xl space-y-3">
+            <div className="h-4 w-24 bg-[#D39858]/20 rounded animate-pulse" />
+            <div className="h-8 sm:h-10 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // 2. Hide section if no upcoming banners exist in the database
+  if (!slides || slides.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-10 px-4 md:px-8 lg:px-16">
@@ -25,7 +101,7 @@ export function UpcomingSlider() {
             type="button"
             onClick={upcoming.prev}
             aria-label="Previous upcoming item"
-            className="w-9 h-9 border border-[#85431E] rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-all duration-200 hover:scale-110 active:scale-90 shadow-sm"
+            className="w-9 h-9 border border-[#85431E] rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-all duration-200 hover:scale-110 active:scale-90 shadow-sm cursor-pointer"
           >
             <ChevronLeft size={18} />
           </button>
@@ -33,7 +109,7 @@ export function UpcomingSlider() {
             type="button"
             onClick={upcoming.next}
             aria-label="Next upcoming item"
-            className="w-9 h-9 border border-[#85431E] rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-all duration-200 hover:scale-110 active:scale-90 shadow-sm"
+            className="w-9 h-9 border border-[#85431E] rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-all duration-200 hover:scale-110 active:scale-90 shadow-sm cursor-pointer"
           >
             <ChevronRight size={18} />
           </button>
@@ -42,18 +118,19 @@ export function UpcomingSlider() {
 
       {/* Main Banner Slide Container */}
       <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl shadow-lg h-[220px] sm:h-[280px] md:h-[340px] w-full group bg-[#34150F]">
-        {UPCOMING_SLIDES.map((slide, i) => {
+        {slides.map((slide, i) => {
           const isActive = i === upcoming.idx;
 
           return (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-all duration-700 ease-out transform ${
+              onClick={() => slide.linkUrl && navigate(slide.linkUrl)}
+              className={`absolute inset-0 transition-all duration-700 ease-out transform cursor-pointer ${
                 isActive ? "opacity-100 scale-100 z-0" : "opacity-0 scale-105 pointer-events-none"
               }`}
             >
               <ImageWithFallback
-                src={slide.image}
+                src={slide.desktopImage || slide.image}
                 alt={slide.title}
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
               />
@@ -82,13 +159,13 @@ export function UpcomingSlider() {
 
         {/* Dynamic Slide Dots Indicator — Bottom Right */}
         <div className="absolute bottom-4 right-6 z-20 flex gap-1.5">
-          {UPCOMING_SLIDES.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => upcoming.setIdx(i)}
               aria-label={`Go to upcoming item ${i + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 i === upcoming.idx ? "w-6 bg-[#D39858]" : "w-2 bg-[#EACEAA]/40 hover:bg-[#EACEAA]/70"
               }`}
             />

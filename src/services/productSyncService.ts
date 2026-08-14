@@ -76,14 +76,14 @@ export function getLiveCatalog(staticCatalog: Product[]): Product[] {
     adminList.forEach((adminItem) => {
       const exists = mergedList.some((p) => isMatch(p, adminItem));
       if (!exists && adminItem && adminItem.name) {
-        const adminIdStr = String(adminItem.id || `ADM-${Date.now()}`);
-        const numId = typeof adminItem.id === "number" ? adminItem.id : parseInt(adminIdStr.replace(/\D/g, ""), 10) || Math.floor(Math.random() * 900000) + 100000;
+        const adminIdStr = String(adminItem.id || adminItem.apiId || `ADM-${Date.now()}`);
+        const finalId = adminItem.id !== undefined && adminItem.id !== null ? adminItem.id : adminIdStr;
         const regPrice = Number(adminItem.price || adminItem.originalPrice || 999);
         const salePrice = Number(adminItem.salesPrice || adminItem.offerPrice || adminItem.salePrice || regPrice);
         const disc = regPrice > salePrice ? Math.round(((regPrice - salePrice) / regPrice) * 100) : 0;
 
         mergedList.unshift({
-          id: numId,
+          id: finalId,
           apiId: adminIdStr,
           name: adminItem.name,
           price: salePrice,

@@ -99,4 +99,12 @@ export const authService = {
       body: JSON.stringify(data),
     });
   },
+
+  // 10. Change Password (For mandatory temporary password update & security)
+  async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse> {
+    return fetchApi("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
 };

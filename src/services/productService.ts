@@ -26,9 +26,7 @@ export interface ApiProductsByCategoryResponse {
 function normalizeApiProduct(item: any, categoryFallback: string): Product {
   const rawId = item._id || item.id || item.apiId;
   const apiIdStr = rawId ? String(rawId) : undefined;
-  const numId = typeof item.id === 'number'
-    ? item.id
-    : (apiIdStr ? parseInt(apiIdStr.replace(/\D/g, ''), 10) || Math.floor(Math.random() * 900000) + 100000 : Math.floor(Math.random() * 900000) + 100000);
+  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
 
   // Backend model fields:
   // price = Regular / MRP Price
@@ -66,7 +64,8 @@ function normalizeApiProduct(item: any, categoryFallback: string): Product {
   const shortDescText = item.shortDesc || item.shortDescription || (typeof item.description === 'string' ? item.description : "");
 
   return {
-    id: numId,
+    ...item,
+    id: finalId,
     apiId: apiIdStr,
     name: item.name || item.title || "Architectural Hardware",
     price: effectiveSalePrice,
@@ -147,4 +146,44 @@ export async function getProductsByCategorySlugApi(slug: string): Promise<{ prod
   });
 
   return { products: fallbackList };
+}
+
+/**
+ * Global product loader: fetches all live products from API with caching and fallback
+ */
+export async function getAllProductsApi(limit = 100): Promise<Product[]> {
+  try {
+    const res = await fetchApi<any>(`/products?limit=${limit}`);
+    let rawList: any[] = [];
+
+    if (res && res.success && res.data) {
+      if (Array.isArray(res.data.products)) {
+        rawList = res.data.products;
+      } else if (Array.isArray(res.data)) {
+        rawList = res.data;
+      } else if (Array.isArray(res.data.items)) {
+        rawList = res.data.items;
+      }
+    }
+
+    if (rawList.length > 0) {
+      const normalized = rawList.map((item) => normalizeApiProduct(item, "Hardware"));
+      try {
+        localStorage.setItem("prc_cached_products_list", JSON.stringify(normalized));
+      } catch {}
+      return normalized;
+    }
+  } catch (err) {
+    console.error("Failed to fetch products:", err);
+  }
+
+  try {
+    const cached = localStorage.getItem("prc_cached_products_list");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+
+  return STATIC_CATALOG;
 }

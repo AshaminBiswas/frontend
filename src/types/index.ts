@@ -67,6 +67,7 @@ export interface User {
   companyName?: string;
   gstin?: string;
   isVerified?: boolean;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthTokens {
@@ -94,6 +95,7 @@ export interface RegisterPayload {
   firstName: string;
   lastName: string;
   phone: string;
+  accountType?: 'B2C' | 'B2B';
   companyName?: string;
   gstin?: string;
 }
@@ -117,4 +119,4 @@ export interface ResetPasswordPayload {
   password: string;
 }
 
-export type AuthModalView = 'login' | 'register' | 'otp' | 'forgot' | 'reset' | 'profile';
+export type AuthModalView = 'login' | 'register' | 'otp' | 'forgot' | 'reset' | 'profile' | 'force-change-password';

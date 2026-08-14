@@ -1,1 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Gilda+Display&family=Nunito:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+/* PRC Hardware Typography System */
+:root {
+  --font-serif: 'Gilda Display', Georgia, serif;
+  --font-sans: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'DM Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+

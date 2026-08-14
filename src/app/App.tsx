@@ -1,4 +1,4 @@
-import { useState, Component, ReactNode } from 'react';
+import { useState, useEffect, Component, ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { AuthModal } from '../components/auth/AuthModal';
@@ -8,6 +8,7 @@ import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { ScrollToTop } from '../components/common/ScrollToTop';
 import { CartDrawer } from '../components/cart/CartDrawer';
+import { getAllProductsApi } from '../services/productService';
 
 // Eagerly imported pages for instantaneous, zero-error reloading across all routes
 import { HomePage } from '../pages/HomePage';
@@ -87,6 +88,11 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Preload all products dynamically on first website load
+  useEffect(() => {
+    getAllProductsApi(100);
+  }, []);
+
   const handleSelectCategory = (categoryName: string) => {
     const slug = categoryName.toLowerCase().trim().replace(/\s+/g, '-');
     navigate(`/category/${slug}`);
@@ -122,7 +128,7 @@ function AppContent() {
             <Route path="/new-arrivals" element={<NewArrivalsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
             <Route path="/offers" element={<OffersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
             <Route path="/product/:id" element={<ProductDetailPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/categories" element={<CategoriesPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
             <Route path="/category/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
             <Route path="/categories/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
             <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} />} />

@@ -13,20 +13,28 @@ const SD = "animate-pulse bg-[#EACEAA]/20"; // dark-bg variant
 
 export function HeroSkeleton() {
   return (
-    <div className="relative overflow-hidden w-full min-h-[400px] md:min-h-[520px] bg-[#34150F]/15 animate-pulse">
-      {/* bottom-left text block */}
-      <div className="absolute bottom-8 left-6 md:left-12 lg:left-20 z-10 w-full max-w-lg space-y-4">
-        <div className={`h-3 w-32 ${SD} rounded-full`} />
-        <div className={`h-9 w-3/4 ${SD} rounded-xl`} />
-        <div className={`h-4 w-2/3 ${SD} rounded-lg`} />
-        <div className={`h-11 w-44 bg-[#D39858]/30 rounded-tr-2xl rounded-bl-2xl`} />
+    <section className="relative overflow-hidden w-full aspect-[1024/383] bg-[#240c07]">
+      <div className="absolute inset-0 bg-gradient-to-r from-[#240c07] via-[#3d1810] to-[#240c07] animate-pulse" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-[#34150F]/50" />
+      <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 sm:pb-10 md:justify-center md:pb-0 px-4 sm:px-8 md:px-12 lg:px-16 pointer-events-none">
+        <div className="space-y-3 max-w-md md:max-w-lg">
+          <div className="h-5 w-28 bg-[#D39858]/20 rounded-full animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-7 sm:h-9 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
+            <div className="h-5 sm:h-7 w-1/2 bg-[#EACEAA]/10 rounded-lg animate-pulse" />
+          </div>
+          <div className="pt-2">
+            <div className="h-9 sm:h-10 w-36 sm:w-44 bg-[#D39858]/30 rounded-tr-2xl rounded-bl-2xl animate-pulse" />
+          </div>
+        </div>
       </div>
-      {/* top-right nav dots */}
-      <div className="absolute top-4 right-4 flex gap-2">
-        <div className={`w-9 h-9 ${SD} rounded-tr-xl rounded-bl-xl`} />
-        <div className={`w-9 h-9 ${SD} rounded-tr-xl rounded-bl-xl`} />
+      <div className="absolute bottom-2.5 sm:bottom-4 right-3 sm:right-6 md:right-8 z-20 flex items-center gap-2 bg-[#34150F]/60 backdrop-blur-md p-1.5 px-3 rounded-tr-xl rounded-bl-xl border border-[#EACEAA]/10">
+        <div className="h-3.5 w-12 bg-white/10 rounded animate-pulse" />
+        <div className="h-3.5 w-px bg-white/10" />
+        <div className="h-6 w-6 bg-white/10 rounded-md animate-pulse" />
+        <div className="h-6 w-6 bg-white/10 rounded-md animate-pulse" />
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -34,13 +42,19 @@ export function UpcomingSkeleton() {
   return (
     <section className="py-10 px-4 md:px-8 lg:px-16">
       <div className="flex items-center gap-3 mb-5">
-        <div className={`h-6 w-32 ${S} rounded-tr-lg rounded-bl-lg`} />
-        <div className="h-px flex-1 bg-[#34150F]/10" />
+        <div className="h-7 w-28 bg-[#85431E]/40 rounded-tr-lg rounded-bl-lg animate-pulse" />
+        <div className="h-px flex-1 bg-[#34150F]/15" />
+        <div className="flex gap-2">
+          <div className="w-9 h-9 border border-[#85431E]/20 rounded-tr-lg rounded-bl-lg bg-white/5 animate-pulse" />
+          <div className="w-9 h-9 border border-[#85431E]/20 rounded-tr-lg rounded-bl-lg bg-white/5 animate-pulse" />
+        </div>
       </div>
-      <div className={`w-full rounded-tr-3xl rounded-bl-3xl ${S} h-[220px] md:h-[300px] p-8 flex flex-col justify-center gap-4`}>
-        <div className={`h-3 w-36 ${S} rounded-full`} />
-        <div className={`h-8 w-2/3 ${S} rounded-xl`} />
-        <div className={`h-4 w-1/3 ${S} rounded-lg`} />
+      <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl h-[220px] sm:h-[280px] md:h-[340px] w-full bg-[#1e0a06] animate-pulse">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#240c07] via-[#3d1810] to-[#240c07] animate-pulse" />
+        <div className="absolute inset-0 z-20 flex flex-col justify-center pl-4 sm:pl-6 md:pl-16 pr-4 sm:pr-6 max-w-xl space-y-3">
+          <div className="h-4 w-24 bg-[#D39858]/20 rounded animate-pulse" />
+          <div className="h-8 sm:h-10 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
+        </div>
       </div>
     </section>
   );
@@ -446,6 +460,77 @@ export function CheckoutSkeleton() {
             </div>
           ))}
           <div className={`h-12 w-full ${S} rounded-tr-2xl rounded-bl-2xl mt-4`} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   CATEGORIES CATALOG PAGE (HUB & SPECIALISED LINES)
+════════════════════════════════════════════════════════ */
+export function CategoryCardSkeleton() {
+  return (
+    <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-6 shadow-sm border border-[#34150F]/8 animate-pulse space-y-4 flex flex-col justify-between">
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <div className="w-10 h-10 rounded-tr-xl rounded-bl-xl bg-[#34150F]/10" />
+          <div className="w-20 h-5 bg-[#34150F]/10 rounded-full" />
+        </div>
+        <div className="h-6 w-3/4 bg-[#34150F]/15 rounded-lg mb-2" />
+        <div className="h-4 w-full bg-[#34150F]/10 rounded mb-1" />
+        <div className="h-4 w-2/3 bg-[#34150F]/10 rounded" />
+      </div>
+      <div className="h-4 w-28 bg-[#D39858]/30 rounded-lg mt-4 pt-2" />
+    </div>
+  );
+}
+
+export function CategoriesCatalogSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#EACEAA]/20 py-6 sm:py-10 px-3 sm:px-6 md:px-8 lg:px-16 animate-in fade-in duration-300">
+      <div className="max-w-7xl mx-auto space-y-10">
+        {/* Page Header Shimmer */}
+        <div className="space-y-3">
+          <div className="h-6 w-44 bg-[#D39858]/20 rounded-full animate-pulse" />
+          <div className="h-10 w-80 bg-[#34150F]/15 rounded-xl animate-pulse" />
+          <div className="h-4 w-full max-w-xl bg-[#85431E]/15 rounded-lg animate-pulse" />
+        </div>
+
+        {/* Categories Section Shimmer */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="h-6 w-48 bg-[#34150F]/15 rounded-lg animate-pulse" />
+            <div className="h-4 w-28 bg-[#85431E]/15 rounded animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <CategoryCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+
+        {/* Specialised Product Lines Section Shimmer */}
+        <div className="bg-white rounded-tr-3xl rounded-bl-3xl p-6 sm:p-8 shadow-sm border border-[#34150F]/8 space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <div className="h-7 w-60 bg-[#34150F]/15 rounded-xl animate-pulse" />
+              <div className="h-3.5 w-72 bg-[#85431E]/15 rounded animate-pulse" />
+            </div>
+            <div className="h-7 w-28 bg-[#EACEAA]/40 rounded-tr-lg rounded-bl-lg animate-pulse" />
+          </div>
+
+          {/* Chips Shimmer */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="h-8 w-28 bg-[#EACEAA]/50 rounded-tr-xl rounded-bl-xl animate-pulse" />
+            ))}
+          </div>
+
+          {/* Product Grid Shimmer */}
+          <div className="pt-2">
+            <ProductGridSkeleton count={8} />
+          </div>
         </div>
       </div>
     </div>

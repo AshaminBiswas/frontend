@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User as UserIcon, ShoppingCart, Menu, X, LogIn, Bell, Heart } from 'lucide-react';
+import { Search, User as UserIcon, ShoppingCart, Menu, X, LogIn, Bell, Heart, Building2, Sparkles } from 'lucide-react';
 import { NAV_LINKS } from '../../data/products';
 import { CategoryDropdown } from './CategoryDropdown';
 import { ProductsDropdown } from './ProductsDropdown';
@@ -8,6 +8,7 @@ import { MaterialsDropdown } from './MaterialsDropdown';
 import { SearchDropdown } from '../search/SearchDropdown';
 import { Product } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { isB2BUser } from '../../utils/pricing';
 import { notificationService } from '../../services/notificationService';
 
 interface HeaderProps {
@@ -39,8 +40,7 @@ export function Header({
   const navigate = useNavigate();
   const [notifCount, setNotifCount] = useState(0);
 
-
-  const isB2B = !!(user && (user.companyName || user.gstin || user.role === 'B2B'));
+  const isB2B = isB2BUser(user);
   const visibleNavLinks = NAV_LINKS.filter((link) => link !== 'B2B / Bulk' || isB2B);
 
   // Poll unread notification count every 60s for authenticated users
@@ -109,9 +109,25 @@ export function Header({
                   <Link
                     to={route}
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center text-[#EACEAA]/80 hover:text-[#D39858] hover:bg-[#EACEAA]/5 text-sm font-semibold px-5 py-3.5 transition-all duration-200 border-b border-[#EACEAA]/6 last:border-0"
+                    className={`flex items-center text-sm font-semibold px-5 py-3.5 transition-all duration-200 border-b border-[#EACEAA]/6 last:border-0 ${
+                      link === 'B2B / Bulk'
+                        ? 'text-[#D39858] bg-[#D39858]/10 font-bold'
+                        : 'text-[#EACEAA]/80 hover:text-[#D39858] hover:bg-[#EACEAA]/5'
+                    }`}
                   >
-                    {link}
+                    {link === 'B2B / Bulk' ? (
+                      <span className="flex items-center justify-between w-full">
+                        <span className="flex items-center gap-2">
+                          <Building2 size={16} />
+                          <span>B2B / Bulk Orders</span>
+                        </span>
+                        <span className="bg-[#D39858] text-[#34150F] text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Wholesale
+                        </span>
+                      </span>
+                    ) : (
+                      link
+                    )}
                   </Link>
                 </li>
               );
@@ -226,6 +242,11 @@ export function Header({
               <Link to="/profile" className="flex items-center gap-1 sm:gap-1.5 bg-[#EACEAA]/15 hover:bg-[#D39858]/20 border border-[#EACEAA]/20 px-2 sm:px-3 py-1.5 rounded-tr-xl rounded-bl-xl transition-all duration-200 text-xs text-[#EACEAA] hover:text-[#D39858]">
                 <UserIcon size={15} className="text-[#D39858]" />
                 <span className="font-bold hidden sm:inline">{user?.firstName || 'Account'}</span>
+                {isB2B && (
+                  <span className="bg-[#D39858] text-[#34150F] text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider hidden xs:inline">
+                    B2B
+                  </span>
+                )}
               </Link>
             ) : (
               <button type="button" onClick={() => openAuthModal('login')} className="flex items-center gap-1 sm:gap-1.5 bg-[#D39858] hover:bg-[#EACEAA] text-[#34150F] font-bold px-2 sm:px-3 py-1.5 rounded-tr-xl rounded-bl-xl transition-all duration-200 text-xs shadow-md active:scale-95">
@@ -309,9 +330,19 @@ export function Header({
                   <Link
                     to={route}
                     onClick={() => setMenuOpen(false)}
-                    className="relative block whitespace-nowrap text-[#EACEAA]/80 hover:text-[#D39858] text-sm font-medium px-3.5 py-2.5 transition-colors w-auto text-center group"
+                    className={`relative flex items-center gap-1.5 whitespace-nowrap text-sm px-3.5 py-2.5 transition-all duration-200 w-auto text-center group ${
+                      link === 'B2B / Bulk'
+                        ? 'text-[#D39858] font-bold bg-[#D39858]/10 rounded-tr-xl rounded-bl-xl border border-[#D39858]/30 shadow-xs'
+                        : 'text-[#EACEAA]/80 hover:text-[#D39858] font-medium'
+                    }`}
                   >
+                    {link === 'B2B / Bulk' && <Building2 size={13} className="text-[#D39858]" />}
                     <span>{link}</span>
+                    {link === 'B2B / Bulk' && (
+                      <span className="bg-[#D39858] text-[#34150F] text-[9px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                        Active
+                      </span>
+                    )}
                     <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-3/4 h-0.5 bg-[#D39858] transition-all duration-300" />
                   </Link>
                 </li>
