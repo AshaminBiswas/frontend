@@ -78,9 +78,9 @@ export function Header({
       >
         {/* Drawer Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-[#34150F] border-b border-[#EACEAA]/10 flex-shrink-0">
-          <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
-            <img src="/logo.png" alt="PRC Hardware" className="h-7 w-auto object-contain" />
-            <span className="text-[#EACEAA] font-semibold text-base tracking-wide">Hardware</span>
+          <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="PRC Hardware" className="h-9 w-auto object-contain" />
+            <span className="text-[#EACEAA] font-semibold text-lg tracking-wide">Hardware</span>
           </Link>
           <button
             type="button"
@@ -196,9 +196,9 @@ export function Header({
             >
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
-            <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 group cursor-pointer">
-              <img src="/logo.png" alt="PRC Hardware" className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
-              <span className="text-[#EACEAA] font-semibold text-base sm:text-lg tracking-wide">Hardware</span>
+            <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 group cursor-pointer">
+              <img src="/logo.png" alt="PRC Hardware" className="h-10 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+              <span className="text-[#EACEAA] font-semibold text-lg sm:text-xl tracking-wide">Hardware</span>
             </Link>
           </div>
 

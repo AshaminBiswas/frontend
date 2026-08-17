@@ -27,9 +27,9 @@ export function Footer() {
         {/* Col 1 – Logo & Description */}
         <Reveal delay={0}>
           <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <img src="/logo.png" alt="PRC Hardware" className="h-9 w-auto object-contain" />
-              <span className="text-[#EACEAA] font-semibold text-lg">Hardware</span>
+            <div className="flex items-center gap-3 mb-4">
+              <img src="/logo.png" alt="PRC Hardware" className="h-12 w-auto object-contain" />
+              <span className="text-[#EACEAA] font-semibold text-xl">Hardware</span>
             </div>
             <p className="text-[#EACEAA]/65 text-sm leading-relaxed mb-5">
               India's trusted destination for premium architectural hardware. From cabinet handles to industrial locks — quality crafted for every space.

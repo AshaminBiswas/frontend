@@ -185,8 +185,8 @@ export function CustomerQuoteApprovalPage() {
         >
           {/* Header & Company Brand */}
           <div className="flex flex-wrap items-start justify-between gap-6 border-b border-[#34150F]/15 pb-6">
-            <div className="flex items-start gap-4">
-              <img src="/logo.png" alt="PRC Logo" className="w-12 h-12 object-contain shrink-0" />
+            <div className="flex items-start gap-4 sm:gap-5">
+              <img src="/logo.png" alt="PRC Logo" className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0" />
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D39858] bg-[#D39858]/10 px-2.5 py-0.5 rounded border border-[#D39858]/20">
                   Official Commercial Quotation

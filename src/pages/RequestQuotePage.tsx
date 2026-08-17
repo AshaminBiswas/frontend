@@ -37,6 +37,17 @@ const CATEGORY_OPTIONS = [
 const GSTIN_REGEX = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
+function cleanIndianPhone(val: string): string {
+  if (!val) return "";
+  let digits = val.replace(/\D/g, "");
+  if (digits.length >= 11 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  } else if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return digits.slice(0, 10);
+}
+
 export function RequestQuotePage() {
   const navigate = useNavigate();
   const { user, openAuthModal } = useAuth();
@@ -62,7 +73,7 @@ export function RequestQuotePage() {
   const [companyName, setCompanyName] = useState(user?.companyName || "");
   const [gstNo, setGstNo] = useState(user?.gstin || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState(user?.phone || "");
+  const [phone, setPhone] = useState(cleanIndianPhone(user?.phone || ""));
   const [notes, setNotes] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
@@ -99,7 +110,7 @@ export function RequestQuotePage() {
       if (user.companyName && !companyName) setCompanyName(user.companyName);
       if (user.gstin && !gstNo) setGstNo(user.gstin);
       if (user.email && !email) setEmail(user.email);
-      if (user.phone && !phone) setPhone(user.phone);
+      if (user.phone && !phone) setPhone(cleanIndianPhone(user.phone));
     }
   }, [user]);
 
@@ -164,11 +175,13 @@ export function RequestQuotePage() {
           return "Enter a valid business email address";
         }
         return "";
-      case "phone":
-        if (!value || !PHONE_REGEX.test(value.trim())) {
+      case "phone": {
+        const cleaned = cleanIndianPhone(value);
+        if (!cleaned || !PHONE_REGEX.test(cleaned)) {
           return "Enter a valid 10-digit Indian mobile number (e.g. 9876543210)";
         }
         return "";
+      }
       case "notes":
         if (value && value.length > 500) return "Notes cannot exceed 500 characters";
         return "";
@@ -297,7 +310,7 @@ export function RequestQuotePage() {
         companyName: companyName.trim(),
         gstNo: gstNo.trim().toUpperCase(),
         email: email.trim().toLowerCase(),
-        phone: phone.trim(),
+        phone: cleanIndianPhone(phone),
         notes: notes.trim() || null,
         termsAccepted: true,
         items: lineItems.map((item) => ({
@@ -968,7 +981,7 @@ export function RequestQuotePage() {
                   <input
                     type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    onChange={(e) => setPhone(cleanIndianPhone(e.target.value))}
                     onBlur={() => handleBlur("phone", phone)}
                     placeholder="e.g. 9876543210"
                     className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
