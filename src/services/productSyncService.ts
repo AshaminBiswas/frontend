@@ -55,6 +55,9 @@ export function getLiveCatalog(staticCatalog: Product[]): Product[] {
 
       return {
         ...staticItem,
+        apiId: String(adminMatch.id || adminMatch.apiId || staticItem.apiId || staticItem.id),
+        sku: adminMatch.sku || staticItem.sku,
+        slug: adminMatch.slug || (staticItem as any).slug,
         name: adminMatch.name || staticItem.name,
         price: effectiveSalePrice,
         salePrice: effectiveSalePrice,
@@ -68,7 +71,8 @@ export function getLiveCatalog(staticCatalog: Product[]): Product[] {
         shortDesc: adminMatch.shortDesc || staticItem.shortDesc,
         description: adminMatch.description || staticItem.description,
         stock: adminMatch.stock !== undefined ? Number(adminMatch.stock) : staticItem.stock,
-        status: adminMatch.status || (staticItem as any).status
+        status: adminMatch.status || (staticItem as any).status,
+        b2bPrice: adminMatch.b2bPrice !== undefined ? Number(adminMatch.b2bPrice) : (adminMatch.b2b_price !== undefined ? Number(adminMatch.b2b_price) : (staticItem as any).b2bPrice),
       };
     });
 
@@ -85,6 +89,8 @@ export function getLiveCatalog(staticCatalog: Product[]): Product[] {
         mergedList.unshift({
           id: finalId,
           apiId: adminIdStr,
+          sku: adminItem.sku,
+          slug: adminItem.slug,
           name: adminItem.name,
           price: salePrice,
           salePrice: salePrice,
@@ -98,7 +104,8 @@ export function getLiveCatalog(staticCatalog: Product[]): Product[] {
           shortDesc: adminItem.shortDesc || "",
           description: adminItem.description || "",
           stock: adminItem.stock !== undefined ? Number(adminItem.stock) : 100,
-          status: adminItem.status || "ACTIVE"
+          status: adminItem.status || "ACTIVE",
+          b2bPrice: adminItem.b2bPrice !== undefined ? Number(adminItem.b2bPrice) : (adminItem.b2b_price !== undefined ? Number(adminItem.b2b_price) : undefined),
         });
       }
     });

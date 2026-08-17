@@ -72,32 +72,9 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   const [loading, setLoading] = useState(false);
   const b2bCache = useB2BPricing();
 
-  useEffect(() => {
-    const refresh = () => setProducts(getLiveCatalog(LOCAL_PRODUCTS));
-    refresh();
-    return subscribeToProductSync(refresh);
-  }, []);
-
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
-
-  const [page, setPage] = useState(1);
-  const ITEMS_PER_PAGE = 16;
-
-  const isB2B = !!(user && (user.companyName || user.gstin || user.role === "B2B"));
-
-  const searchFilter = searchParams.get("search") || "";
-  const categoryFilter = searchParams.get("category") || "";
-  const materialFilter = searchParams.get("material") || "";
-  const sortOption = searchParams.get("sort") || "featured";
-  const inStockFilter = searchParams.get("inStock") === "true";
-
-  const [localSearch, setLocalSearch] = useState(searchFilter);
-
-  // 1. Fetch Dynamic Products from Backend API
-  useEffect(() => {
+  const loadCatalog = () => {
     setLoading(true);
-    fetchApi<any>("/products")
+    fetchApi<any>("/products?limit=200")
       .then((res) => {
         if (res && res.success && res.data) {
           const rawList = Array.isArray(res.data.products)
@@ -107,21 +84,31 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
           if (rawList.length > 0) {
             const normalized = rawList.map((p: any) => ({
               ...p,
+              id: p.id || p._id || `PRD-${Date.now()}`,
+              apiId: String(p.id || p._id || p.apiId || ""),
               category: safeCategoryString(p.category),
               price: Number(p.salePrice || p.offerPrice || p.price || 0),
+              salePrice: Number(p.salePrice || p.offerPrice || p.price || 0),
+              regularPrice: Number(p.regularPrice || p.originalPrice || p.price || 0),
               originalPrice: Number(p.regularPrice || p.originalPrice || p.price || 0),
               image: p.thumbnail || (Array.isArray(p.images) && p.images[0]) || p.image || "",
+              b2bPrice: p.b2bPrice !== undefined ? Number(p.b2bPrice) : (p.b2b_price !== undefined ? Number(p.b2b_price) : undefined),
             }));
             setProducts(normalized);
           } else {
-            setProducts(LOCAL_PRODUCTS);
+            setProducts(getLiveCatalog(LOCAL_PRODUCTS));
           }
         } else {
-          setProducts(LOCAL_PRODUCTS);
+          setProducts(getLiveCatalog(LOCAL_PRODUCTS));
         }
       })
-      .catch(() => setProducts(LOCAL_PRODUCTS))
+      .catch(() => setProducts(getLiveCatalog(LOCAL_PRODUCTS)))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadCatalog();
+    return subscribeToProductSync(loadCatalog);
   }, []);
 
   // Extract unique categories & materials

@@ -64,12 +64,12 @@ export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingC
 
       const items: any[] = Array.isArray(payload.items) ? payload.items : [];
 
-      // Build fast productId → price lookup map
+      // Build fast productId → price lookup map (keyed by ID, slug, sku, and name for universal exact matching)
       const priceMap: Record<string, B2BProductPrice> = {};
       for (const item of items) {
         const pid = item.productId || item.id;
         if (!pid) continue;
-        priceMap[String(pid)] = {
+        const entry: B2BProductPrice = {
           productId: String(pid),
           customPrice: item.hasCustomPrice ? Number(item.customPrice) : Number(item.standardPrice),
           minQuantity: Number(item.minQuantity) || 1,
@@ -77,6 +77,10 @@ export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingC
           hasCustomPrice: !!item.hasCustomPrice,
           standardPrice: Number(item.standardPrice) || 0,
         };
+        priceMap[String(pid)] = entry;
+        if (item.slug) priceMap[String(item.slug)] = entry;
+        if (item.sku) priceMap[String(item.sku).toLowerCase()] = entry;
+        if (item.name) priceMap[String(item.name).toLowerCase().trim()] = entry;
       }
 
       const cache: B2BPricingCache = {

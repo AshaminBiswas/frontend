@@ -123,9 +123,10 @@ export function ProductDetailPage({
             reorderLevel: raw.reorderLevel !== undefined ? Number(raw.reorderLevel) : (foundLocal?.reorderLevel ?? 10),
             inStock: raw.inStock !== undefined ? raw.inStock : foundLocal?.inStock,
             sku: raw.sku || foundLocal?.sku || "",
+            b2bPrice: raw.b2bPrice !== undefined ? Number(raw.b2bPrice) : (raw.b2b_price !== undefined ? Number(raw.b2b_price) : undefined),
           };
 
-          const finalMerged = foundLocal ? { ...normalized, ...foundLocal } : normalized;
+          const finalMerged = foundLocal ? { ...foundLocal, ...normalized } : normalized;
           setProduct(finalMerged);
           if (finalMerged.colours && finalMerged.colours.length > 0) {
             setSelectedColor(finalMerged.colours[0]);
@@ -142,7 +143,10 @@ export function ProductDetailPage({
 
     setLoading(true);
     loadProductData();
-    return subscribeToProductSync(loadProductData);
+    const unsubscribe = subscribeToProductSync(loadProductData);
+    return () => {
+      unsubscribe();
+    };
   }, [id]);
 
   // 2. Automatically update Document Title, Meta Description, and Meta Keywords for SEO from API

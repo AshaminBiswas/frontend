@@ -19,24 +19,39 @@ export function useCart() {
     } catch {}
   }, [cart]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, qty: number = 1) => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+      const matchId = (item: CartItem) =>
+        String(item.id) === String(product.id) ||
+        (Boolean(item.apiId) && Boolean(product.apiId) && String(item.apiId) === String(product.apiId));
+
+      const existing = prev.find(matchId);
       if (existing) {
-        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i));
+        return prev.map((i) => (matchId(i) ? { ...i, qty: i.qty + Math.max(1, qty) } : i));
       }
-      return [...prev, { ...product, qty: 1 }];
+      return [
+        ...prev,
+        {
+          ...product,
+          apiId: (product as any).apiId || (product as any)._id || (typeof product.id === "string" ? product.id : undefined),
+          qty: Math.max(1, qty),
+        },
+      ];
     });
     setCartOpen(true);
   };
 
-  const removeFromCart = (id: number) => {
-    setCart((prev) => prev.filter((i) => i.id !== id));
+  const removeFromCart = (id: number | string) => {
+    setCart((prev) => prev.filter((i) => String(i.id) !== String(id) && String(i.apiId || "") !== String(id)));
   };
 
-  const changeQty = (id: number, delta: number) => {
+  const changeQty = (id: number | string, delta: number) => {
     setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
+      prev.map((i) =>
+        String(i.id) === String(id) || String(i.apiId || "") === String(id)
+          ? { ...i, qty: Math.max(1, i.qty + delta) }
+          : i
+      )
     );
   };
 

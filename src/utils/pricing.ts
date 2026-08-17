@@ -67,9 +67,10 @@ export function getEffectivePrice(
     const idKeys = [
       String((product as any).apiId || ""),
       String(product.id || ""),
-      String(product.sku || ""),
       String((product as any)._id || ""),
       String((product as any).slug || ""),
+      product.sku ? String(product.sku).toLowerCase() : "",
+      product.name ? String(product.name).toLowerCase().trim() : "",
     ].filter(Boolean);
 
     let customEntry: any = null;

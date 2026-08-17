@@ -67,6 +67,8 @@ function normalizeApiProduct(item: any, categoryFallback: string): Product {
     ...item,
     id: finalId,
     apiId: apiIdStr,
+    sku: item.sku,
+    slug: item.slug,
     name: item.name || item.title || "Architectural Hardware",
     price: effectiveSalePrice,
     salePrice: effectiveSalePrice,
@@ -78,7 +80,8 @@ function normalizeApiProduct(item: any, categoryFallback: string): Product {
     category: categoryName,
     material: item.material || item.specifications?.material || item.finish || "Solid Brass / Stainless Steel",
     shortDesc: shortDescText,
-    description: item.description || shortDescText || ""
+    description: item.description || shortDescText || "",
+    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
   };
 }
 

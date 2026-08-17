@@ -6,6 +6,7 @@ import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS, CUBIC
 import { useAuth } from "../context/AuthContext";
 import { getCategoryBySlugApi, ApiCategoryDetail } from "../services/categoryService";
 import { getProductsByCategorySlugApi } from "../services/productService";
+import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { getEffectivePrice } from "../utils/pricing";
@@ -94,8 +95,13 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
     }
 
     loadData();
+    const unsubscribe = subscribeToProductSync(() => {
+      if (slug) productsCacheMap.delete(slug);
+      loadData();
+    });
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, [slug]);
 
