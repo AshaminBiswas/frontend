@@ -4,28 +4,62 @@ import {
   Tag, Percent, Flame, Clock, Search, Filter,
   Star, ShoppingCart, Heart, ChevronLeft, ChevronRight,
   Package, Check, ShieldCheck, Truck, Copy, Sparkles,
-  ArrowRight, RefreshCw, Gift, Zap
+  ArrowRight, RefreshCw, Gift, Zap, Building2
 } from "lucide-react";
 import { Product } from "../types";
-import {
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS
-} from "../data/products";
 import { couponService, Coupon } from "../services/couponService";
 import { bannerService, Banner } from "../services/bannerService";
 import { fetchApi } from "../services/api";
+import { subscribeToProductSync } from "../services/productSyncService";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 
-// Fallback local products
-const LOCAL_CATALOG: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
+function normalizeRawProduct(item: any): Product {
+  const rawId = item._id || item.id || item.apiId;
+  const apiIdStr = rawId ? String(rawId) : undefined;
+  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
+
+  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
+  const backendSale = item.offerPrice ?? item.salePrice;
+
+  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
+    ? Number(backendSale)
+    : Number(item.price || 0);
+
+  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
+
+  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
+  if (typeof item.image === "string" && item.image.trim()) {
+    image = item.image;
+  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
+    image = item.thumbnail;
+  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
+    image = item.images[0];
+  }
+
+  const categoryName = typeof item.category === "object" && item.category?.name
+    ? item.category.name
+    : (typeof item.category === "string" ? item.category : "Hardware");
+
+  return {
+    ...item,
+    id: finalId,
+    apiId: apiIdStr,
+    name: item.name || item.title || "Architectural Hardware",
+    category: categoryName,
+    price: effectiveSale,
+    salePrice: effectiveSale,
+    offerPrice: effectiveSale,
+    regularPrice: effectiveRegular,
+    originalPrice: effectiveRegular,
+    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
+    image,
+    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
+    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
+  };
+}
 
 // Fallback coupons if backend is offline
 const FALLBACK_COUPONS: Coupon[] = [
@@ -91,9 +125,9 @@ interface OffersPageProps {
 export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
-  const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG);
+  const [products, setProducts] = useState<Product[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>(FALLBACK_COUPONS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -104,13 +138,12 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
   const [inStockOnly, setInStockOnly] = useState(false);
 
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+  const [addedIds, setAddedIds] = useState<Set<number | string>>(new Set());
 
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
 
-  // Fetch Offer Products, Banners, and Promo Codes dynamically from Backend API
-  useEffect(() => {
+  const loadData = () => {
     setLoading(true);
 
     // 1. Fetch Dynamic Coupons from API
@@ -125,24 +158,29 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
       })
       .catch(() => setCoupons(FALLBACK_COUPONS));
 
-    // 2. Fetch Dynamic Offer Products from API
-    fetchApi<{ products: Product[] }>("/products?isInOffer=true")
+    // 2. Fetch Dynamic Products from Database API
+    fetchApi<any>("/products?limit=100")
       .then((res) => {
-        if (res.success && res.data && res.data.products && res.data.products.length > 0) {
-          setProducts(res.data.products);
+        if (res && res.success && res.data) {
+          const rawList = Array.isArray(res.data.products)
+            ? res.data.products
+            : Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res.data.items)
+            ? res.data.items
+            : [];
+
+          if (rawList.length > 0) {
+            const normalized = rawList.map(normalizeRawProduct);
+            setProducts(normalized);
+          } else {
+            setProducts([]);
+          }
         } else {
-          fetchApi<{ products: Product[] }>("/products")
-            .then((resAll) => {
-              if (resAll.success && resAll.data && resAll.data.products && resAll.data.products.length > 0) {
-                setProducts(resAll.data.products);
-              } else {
-                setProducts(LOCAL_CATALOG);
-              }
-            })
-            .catch(() => setProducts(LOCAL_CATALOG));
+          setProducts([]);
         }
       })
-      .catch(() => setProducts(LOCAL_CATALOG))
+      .catch(() => setProducts([]))
       .finally(() => setLoading(false));
 
     // 3. Fetch Banners
@@ -159,16 +197,33 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
         if (res.success && res.data && res.data.length > 0) setMidBanner(res.data[0]);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadData();
+    return subscribeToProductSync(loadData);
   }, []);
+
+  // Filter products for offers: prefer items marked isInOffer or return all catalog
+  const offerProductList = useMemo(() => {
+    const marked = products.filter((p) => p.isInOffer === true || (Array.isArray(p.tags) && p.tags.includes("offer")));
+    return marked.length > 0 ? marked : products;
+  }, [products]);
+
+  // Extract unique categories
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(String(p.category));
+    });
+    return Array.from(set);
+  }, [products]);
 
   // Filter products by discount percentage & criteria
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    return offerProductList.filter((p) => {
       if (search.trim() && !p.name.toLowerCase().includes(search.toLowerCase().trim())) return false;
-      if (category !== "ALL") {
-        const cat = p.category?.toUpperCase() || "";
-        if (!cat.includes(category.toUpperCase())) return false;
-      }
+      if (category !== "ALL" && String(p.category).toUpperCase() !== category.toUpperCase()) return false;
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) return false;
 
       const effective = getEffectivePrice(p, user, 1, b2bCache);
@@ -184,7 +239,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
       return true;
     });
-  }, [products, search, category, discountTier, inStockOnly, user, b2bCache]);
+  }, [offerProductList, search, category, discountTier, inStockOnly, user, b2bCache]);
 
   const displayedProducts = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
@@ -214,9 +269,8 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
   return (
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
-      {/* ═══════════════ OFFERS HERO BANNER (DYNAMIC API DATA) ═══════════════ */}
+      {/* ═══════════════ OFFERS HERO BANNER ═══════════════ */}
       <section className="relative min-h-[55vh] bg-gradient-to-br from-[#34150F] via-[#5c2415] to-[#85431E] text-center flex items-center justify-center overflow-hidden py-14 px-4 sm:px-8">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img
             src={
@@ -230,11 +284,10 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto">
-          {/* Ticker Badge */}
           <div className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] px-4 py-1.5 rounded-full mb-4 shadow-lg animate-bounce">
             <Zap size={15} className="fill-[#34150F]" />
             <span className="text-xs font-black uppercase tracking-widest">
-              Live Promo Codes & Dynamic Deals
+              Live Promo Codes & Factory Deals
             </span>
           </div>
 
@@ -247,7 +300,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
           <p className="text-xs sm:text-base text-[#EACEAA]/80 max-w-2xl mx-auto mb-8 font-medium leading-relaxed">
             {topBanner?.subtitle ||
-              "Up to 56% off premium cabinet handles, door hinges, drawer knobs, and smart locks. Direct factory pricing with pan-India delivery."}
+              "Premium architectural hardware, cubicle fittings, and handles at direct manufacturer rates with pan-India delivery."}
           </p>
 
           {/* Dynamic Copyable Promo Codes Bar */}
@@ -275,10 +328,10 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
       <section className="bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.1)] py-5 px-4 md:px-8 lg:px-16 shadow-xs">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            { icon: Percent, label: "Up to 56% OFF", sub: "Super saver items" },
-            { icon: Zap, label: "Flash Deals Under ₹199", sub: "Knobs & catches steals" },
+            { icon: Percent, label: "Direct Factory Pricing", sub: "Super saver items" },
+            { icon: Zap, label: "B2B Contract Deals", sub: "Wholesale quantity rates" },
             { icon: Truck, label: "Free Shipping @ ₹2,000", sub: "Pan-India express delivery" },
-            { icon: ShieldCheck, label: "GST Input Tax Credit", sub: "100% genuine B2B invoice" },
+            { icon: ShieldCheck, label: "GST Input Tax Credit", sub: "100% genuine tax invoice" },
           ].map(({ icon: Icon, label, sub }) => (
             <div
               key={label}
@@ -296,7 +349,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
         </div>
       </section>
 
-      {/* ═══════════════ MAIN OFFERS & DEALS CONTENT ═══════════════ */}
+      {/* ═══════════════ MAIN OFFERS & DEALS CONTENT (DYNAMIC) ═══════════════ */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 py-12">
 
         {/* ── Deal Filter Tabs ── */}
@@ -343,11 +396,9 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
               className="w-full max-w-full bg-[#EACEAA] text-[#34150F] px-3 py-2.5 rounded-tr-xl rounded-bl-xl text-xs border border-[rgba(52,21,15,0.15)] focus:outline-none focus:border-[#D39858] font-bold truncate"
             >
               <option value="ALL">All Product Categories</option>
-              <option value="HANDLES">Handles</option>
-              <option value="HINGES">Hinges</option>
-              <option value="LOCKS">Locks</option>
-              <option value="KNOBS">Knobs</option>
-              <option value="CATCHES">Catches</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
 
             {/* Stock Filter */}
@@ -389,7 +440,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
           </div>
         </div>
 
-        {/* ── Offer Products Grid ── */}
+        {/* ── Offer Products Grid (DYNAMIC PRODUCT CARDS) ── */}
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : displayedProducts.length === 0 ? (
@@ -416,7 +467,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
               return (
                 <div
-                  key={product.id}
+                  key={product.apiId || product.id}
                   className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[#D39858]/30 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                 >
                   <div>
@@ -446,7 +497,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                     </div>
 
                     {/* Content */}
-                    <div className="p-5">
+                    <div className="p-4 sm:p-5">
                       <Link to={`/product/${(product as any).apiId || product.id}`}>
                         <h3 className="text-sm font-bold text-[#34150F] leading-snug line-clamp-2 hover:text-[#D39858] transition-colors mb-1">
                           {product.name}
@@ -466,20 +517,20 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                             <Star
                               key={s}
                               size={12}
-                              fill={s <= (product.rating || 5) ? "#D39858" : "none"}
+                              fill={s <= Math.round(Number(product.rating || 5)) ? "#D39858" : "none"}
                               stroke="#D39858"
                               strokeWidth={1.5}
                             />
                           ))}
                         </div>
                         <span className="text-[10px] text-[#85431E]/60 font-bold">
-                          ({product.rating || 5}.0)
+                          ({Number(product.rating || 5.0).toFixed(1)})
                         </span>
                       </div>
 
                       {/* Price & Savings Pill */}
                       <div className="space-y-1">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <span
                             className="text-lg font-black text-[#34150F]"
                             style={{ fontFamily: "'DM Mono', monospace" }}
@@ -491,8 +542,13 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                               ₹{effective.originalPrice.toLocaleString("en-IN")}
                             </span>
                           )}
+                          {effective.isB2B && (
+                            <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider flex items-center gap-0.5">
+                              <Building2 size={10} /> B2B Rate
+                            </span>
+                          )}
                         </div>
-                        {savingsRupees > 0 && (
+                        {savingsRupees > 0 && !effective.isB2B && (
                           <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded w-fit border border-emerald-200">
                             You save ₹{savingsRupees.toLocaleString("en-IN")}
                           </p>
@@ -502,7 +558,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                   </div>
 
                   {/* Add to Cart CTA */}
-                  <div className="p-5 pt-0">
+                  <div className="p-4 sm:p-5 pt-0">
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
@@ -518,7 +574,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                         </>
                       ) : (
                         <>
-                          <ShoppingCart size={14} /> Grab Deal
+                          <ShoppingCart size={14} /> Add to Cart
                         </>
                       )}
                     </button>
@@ -529,7 +585,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
           </div>
         )}
 
-        {/* ── Pagination Bar ── */}
+        {/* ── Pagination ── */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 my-8">
             <button
@@ -563,102 +619,47 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
             </button>
           </div>
         )}
+
       </div>
 
-      {/* ═══════════════ DYNAMIC PROMO CODES GRID (FROM BACKEND API) ═══════════════ */}
-      <section className="py-14 bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.08)] px-4 md:px-8 lg:px-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <Gift size={28} className="text-[#D39858] mx-auto mb-2" />
-            <h2
-              className="text-3xl font-bold text-[#34150F]"
-              style={{ fontFamily: "'Gilda Display', serif" }}
-            >
-              DYNAMIC PROMO CODES & COUPONS
-            </h2>
-            <p className="text-xs sm:text-sm text-[#85431E]">
-              Tap any coupon code below to copy it for immediate use at checkout.
-            </p>
-          </div>
+      {/* ═══════════════ MID BANNER ═══════════════ */}
+      {midBanner && (
+        <div className="max-w-6xl mx-auto px-4 md:px-8 mb-16">
+          <div className="relative rounded-tr-3xl rounded-bl-3xl overflow-hidden bg-[#34150F] p-8 sm:p-12 text-center text-[#EACEAA] border border-[#D39858]/30 shadow-xl">
+            <div className="absolute inset-0 z-0">
+              <img
+                src={midBanner.image || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=400&fit=crop"}
+                alt="Mid Banner"
+                className="w-full h-full object-cover opacity-20"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#34150F] via-[#34150F]/80 to-[#34150F]" />
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {coupons.map((c) => (
-              <div
-                key={c.code}
-                className="bg-[#f5e8d4] p-6 rounded-tr-2xl rounded-bl-2xl border-2 border-dashed border-[#D39858]/60 relative flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <span className="inline-block bg-[#D39858] text-[#34150F] font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest mb-3">
+                Bulk Order Advantage
+              </span>
+              <h2
+                className="text-2xl sm:text-4xl font-bold mb-3"
+                style={{ fontFamily: "'Gilda Display', serif" }}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black text-[#34150F] bg-[#D39858]/30 px-2.5 py-1 rounded">
-                      {c.discountType === "PERCENTAGE"
-                        ? `${c.discountValue}% OFF`
-                        : `₹${c.discountValue} OFF`}
-                    </span>
-                    {c.minOrderAmount && (
-                      <span className="text-[10px] text-[#85431E]/70 font-bold">
-                        Min Order: ₹{c.minOrderAmount}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#85431E] leading-relaxed mb-4">
-                    {c.description || `Use promo code ${c.code} to save at checkout.`}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleCopyCode(c.code)}
-                  className="w-full bg-[#34150F] text-[#EACEAA] font-bold py-2.5 px-4 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all text-xs flex items-center justify-center gap-2"
+                {midBanner.title}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#EACEAA]/80 mb-6 leading-relaxed">
+                {midBanner.subtitle}
+              </p>
+              {midBanner.link && (
+                <Link
+                  to={midBanner.link}
+                  className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-bold px-8 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs shadow-lg"
                 >
-                  {copiedCode === c.code ? (
-                    <>
-                      <Check size={14} className="text-emerald-400" /> Code Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} /> Copy Code: {c.code}
-                    </>
-                  )}
-                </button>
-              </div>
-            ))}
+                  Explore Contract Catalog <ArrowRight size={14} />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* ═══════════════ MID-PAGE BANNER (DYNAMIC API DATA) ═══════════════ */}
-      <section className="relative h-[38vh] min-h-[280px] bg-[#34150F] my-12 flex items-center justify-center text-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={
-              midBanner?.image ||
-              "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&h=600&fit=crop&auto=format"
-            }
-            alt="Mid Banner"
-            className="w-full h-full object-cover opacity-85 transition-opacity duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#34150F]/75 via-[#34150F]/40 to-black/20" />
-        </div>
-
-        <div className="relative z-10 max-w-3xl px-4">
-          <h2
-            className="text-3xl sm:text-4xl font-bold text-[#EACEAA] mb-3"
-            style={{ fontFamily: "'Gilda Display', serif" }}
-          >
-            {midBanner?.title || "Contractor & Bulk Architect Deals"}
-          </h2>
-          <p className="text-xs sm:text-sm text-[#EACEAA]/70 max-w-xl mx-auto mb-6">
-            {midBanner?.subtitle ||
-              "Unlock specialized trade pricing, custom hardware manufacturing, and tax input invoices for commercial site orders."}
-          </p>
-          <Link
-            to="/request-quote"
-            className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-black px-7 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs uppercase tracking-wider shadow-lg"
-          >
-            Request Wholesale Quote →
-          </Link>
-        </div>
-      </section>
+      )}
 
     </div>
   );
