@@ -211,10 +211,8 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
   }, [filteredProducts, viewMode, page]);
 
   const relatedProducts = useMemo(() => {
-    return products
-      .filter((p) => !displayedProducts.some((d) => String(d.id) === String(p.id) || (d.apiId && d.apiId === p.apiId)))
-      .slice(0, 4);
-  }, [products, displayedProducts]);
+    return products.slice(0, 4);
+  }, [products]);
 
   const handleAddToCart = (product: Product) => {
     onAddToCart(product);

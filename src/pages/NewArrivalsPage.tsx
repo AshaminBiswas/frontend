@@ -1,30 +1,64 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  Sparkles, Truck, ShieldCheck, Lock, Search, Filter,
+  Sparkles, Truck, ShieldCheck, Lock, Search,
   Star, ShoppingCart, Heart, ChevronLeft, ChevronRight,
-  Package, Check, Tag, Clock, ArrowRight, Award, Flame,
-  RefreshCw
+  Package, Check, Tag, ArrowRight, Award, Flame,
+  RefreshCw, Building2
 } from "lucide-react";
 import { Product } from "../types";
-import {
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS
-} from "../data/products";
 import { bannerService, Banner } from "../services/bannerService";
 import { fetchApi } from "../services/api";
+import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 
-// Fallback master catalog
-const LOCAL_CATALOG: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
+function normalizeRawProduct(item: any): Product {
+  const rawId = item._id || item.id || item.apiId;
+  const apiIdStr = rawId ? String(rawId) : undefined;
+  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
+
+  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
+  const backendSale = item.offerPrice ?? item.salePrice;
+
+  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
+    ? Number(backendSale)
+    : Number(item.price || 0);
+
+  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
+
+  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
+  if (typeof item.image === "string" && item.image.trim()) {
+    image = item.image;
+  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
+    image = item.thumbnail;
+  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
+    image = item.images[0];
+  }
+
+  const categoryName = typeof item.category === "object" && item.category?.name
+    ? item.category.name
+    : (typeof item.category === "string" ? item.category : "Hardware");
+
+  return {
+    ...item,
+    id: finalId,
+    apiId: apiIdStr,
+    name: item.name || item.title || "Architectural Hardware",
+    category: categoryName,
+    price: effectiveSale,
+    salePrice: effectiveSale,
+    offerPrice: effectiveSale,
+    regularPrice: effectiveRegular,
+    originalPrice: effectiveRegular,
+    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
+    image,
+    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
+    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
+  };
+}
 
 /* ── Safe Image Thumbnail ── */
 function ProductThumb({ src, name }: { src?: string; name: string }) {
@@ -51,20 +85,12 @@ function ProductThumb({ src, name }: { src?: string; name: string }) {
   );
 }
 
-const CATEGORIES = [
-  { id: "ALL", label: "All New Drops" },
-  { id: "HANDLES", label: "Door & Cabinet Handles" },
-  { id: "HINGES", label: "Soft-Close Hinges" },
-  { id: "LOCKS", label: "Smart & Digital Locks" },
-  { id: "KNOBS", label: "Decorative Knobs" },
-];
-
 const ARCHITECT_REVIEWS = [
   { id: 1, name: "Karan Verma", role: "Principal Architect, Chandigarh", rating: 5, comment: "The matte black T-bar series is stunning. Installed them in a luxury penthouse and the client was thrilled." },
-  { id: 2, name: "Meera Deshmukh", role: "Interior Stylist, Delhi", rating: 5, comment: "Fresh 2026 designs that you don't find in local markets. The concealed hinges are ultra smooth." },
+  { id: 2, name: "Meera Deshmukh", role: "Interior Stylist, Delhi", rating: 5, comment: "Fresh 2026 designs that you don't find in local markets. The concealed fittings are ultra smooth." },
   { id: 3, name: "Aman Gupta", role: "Builder, Hyderabad", rating: 5, comment: "New arrivals arrived within 48 hours in perfect packaging. Exceptional quality control." },
-  { id: 4, name: "Divya Nair", role: "Studio Lead, Kochi", rating: 5, comment: "The smart digital lock is ultra responsive. Really impressed by PRC Hardware's new catalog." },
-  { id: 5, name: "Tushar Saxena", role: "Hotel Project Manager, Jaipur", rating: 5, comment: "Ordered sample sets of the new brass handles. Finishing is international standard." },
+  { id: 4, name: "Divya Nair", role: "Studio Lead, Kochi", rating: 5, comment: "Really impressed by PRC Hardware's new catalog and contract wholesale rates." },
+  { id: 5, name: "Tushar Saxena", role: "Hotel Project Manager, Jaipur", rating: 5, comment: "Ordered sample sets of the new hardware line. Finishing is international standard." },
 ];
 
 interface NewArrivalsPageProps {
@@ -76,8 +102,9 @@ interface NewArrivalsPageProps {
 export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArrivalsPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
-  const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG);
-  const [loading, setLoading] = useState(false);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -91,33 +118,40 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+  const [addedIds, setAddedIds] = useState<Set<number | string>>(new Set());
 
-  // Fetch API products + banners
-  useEffect(() => {
+  const loadProducts = () => {
     setLoading(true);
-    // 1. Fetch products from API (fallback to LOCAL_CATALOG if empty or offline)
-    fetchApi<{ products: Product[] }>("/products?isNewArrival=true")
+    fetchApi<any>("/products?limit=100")
       .then((res) => {
-        if (res.success && res.data && res.data.products && res.data.products.length > 0) {
-          setProducts(res.data.products);
+        if (res && res.success && res.data) {
+          const rawList = Array.isArray(res.data.products)
+            ? res.data.products
+            : Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res.data.items)
+            ? res.data.items
+            : [];
+
+          if (rawList.length > 0) {
+            const normalized = rawList.map(normalizeRawProduct);
+            setProducts(normalized);
+          } else {
+            setProducts([]);
+          }
         } else {
-          // Fallback to local
-          fetchApi<{ products: Product[] }>("/products")
-            .then((resAll) => {
-              if (resAll.success && resAll.data && resAll.data.products && resAll.data.products.length > 0) {
-                setProducts(resAll.data.products);
-              } else {
-                setProducts(LOCAL_CATALOG);
-              }
-            })
-            .catch(() => setProducts(LOCAL_CATALOG));
+          setProducts([]);
         }
       })
-      .catch(() => setProducts(LOCAL_CATALOG))
+      .catch(() => setProducts([]))
       .finally(() => setLoading(false));
+  };
 
-    // 2. Fetch Banners
+  useEffect(() => {
+    loadProducts();
+    const unsubscribe = subscribeToProductSync(loadProducts);
+
+    // Fetch Banners
     bannerService
       .getPublicBanners("NEW_ARRIVALS_TOP")
       .then((res) => {
@@ -131,28 +165,47 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
         if (res.success && res.data && res.data.length > 0) setMidBanner(res.data[0]);
       })
       .catch(() => {});
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
+
+  // Filter for new drops: prefer those marked isNewArrival, fallback to full catalog
+  const newArrivalList = useMemo(() => {
+    const marked = products.filter((p) => p.isNewArrival === true || (Array.isArray(p.tags) && p.tags.includes("new")));
+    return marked.length > 0 ? marked : products;
+  }, [products]);
+
+  // Unique categories
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(String(p.category));
+    });
+    return [{ id: "ALL", label: "All New Drops" }, ...Array.from(set).map((c) => ({ id: c, label: c }))];
+  }, [products]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
-    let result = products.filter((p) => {
+    let result = newArrivalList.filter((p) => {
       if (search.trim() && !p.name.toLowerCase().includes(search.toLowerCase().trim())) return false;
       if (selectedCat !== "ALL") {
-        const cat = p.category?.toUpperCase() || "";
-        if (!cat.includes(selectedCat.toUpperCase())) return false;
+        const catStr = String(p.category || "").toLowerCase();
+        if (!catStr.includes(selectedCat.toLowerCase())) return false;
       }
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) return false;
       return true;
     });
 
-    if (priceSort === "LOW_HIGH") {
-      result = [...result].sort((a, b) => getEffectivePrice(a, user, 1, b2bCache).unitPrice - getEffectivePrice(b, user, 1, b2bCache).unitPrice);
-    } else if (priceSort === "HIGH_LOW") {
-      result = [...result].sort((a, b) => getEffectivePrice(b, user, 1, b2bCache).unitPrice - getEffectivePrice(a, user, 1, b2bCache).unitPrice);
-    }
-
-    return result;
-  }, [products, search, selectedCat, priceSort, inStockOnly, user, b2bCache]);
+    return result.sort((a, b) => {
+      const priceA = getEffectivePrice(a, user, 1, b2bCache).unitPrice;
+      const priceB = getEffectivePrice(b, user, 1, b2bCache).unitPrice;
+      if (priceSort === "LOW_HIGH") return priceA - priceB;
+      if (priceSort === "HIGH_LOW") return priceB - priceA;
+      return String(b.id).localeCompare(String(a.id));
+    });
+  }, [newArrivalList, search, selectedCat, inStockOnly, priceSort, user, b2bCache]);
 
   const displayedProducts = useMemo(() => {
     if (viewMode === "TOP4") {
@@ -166,7 +219,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
   const recommendedPairings = useMemo(() => {
-    return products.slice(1, 5);
+    return products.slice(0, 4);
   }, [products]);
 
   const handleAddToCart = (product: Product) => {
@@ -178,129 +231,64 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
         next.delete(product.id);
         return next;
       });
-    }, 2000);
+    }, 1800);
   };
-
-  const highlightProduct = products[0] || LOCAL_CATALOG[0];
 
   return (
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
-      {/* ═══════════════ LUXURY HERO SECTION ═══════════════ */}
-      <section className="relative min-h-[65vh] bg-[#34150F] flex items-center justify-center overflow-hidden py-16 px-4 md:px-8 lg:px-16">
-        {/* Background Overlay */}
+      {/* ═══════════════ TOP HERO BANNER ═══════════════ */}
+      <section className="relative h-[65vh] min-h-[460px] bg-[#34150F] flex items-center justify-center text-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
             src={
               topBanner?.image ||
-              "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&h=900&fit=crop&auto=format"
+              "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&h=900&fit=crop&auto=format"
             }
-            alt="New Arrivals Hero"
-            className="w-full h-full object-cover opacity-85 transition-opacity duration-300"
+            alt="New Arrivals Banner"
+            className="w-full h-full object-cover opacity-75"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#34150F]/75 via-[#34150F]/40 to-black/20" />
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#D39858]/10 blur-3xl" />
-          <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-[#85431E]/20 blur-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#34150F]/90 via-[#34150F]/50 to-black/30" />
         </div>
 
-        {/* Content Container */}
-        <div className="relative z-10 max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          
-          {/* Left Column */}
-          <div className="lg:col-span-7 text-left">
-            <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-3.5 py-1.5 rounded-full mb-5 shadow-lg">
-              <Sparkles size={15} className="text-[#D39858] animate-spin" style={{ animationDuration: '8s' }} />
-              <span className="text-[11px] font-black text-[#D39858] uppercase tracking-[0.2em]">
-                2026 Spring Drop • Limited Inventory
-              </span>
-            </div>
-
-            <h1
-              className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#EACEAA] mb-4 tracking-tight leading-[1.1]"
-              style={{ fontFamily: "'Gilda Display', serif" }}
-            >
-              {topBanner?.title || "Fresh Arrivals & Modern Fittings"}
-            </h1>
-
-            <p className="text-sm sm:text-base text-[#EACEAA]/75 max-w-xl mb-8 leading-relaxed font-medium">
-              {topBanner?.subtitle ||
-                "Elevate your living space with our newest release — satin-brushed brass handles, silent soft-close concealed hinges, and biometric digital locks."}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <a
-                href="#new-arrivals-grid"
-                className="bg-[#D39858] text-[#34150F] font-black px-7 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all duration-300 text-sm shadow-xl active:scale-95 flex items-center gap-2"
-              >
-                Explore New Drops <ArrowRight size={16} />
-              </a>
-              <button
-                onClick={() => {
-                  setViewMode("ALL20");
-                  const el = document.getElementById("new-arrivals-grid");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="bg-[#EACEAA]/10 text-[#EACEAA] border border-[#EACEAA]/25 font-bold px-7 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA]/20 transition-all text-sm backdrop-blur-xs"
-              >
-                View Full Catalog ({products.length})
-              </button>
-            </div>
+        <div className="relative z-10 max-w-4xl px-4 sm:px-8">
+          <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-4 py-1.5 rounded-full mb-4">
+            <Sparkles size={16} className="text-[#D39858]" />
+            <span className="text-xs font-extrabold text-[#D39858] uppercase tracking-widest">
+              Fresh 2026 Collection
+            </span>
           </div>
 
-          {/* Right Column */}
-          {highlightProduct && (
-            <div className="lg:col-span-5 hidden lg:block">
-              <div className="bg-[#EACEAA]/8 border border-[#EACEAA]/15 backdrop-blur-md rounded-tr-3xl rounded-bl-3xl p-6 shadow-2xl relative">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#EACEAA]/10">
-                  <span className="text-xs font-black uppercase tracking-widest text-[#D39858] flex items-center gap-1.5">
-                    <Flame size={14} className="fill-[#D39858]" /> Highlight of the Week
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    NEW ARRIVAL
-                  </span>
-                </div>
+          <h1
+            className="text-3xl sm:text-5xl md:text-6xl font-black text-[#EACEAA] mb-4 tracking-tight leading-tight"
+            style={{ fontFamily: "'Gilda Display', serif" }}
+          >
+            {topBanner?.title || "New Arrival Hardware Collections"}
+          </h1>
 
-                <div className="flex gap-4 items-center">
-                  <img
-                    src={highlightProduct.image || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop&auto=format"}
-                    alt={highlightProduct.name}
-                    className="w-24 h-24 object-cover rounded-tr-2xl rounded-bl-2xl border border-[#D39858]/40 shadow-lg flex-shrink-0"
-                  />
-                  <div>
-                    <h4 className="text-sm font-bold text-[#EACEAA] leading-snug mb-1">
-                      {highlightProduct.name}
-                    </h4>
-                    <p className="text-[11px] text-[#EACEAA]/60 mb-2">
-                      {highlightProduct.material || "304 Grade Solid Brass"}
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      {(() => {
-                        const effHighlight = getEffectivePrice(highlightProduct, user, 1, b2bCache);
-                        return (
-                          <>
-                            <span className="text-lg font-black text-[#D39858]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                              ₹{effHighlight.unitPrice.toLocaleString("en-IN")}
-                            </span>
-                            {effHighlight.originalPrice > effHighlight.unitPrice && (
-                              <span className="text-xs text-[#EACEAA]/40 line-through">
-                                ₹{effHighlight.originalPrice.toLocaleString("en-IN")}
-                              </span>
-                            )}
-                            {effHighlight.isB2B && (
-                              <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase">
-                                B2B
-                              </span>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <p className="text-sm sm:text-base md:text-lg text-[#EACEAA]/80 max-w-2xl mx-auto mb-8 font-medium leading-relaxed">
+            {topBanner?.subtitle ||
+              "Explore our newest commercial architectural fittings engineered for modern interiors, cubicles, and wholesale projects."}
+          </p>
 
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <a
+              href="#new-arrivals-grid"
+              className="bg-[#D39858] text-[#34150F] font-black px-8 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all duration-300 text-sm shadow-xl active:scale-95 flex items-center gap-2"
+            >
+              Shop New Drops <ArrowRight size={16} />
+            </a>
+            <button
+              onClick={() => {
+                setViewMode("ALL20");
+                const el = document.getElementById("new-arrivals-grid");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="bg-[#EACEAA]/10 text-[#EACEAA] border border-[#EACEAA]/30 font-bold px-8 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA]/20 transition-all duration-300 text-sm"
+            >
+              View Full Catalog ({products.length})
+            </button>
+          </div>
         </div>
       </section>
 
@@ -310,7 +298,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
           {[
             { icon: Sparkles, label: "Just Launched", sub: "Fresh 2026 architectural trends" },
             { icon: Truck, label: "Fast Pan-India Delivery", sub: "Dispatched within 24-48 hours" },
-            { icon: Tag, label: "Launch Discounts", sub: "Special introductory prices" },
+            { icon: Tag, label: "Direct Factory Pricing", sub: "Retail & B2B contract rates" },
             { icon: ShieldCheck, label: "Quality Certified", sub: "Grade 304/316 Steel & Solid Brass" },
           ].map(({ icon: Icon, label, sub }) => (
             <div
@@ -329,12 +317,12 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
         </div>
       </section>
 
-      {/* ═══════════════ MAIN PRODUCT SECTION ═══════════════ */}
+      {/* ═══════════════ MAIN PRODUCT SECTION (SECTION 1) ═══════════════ */}
       <div id="new-arrivals-grid" className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 py-12">
 
         {/* ── Category Pills Filter Bar ── */}
         <div className="w-full max-w-full flex items-center gap-2 overflow-x-auto touch-pan-x pb-3 mb-6 scrollbar-none">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => { setSelectedCat(cat.id); setPage(1); }}
@@ -409,7 +397,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
               {viewMode === "TOP4" ? "New Drop Highlights" : "All New Arrivals"}
             </h2>
             <p className="text-xs text-[#85431E] mt-0.5">
-              Displaying {displayedProducts.length} of {filteredProducts.length} new items
+              Displaying {displayedProducts.length} of {filteredProducts.length} items
             </p>
           </div>
 
@@ -425,7 +413,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
 
         {/* ── Products Grid ── */}
         {loading ? (
-          <ProductGridSkeleton count={8} />
+          <ProductGridSkeleton count={4} />
         ) : displayedProducts.length === 0 ? (
           <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-12 text-center border border-[rgba(52,21,15,0.08)] shadow-sm">
             <Package size={42} className="text-[#85431E]/40 mx-auto mb-3" />
@@ -440,6 +428,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                 wishlist.has(product.id) ||
                 wishlist.has(String(product.id)) ||
                 ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
+
               const effective = getEffectivePrice(product, user, 1, b2bCache);
               const discountPercent = effective.isB2B
                 ? effective.b2bDiscountPercent
@@ -449,35 +438,39 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
 
               return (
                 <div
-                  key={product.id}
-                  className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                  key={product.apiId || product.id}
+                  className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                 >
                   <div>
-                    {/* Thumbnail + Badges */}
+                    {/* Thumbnail + Tags */}
                     <div className="relative">
                       <ProductThumb src={product.image} name={product.name} />
 
-                      {/* NEW ARRIVAL FLOATING BADGE */}
-                      <span className="absolute top-3 left-3 bg-[#34150F] text-[#D39858] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-tr-lg rounded-bl-lg shadow-md flex items-center gap-1 border border-[#D39858]/30">
-                        <Sparkles size={10} className="fill-[#D39858] text-[#D39858]" />
-                        JUST LAUNCHED
+                      {/* NEW TAG */}
+                      <span className="absolute top-3 left-3 bg-[#34150F] text-[#D39858] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-tr-lg rounded-bl-lg shadow flex items-center gap-1">
+                        <Sparkles size={11} className="text-[#D39858]" />
+                        NEW DROP
                       </span>
 
-                      {/* Wishlist toggle */}
+                      {/* Wishlist Button */}
                       <button
                         type="button"
                         onClick={() => onWishlist(product)}
                         className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-sm shadow flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ${
-                          isWishlisted ? "bg-red-50 text-red-500" : "bg-white/85 text-[#34150F] hover:bg-white"
+                          isWishlisted ? "bg-red-50 text-red-500" : "bg-white/80 text-[#34150F] hover:bg-white"
                         }`}
-                        title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
+                        title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                       >
                         <Heart size={15} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
                       </button>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-5">
+                    {/* Product Details */}
+                    <div className="p-4 sm:p-5">
+                      <p className="text-[10px] font-bold text-[#85431E]/80 uppercase tracking-widest mb-1">
+                        {product.category}
+                      </p>
+
                       <Link to={`/product/${(product as any).apiId || product.id}`}>
                         <h3 className="text-sm font-bold text-[#34150F] leading-snug line-clamp-2 hover:text-[#D39858] transition-colors mb-1">
                           {product.name}
@@ -497,19 +490,19 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                             <Star
                               key={s}
                               size={12}
-                              fill={s <= (product.rating || 5) ? "#D39858" : "none"}
+                              fill={s <= Math.round(Number(product.rating || 5)) ? "#D39858" : "none"}
                               stroke="#D39858"
                               strokeWidth={1.5}
                             />
                           ))}
                         </div>
-                        <span className="text-[10px] text-[#85431E]/60 font-bold">
-                          ({product.rating || 5}.0)
+                        <span className="text-[10px] text-[#85431E]/60 font-semibold">
+                          ({Number(product.rating || 5.0).toFixed(1)})
                         </span>
                       </div>
 
-                      {/* Price */}
-                      <div className="flex items-baseline gap-2">
+                      {/* Price Row */}
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <span
                           className="text-lg font-black text-[#34150F]"
                           style={{ fontFamily: "'DM Mono', monospace" }}
@@ -522,11 +515,11 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                           </span>
                         )}
                         {effective.isB2B ? (
-                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
-                            B2B {discountPercent}% OFF
+                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider flex items-center gap-0.5">
+                            <Building2 size={10} /> B2B Rate
                           </span>
                         ) : discountPercent > 0 && (
-                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                             {discountPercent}% OFF
                           </span>
                         )}
@@ -535,7 +528,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                   </div>
 
                   {/* Add to Cart CTA */}
-                  <div className="p-5 pt-0">
+                  <div className="p-4 sm:p-5 pt-0">
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
@@ -608,44 +601,116 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
             </button>
           </div>
         )}
+
       </div>
 
-      {/* ═══════════════ MID-PAGE SHOWCASE BANNER ═══════════════ */}
-      <section className="relative h-[42vh] min-h-[320px] bg-[#34150F] my-12 flex items-center justify-center text-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={
-              midBanner?.image ||
-              "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1600&h=600&fit=crop&auto=format"
-            }
-            alt="Mid Banner"
-            className="w-full h-full object-cover opacity-85 transition-opacity duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#34150F]/75 via-[#34150F]/40 to-black/20" />
-        </div>
+      {/* ═══════════════ SECTION 2: RECOMMENDED PAIRINGS & MORE COLLECTIONS ═══════════════ */}
+      {recommendedPairings.length > 0 && (
+        <section className="py-12 max-w-6xl mx-auto px-4 md:px-8 lg:px-16">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <p className="text-[#D39858] text-xs font-extrabold uppercase tracking-widest mb-1">
+                Curated Pairings
+              </p>
+              <h2
+                className="text-2xl sm:text-3xl font-bold text-[#34150F]"
+                style={{ fontFamily: "'Gilda Display', serif" }}
+              >
+                FREQUENTLY PAIRED WITH NEW ARRIVALS
+              </h2>
+            </div>
+            <Link
+              to="/products"
+              className="text-xs font-bold text-[#85431E] hover:text-[#34150F] transition-colors hidden sm:block"
+            >
+              Explore Catalog →
+            </Link>
+          </div>
 
-        <div className="relative z-10 max-w-3xl px-4">
-          <span className="text-[10px] font-black text-[#D39858] uppercase tracking-[0.25em] mb-2 inline-block">
-            Architect & Builder Special
-          </span>
-          <h2
-            className="text-3xl sm:text-4xl font-bold text-[#EACEAA] mb-3 leading-tight"
-            style={{ fontFamily: "'Gilda Display', serif" }}
-          >
-            {midBanner?.title || "Innovative Hardware For Modern Living"}
-          </h2>
-          <p className="text-xs sm:text-sm text-[#EACEAA]/70 max-w-xl mx-auto mb-6">
-            {midBanner?.subtitle ||
-              "Request custom sample kits or B2B bulk volume pricing for commercial and luxury residential projects."}
-          </p>
-          <Link
-            to="/request-quote"
-            className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-black px-7 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs uppercase tracking-wider shadow-lg"
-          >
-            Request B2B Quote →
-          </Link>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
+            {recommendedPairings.map((product) => {
+              const isAdded = addedIds.has(product.id);
+              const effective = getEffectivePrice(product, user, 1, b2bCache);
+              return (
+                <div
+                  key={product.apiId || product.id}
+                  className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-lg transition-all p-4 flex flex-col justify-between"
+                >
+                  <div>
+                    <ProductThumb src={product.image} name={product.name} />
+                    <p className="text-[9px] font-bold text-[#85431E]/70 uppercase tracking-wider mt-3 mb-1">
+                      {product.category}
+                    </p>
+                    <Link to={`/product/${(product as any).apiId || product.id}`}>
+                      <h4 className="text-xs font-bold text-[#34150F] line-clamp-2 hover:text-[#D39858] mb-2">
+                        {product.name}
+                      </h4>
+                    </Link>
+                    <p
+                      className="text-base font-black text-[#34150F] mb-3"
+                      style={{ fontFamily: "'DM Mono', monospace" }}
+                    >
+                      ₹{effective.unitPrice.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddToCart(product)}
+                    className={`w-full py-2 px-3 rounded-tr-xl rounded-bl-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all ${
+                      isAdded
+                        ? "bg-emerald-600 text-white"
+                        : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
+                    }`}
+                  >
+                    {isAdded ? <Check size={13} /> : <ShoppingCart size={13} />}
+                    {isAdded ? "Added" : "Add to Cart"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ═══════════════ MID BANNER ═══════════════ */}
+      {midBanner && (
+        <div className="max-w-6xl mx-auto px-4 md:px-8 mb-16">
+          <div className="relative rounded-tr-3xl rounded-bl-3xl overflow-hidden bg-[#34150F] p-8 sm:p-12 text-center text-[#EACEAA] border border-[#D39858]/30 shadow-xl">
+            <div className="absolute inset-0 z-0">
+              <img
+                src={midBanner.image || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=400&fit=crop"}
+                alt="Mid Banner"
+                className="w-full h-full object-cover opacity-20"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#34150F] via-[#34150F]/80 to-[#34150F]" />
+            </div>
+
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <span className="inline-block bg-[#D39858] text-[#34150F] font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest mb-3">
+                Wholesale & Contract Solutions
+              </span>
+              <h2
+                className="text-2xl sm:text-4xl font-bold mb-3"
+                style={{ fontFamily: "'Gilda Display', serif" }}
+              >
+                {midBanner.title}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#EACEAA]/80 mb-6 leading-relaxed">
+                {midBanner.subtitle}
+              </p>
+              {midBanner.link && (
+                <Link
+                  to={midBanner.link}
+                  className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-bold px-8 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs shadow-lg"
+                >
+                  Explore Contract Catalog <ArrowRight size={14} />
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
-      </section>
+      )}
 
       {/* ═══════════════ ARCHITECT REVIEWS MARQUEE ═══════════════ */}
       <section className="py-14 bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.08)] overflow-hidden">
@@ -661,7 +726,6 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
           </h2>
         </div>
 
-        {/* Marquee slider */}
         <div className="relative w-full overflow-hidden">
           <div className="flex gap-5 animate-marquee whitespace-normal hover:[animation-play-state:paused]">
             {[...ARCHITECT_REVIEWS, ...ARCHITECT_REVIEWS].map((rev, i) => (
@@ -692,122 +756,6 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
         </div>
       </section>
 
-      {/* ═══════════════ LAUNCH STATS ═══════════════ */}
-      <section className="py-14 px-4 md:px-8 lg:px-16">
-        <div className="max-w-6xl mx-auto bg-[#34150F] rounded-tr-3xl rounded-bl-3xl p-8 sm:p-10 shadow-2xl text-center grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              1,200+
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Units In Stock
-            </p>
-          </div>
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              45+
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              New Designs
-            </p>
-          </div>
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              100%
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Quality Inspected
-            </p>
-          </div>
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              4.9 ★
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Early Rating
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ RECOMMENDED PAIRINGS ═══════════════ */}
-      <section className="py-12 max-w-6xl mx-auto px-4 md:px-8 lg:px-16">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-[#D39858] text-xs font-extrabold uppercase tracking-widest mb-1">
-              Curated Pairings
-            </p>
-            <h2
-              className="text-2xl sm:text-3xl font-bold text-[#34150F]"
-              style={{ fontFamily: "'Gilda Display', serif" }}
-            >
-              FREQUENTLY PAIRED WITH NEW ARRIVALS
-            </h2>
-          </div>
-          <Link
-            to="/products"
-            className="text-xs font-bold text-[#85431E] hover:text-[#34150F] transition-colors hidden sm:block"
-          >
-            Explore Catalog →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-          {recommendedPairings.map((product) => {
-            const isAdded = addedIds.has(product.id);
-            return (
-              <div
-                key={product.id}
-                className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-lg transition-all p-4 flex flex-col justify-between"
-              >
-                <div>
-                  <ProductThumb src={product.image} name={product.name} />
-                  <p className="text-[9px] font-bold text-[#85431E]/70 uppercase tracking-wider mt-3 mb-1">
-                    {product.category}
-                  </p>
-                  <Link to={`/product/${product.id}`}>
-                    <h4 className="text-xs font-bold text-[#34150F] line-clamp-2 hover:text-[#D39858] mb-2">
-                      {product.name}
-                    </h4>
-                  </Link>
-                  <p
-                    className="text-base font-black text-[#34150F] mb-3"
-                    style={{ fontFamily: "'DM Mono', monospace" }}
-                  >
-                    ₹{getEffectivePrice(product, user, 1, b2bCache).unitPrice.toLocaleString("en-IN")}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleAddToCart(product)}
-                  className={`w-full py-2 px-3 rounded-tr-xl rounded-bl-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all ${
-                    isAdded
-                      ? "bg-emerald-600 text-white"
-                      : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
-                  }`}
-                >
-                  {isAdded ? <Check size={13} /> : <ShoppingCart size={13} />}
-                  {isAdded ? "Added" : "Add to Cart"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* ═══════════════ WHY UPGRADE WITH PRC HARDWARE ═══════════════ */}
       <section className="bg-[#34150F] text-[#EACEAA] py-16 px-4 md:px-8 lg:px-16 border-t border-[#D39858]/20">
         <div className="max-w-6xl mx-auto">
@@ -820,31 +768,31 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
               WHY UPGRADE WITH PRC HARDWARE
             </h2>
             <p className="text-xs sm:text-sm text-[#EACEAA]/70 leading-relaxed">
-              Elevate every interior project with precision-engineered fittings, marine-grade materials, and fast pan-India logistics.
+              Precision manufacturing, Grade 304/316 raw materials, and enterprise B2B support.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
               {
-                icon: Sparkles,
-                title: "Contemporary Aesthetics",
-                desc: "Designed in collaboration with top interior architects to complement modern & minimalist interiors.",
+                icon: Award,
+                title: "100% Certified Raw Materials",
+                desc: "Grade 304/316 stainless steel, solid brass, and precision fittings engineered for extreme longevity.",
               },
               {
-                icon: Clock,
-                title: "Precision Engineering",
-                desc: "Tested for over 200,000 opening cycles with zero sagging or loss of soft-close tension.",
+                icon: Flame,
+                title: "Direct Factory Pricing",
+                desc: "No middlemen markups. Get retail or wholesale B2B contract pricing direct from manufacturing.",
               },
               {
                 icon: Truck,
-                title: "Next-Day Dispatch",
-                desc: "All new arrival inventory is pre-packed and ready for express shipment pan-India.",
+                title: "Rapid Pan-India Logistics",
+                desc: "Express dispatch within 24 hours with live order tracking straight to your location.",
               },
               {
                 icon: ShieldCheck,
-                title: "Complete Quality Warranty",
-                desc: "Backing every piece of hardware with our 100% replacement guarantee against manufacturing defects.",
+                title: "Quality Warranty & Easy Support",
+                desc: "Comprehensive quality warranty on all hardware fittings with zero-hassle support.",
               },
             ].map(({ icon: Icon, title, desc }) => (
               <div
@@ -854,12 +802,12 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                 <div className="w-12 h-12 rounded-tr-xl rounded-bl-xl bg-[#D39858] flex items-center justify-center mx-auto mb-4 text-[#34150F] shadow-lg">
                   <Icon size={22} />
                 </div>
-                <h4
+                <h3
                   className="text-sm font-bold text-[#EACEAA] mb-2"
                   style={{ fontFamily: "'Gilda Display', serif" }}
                 >
                   {title}
-                </h4>
+                </h3>
                 <p className="text-xs text-[#EACEAA]/65 leading-relaxed">{desc}</p>
               </div>
             ))}

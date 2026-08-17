@@ -2,9 +2,9 @@ import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Product } from "../../types";
-import { SUPER_SAVER_PRODUCTS } from "../../data/products";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
+import { subscribeToProductSync } from "../../services/productSyncService";
 
 interface SuperSaverSectionProps {
   onAddToCart: (p: Product) => void;
@@ -13,31 +13,90 @@ interface SuperSaverSectionProps {
   onViewAll?: (title: string) => void;
 }
 
+function normalizeRawProduct(item: any): Product {
+  const rawId = item._id || item.id || item.apiId;
+  const apiIdStr = rawId ? String(rawId) : undefined;
+  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
+
+  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
+  const backendSale = item.offerPrice ?? item.salePrice;
+
+  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
+    ? Number(backendSale)
+    : Number(item.price || 0);
+
+  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
+
+  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
+  if (typeof item.image === "string" && item.image.trim()) {
+    image = item.image;
+  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
+    image = item.thumbnail;
+  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
+    image = item.images[0];
+  }
+
+  const categoryName = typeof item.category === "object" && item.category?.name
+    ? item.category.name
+    : (typeof item.category === "string" ? item.category : "Hardware");
+
+  return {
+    ...item,
+    id: finalId,
+    apiId: apiIdStr,
+    name: item.name || item.title || "Architectural Hardware",
+    category: categoryName,
+    price: effectiveSale,
+    salePrice: effectiveSale,
+    offerPrice: effectiveSale,
+    regularPrice: effectiveRegular,
+    originalPrice: effectiveRegular,
+    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
+    image,
+    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
+    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
+  };
+}
+
 export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSaverSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [offerProducts, setOfferProducts] = useState<Product[]>(SUPER_SAVER_PRODUCTS);
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [offerProducts, setOfferProducts] = useState<Product[]>([]);
+  const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
-  // Fetch offer products dynamically from backend API
-  useEffect(() => {
-    fetchApi<{ products: Product[] }>("/products?isInOffer=true")
+  const loadOffers = () => {
+    fetchApi<any>("/products?limit=100")
       .then((res) => {
-        if (res.success && res.data && res.data.products && res.data.products.length > 0) {
-          setOfferProducts(res.data.products);
+        if (res && res.success && res.data) {
+          const rawList = Array.isArray(res.data.products)
+            ? res.data.products
+            : Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res.data.items)
+            ? res.data.items
+            : [];
+
+          if (rawList.length > 0) {
+            const normalized = rawList.map(normalizeRawProduct);
+            const marked = normalized.filter((p) => p.isInOffer === true || (Array.isArray(p.tags) && p.tags.includes("offer")));
+            setOfferProducts(marked.length > 0 ? marked : normalized.slice(0, 8));
+          } else {
+            setOfferProducts([]);
+          }
         } else {
-          fetchApi<{ products: Product[] }>("/products")
-            .then((resAll) => {
-              if (resAll.success && resAll.data && resAll.data.products && resAll.data.products.length > 0) {
-                setOfferProducts(resAll.data.products);
-              } else {
-                setOfferProducts(SUPER_SAVER_PRODUCTS);
-              }
-            })
-            .catch(() => setOfferProducts(SUPER_SAVER_PRODUCTS));
+          setOfferProducts([]);
         }
       })
-      .catch(() => setOfferProducts(SUPER_SAVER_PRODUCTS));
+      .catch(() => setOfferProducts([]));
+  };
+
+  useEffect(() => {
+    loadOffers();
+    return subscribeToProductSync(loadOffers);
   }, []);
+
+  if (offerProducts.length === 0) {
+    return null;
+  }
 
   // Native GPU-accelerated smooth 1-card scroll
   const scroll = (direction: number) => {
@@ -55,7 +114,7 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
             Super Saver Offers
           </h2>
-          <p className="text-xs text-[#85431E] mt-0.5">Hover any product card to focus</p>
+          <p className="text-xs text-[#85431E] mt-0.5">Commercial-grade architectural hardware at direct factory rates</p>
         </div>
 
         {/* Clicking View All navigates directly to /offers */}
@@ -73,7 +132,7 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
         <button
           type="button"
           onClick={() => scroll(-1)}
-          aria-label="Previous Super Saver Offer"
+          aria-label="Previous Offer"
           className="hidden lg:flex absolute -left-4 lg:-left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 bg-[#34150F] text-[#EACEAA] hover:bg-[#85431E] rounded-full shadow-2xl items-center justify-center transition-all duration-200 border border-[#EACEAA]/20 hover:scale-110 active:scale-90"
         >
           <ChevronLeft size={20} />
@@ -90,7 +149,7 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
 
             return (
               <div
-                key={p.id}
+                key={p.apiId || p.id}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 className={`flex-shrink-0 w-[240px] sm:w-[280px] md:w-[320px] lg:w-[calc(25%-15px)] transition-all duration-300 ease-out ${
@@ -120,7 +179,7 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
         <button
           type="button"
           onClick={() => scroll(1)}
-          aria-label="Next Super Saver Offer"
+          aria-label="Next Offer"
           className="hidden lg:flex absolute -right-4 lg:-right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 bg-[#34150F] text-[#EACEAA] hover:bg-[#85431E] rounded-full shadow-2xl items-center justify-center transition-all duration-200 border border-[#EACEAA]/20 hover:scale-110 active:scale-90"
         >
           <ChevronRight size={20} />
