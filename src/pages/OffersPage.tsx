@@ -622,9 +622,70 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
       </div>
 
-      {/* ═══════════════ MID BANNER ═══════════════ */}
-      {midBanner && (
-        <div className="max-w-6xl mx-auto px-4 md:px-8 mb-16">
+      {/* ═══════════════ DYNAMIC PROMO CODES GRID (FROM BACKEND API) ═══════════════ */}
+      <section className="py-14 bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.08)] px-4 md:px-8 lg:px-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <Gift size={28} className="text-[#D39858] mx-auto mb-2" />
+            <h2
+              className="text-3xl font-bold text-[#34150F]"
+              style={{ fontFamily: "'Gilda Display', serif" }}
+            >
+              DYNAMIC PROMO CODES & COUPONS
+            </h2>
+            <p className="text-xs sm:text-sm text-[#85431E]">
+              Tap any coupon code below to copy it for immediate use at checkout.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {coupons.map((c) => (
+              <div
+                key={c.code}
+                className="bg-[#f5e8d4] p-6 rounded-tr-2xl rounded-bl-2xl border-2 border-dashed border-[#D39858]/60 relative flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black text-[#34150F] bg-[#D39858]/30 px-2.5 py-1 rounded">
+                      {c.discountType === "PERCENTAGE"
+                        ? `${c.discountValue}% OFF`
+                        : `₹${c.discountValue} OFF`}
+                    </span>
+                    {c.minOrderAmount && (
+                      <span className="text-[10px] text-[#85431E]/70 font-bold">
+                        Min Order: ₹{c.minOrderAmount}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#85431E] leading-relaxed mb-4">
+                    {c.description || `Use promo code ${c.code} to save at checkout.`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyCode(c.code)}
+                  className="w-full bg-[#34150F] text-[#EACEAA] font-bold py-2.5 px-4 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all text-xs flex items-center justify-center gap-2"
+                >
+                  {copiedCode === c.code ? (
+                    <>
+                      <Check size={14} className="text-emerald-400" /> Code Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} /> Copy Code: {c.code}
+                    </>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ MID BANNER / WHOLESALE ═══════════════ */}
+      {midBanner ? (
+        <div className="max-w-6xl mx-auto px-4 md:px-8 my-16">
           <div className="relative rounded-tr-3xl rounded-bl-3xl overflow-hidden bg-[#34150F] p-8 sm:p-12 text-center text-[#EACEAA] border border-[#D39858]/30 shadow-xl">
             <div className="absolute inset-0 z-0">
               <img
@@ -659,6 +720,35 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
             </div>
           </div>
         </div>
+      ) : (
+        <section className="relative h-[38vh] min-h-[280px] bg-[#34150F] my-12 flex items-center justify-center text-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <img
+              src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&h=600&fit=crop&auto=format"
+              alt="Mid Banner"
+              className="w-full h-full object-cover opacity-85 transition-opacity duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#34150F]/75 via-[#34150F]/40 to-black/20" />
+          </div>
+
+          <div className="relative z-10 max-w-3xl px-4">
+            <h2
+              className="text-3xl sm:text-4xl font-bold text-[#EACEAA] mb-3"
+              style={{ fontFamily: "'Gilda Display', serif" }}
+            >
+              Contractor & Bulk Architect Deals
+            </h2>
+            <p className="text-xs sm:text-sm text-[#EACEAA]/70 max-w-xl mx-auto mb-6">
+              Unlock specialized trade pricing, custom hardware manufacturing, and tax input invoices for commercial site orders.
+            </p>
+            <Link
+              to="/request-quote"
+              className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-black px-7 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs uppercase tracking-wider shadow-lg"
+            >
+              Request Wholesale Quote →
+            </Link>
+          </div>
+        </section>
       )}
 
     </div>
