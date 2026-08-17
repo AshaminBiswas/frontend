@@ -185,19 +185,22 @@ export function CustomerQuoteApprovalPage() {
         >
           {/* Header & Company Brand */}
           <div className="flex flex-wrap items-start justify-between gap-6 border-b border-[#34150F]/15 pb-6">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D39858] bg-[#D39858]/10 px-2.5 py-0.5 rounded border border-[#D39858]/20">
-                Official Commercial Quotation
-              </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#34150F] mt-2" style={{ fontFamily: "'Gilda Display', serif" }}>
-                Pacific Products & Solutions
-              </h1>
-              <p className="text-xs text-[#85431E] mt-0.5">
-                Commercial Restroom Cubicle Hardware • Lockers • Urinal Partitions
-              </p>
-              <p className="text-[11px] text-[#85431E]/70 mt-1 font-mono">
-                GSTIN: 27AABCP1234F1Z9 • support@pacifichardware.com • +91 98765 43210
-              </p>
+            <div className="flex items-start gap-4">
+              <img src="/logo.png" alt="PRC Logo" className="w-12 h-12 object-contain shrink-0" />
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D39858] bg-[#D39858]/10 px-2.5 py-0.5 rounded border border-[#D39858]/20">
+                  Official Commercial Quotation
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
+                  PRC Hardware
+                </h1>
+                <p className="text-xs text-[#85431E] mt-0.5 font-medium">
+                  H -3, J.R. COMPLEX GATE NO 4, MELA RAM FARM, MANDOLI, DELHI 110093, INDIA
+                </p>
+                <p className="text-[11px] text-[#85431E]/70 mt-1 font-mono">
+                  GSTIN: 27AABCP1234F1Z9 • support@pacifichardware.com • +91 98765 43210
+                </p>
+              </div>
             </div>
 
             {/* Document Metadata */}
@@ -309,7 +312,7 @@ export function CustomerQuoteApprovalPage() {
 
                 <div className="space-y-1 text-[11px] leading-tight">
                   <p className="text-slate-300">
-                    <strong>Signed By:</strong> {quote.signedBy || "Pacific Hardware Authority"}
+                    <strong>Signed By:</strong> {quote.signedBy || "PRC Hardware Authority"}
                   </p>
                   <p className="text-slate-400">
                     <strong>Timestamp:</strong>{" "}

@@ -592,7 +592,7 @@ export function RequestQuotePage() {
               Quotation Request Submitted!
             </h1>
             <p className="text-xs text-[#85431E] mt-2">
-              Your official B2B RFQ has been logged in Pacific Products & Solutions central registry.
+              Your official B2B RFQ has been logged in PRC Hardware central registry.
             </p>
           </div>
 
@@ -807,7 +807,7 @@ export function RequestQuotePage() {
             <div className="border-b border-[#34150F]/10 pb-6">
               <div className="flex items-center gap-2 text-xs font-bold text-[#D39858] uppercase tracking-wider">
                 <Building2 size={15} />
-                <span>Pacific Products & Solutions • B2B Quotation Form</span>
+                <span>PRC Hardware • B2B Quotation Form</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
                 Request for Quotation (RFQ)
@@ -1243,7 +1243,7 @@ export function RequestQuotePage() {
             <div className="pt-4 border-t border-[#34150F]/10 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-[11px] text-[#85431E]">
                 <ShieldCheck size={14} className="text-emerald-600" />
-                <span>Protected by Pacific Digital Signing System</span>
+                <span>Protected by PRC Digital Signing System</span>
               </div>
 
               <button
