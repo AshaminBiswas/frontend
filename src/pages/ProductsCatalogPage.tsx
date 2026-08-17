@@ -65,7 +65,7 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
 
   const loadCatalog = () => {
     setLoading(true);
-    fetchApi<any>("/products?limit=200")
+    fetchApi<any>("/products?limit=100")
       .then((res) => {
         if (res && res.success && res.data) {
           const rawList = Array.isArray(res.data.products)

@@ -80,7 +80,7 @@ export function CategoriesPage({
     try {
       const [catData, prodRes] = await Promise.allSettled([
         getCategoriesApi(1, 50),
-        fetchApi<any>("/products?limit=200"),
+        fetchApi<any>("/products?limit=100"),
       ]);
 
       if (catData.status === "fulfilled" && Array.isArray(catData.value) && catData.value.length > 0) {
