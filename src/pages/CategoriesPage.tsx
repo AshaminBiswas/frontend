@@ -139,22 +139,7 @@ export function CategoriesPage({
         };
       });
     }
-
-    return CATEGORY_OPTIONS.map((cat, idx) => {
-      const catCount = products.filter((p) => {
-        const pCat = safeCategoryString(p.category).toLowerCase();
-        return pCat === (cat.label || "").toLowerCase();
-      }).length;
-
-      return {
-        id: String(idx + 1),
-        name: cat.label,
-        slug: cat.label.toLowerCase().replace(/\s+/g, "-"),
-        status: "ACTIVE",
-        productCount: catCount,
-        image: null,
-      };
-    });
+    return [];
   }, [categories, products]);
 
   // Dynamic Specialized Product Lines derived from live product attributes, tags, and categories
