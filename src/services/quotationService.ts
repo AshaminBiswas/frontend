@@ -1,4 +1,4 @@
-import { fetchApi } from './api';
+import { fetchApi, API_BASE_URL } from './api';
 import { ApiResponse, Product } from '../types';
 
 export interface QuoteItemPayload {
@@ -202,5 +202,34 @@ export const quotationService = {
     } catch {
       return [];
     }
+  },
+
+  /**
+   * Download official Quotation PDF via access token
+   */
+  async downloadQuotePdfByToken(token: string, referenceNo = 'quote'): Promise<void> {
+    const url = `${API_BASE_URL}/quotes/public/${token}/pdf`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      let msg = `Failed to download PDF (HTTP ${response.status})`;
+      try {
+        const json = JSON.parse(errText);
+        if (json?.message) msg = json.message;
+      } catch {}
+      throw new Error(msg);
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    const safeRef = String(referenceNo).replace(/[\/\\]/g, '-');
+    a.download = `Quotation-${safeRef}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
   },
 };

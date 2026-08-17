@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   Building2, ArrowLeft, Search, Plus, Trash2, CheckCircle2,
   Clock, AlertCircle, FileText, Send, ShieldCheck, HelpCircle,
-  ChevronDown, Layers, Sparkles, RefreshCw, Eye, Check
+  ChevronDown, Layers, Sparkles, RefreshCw, Eye, Check, Download
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { isB2BUser, getEffectivePrice } from "../utils/pricing";
@@ -88,6 +88,7 @@ export function RequestQuotePage() {
   const [trackedQuotes, setTrackedQuotes] = useState<TrackedQuotationSummary[]>([]);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSearched, setTrackingSearched] = useState(false);
+  const [downloadingPdfToken, setDownloadingPdfToken] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState("");
 
   // Sync user profile data if user changes
@@ -345,6 +346,17 @@ export function RequestQuotePage() {
     }
   };
 
+  const handleDownloadTrackingPdf = async (token: string, refNo: string) => {
+    setDownloadingPdfToken(token);
+    try {
+      await quotationService.downloadQuotePdfByToken(token, refNo);
+    } catch (err: any) {
+      alert(err?.message || "Failed to download quotation PDF.");
+    } finally {
+      setDownloadingPdfToken(null);
+    }
+  };
+
   // ─── GATE: If not B2B authenticated, show clean corporate gate & tracking tab ───
   if (!isB2B) {
     return (
@@ -528,16 +540,31 @@ export function RequestQuotePage() {
                       </div>
 
                       {q.status === "APPROVED" && q.accessToken && (
-                        <div className="pt-2 flex items-center justify-between bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                        <div className="pt-2 flex flex-wrap items-center justify-between gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
                           <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                             <CheckCircle2 size={14} className="text-emerald-600" /> Approved & Digitally Signed
                           </span>
-                          <Link
-                            to={`/quote/${q.accessToken}`}
-                            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"
-                          >
-                            <Eye size={14} /> View & Approve Quote
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadTrackingPdf(q.accessToken!, q.referenceNo)}
+                              disabled={downloadingPdfToken === q.accessToken}
+                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-emerald-300 disabled:opacity-50"
+                            >
+                              {downloadingPdfToken === q.accessToken ? (
+                                <RefreshCw size={13} className="animate-spin text-emerald-700" />
+                              ) : (
+                                <Download size={13} />
+                              )}
+                              <span>Download PDF</span>
+                            </button>
+                            <Link
+                              to={`/quote/${q.accessToken}`}
+                              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"
+                            >
+                              <Eye size={14} /> View Quote
+                            </Link>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -741,16 +768,31 @@ export function RequestQuotePage() {
                     </div>
 
                     {q.status === "APPROVED" && q.accessToken && (
-                      <div className="pt-2 flex items-center justify-between bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                      <div className="pt-2 flex flex-wrap items-center justify-between gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
                         <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                           <CheckCircle2 size={14} className="text-emerald-600" /> Approved & Signed
                         </span>
-                        <Link
-                          to={`/quote/${q.accessToken}`}
-                          className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"
-                        >
-                          <Eye size={14} /> View & Approve Quote
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadTrackingPdf(q.accessToken!, q.referenceNo)}
+                            disabled={downloadingPdfToken === q.accessToken}
+                            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-emerald-300 disabled:opacity-50"
+                          >
+                            {downloadingPdfToken === q.accessToken ? (
+                              <RefreshCw size={13} className="animate-spin text-emerald-700" />
+                            ) : (
+                              <Download size={13} />
+                            )}
+                            <span>Download PDF</span>
+                          </button>
+                          <Link
+                            to={`/quote/${q.accessToken}`}
+                            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"
+                          >
+                            <Eye size={14} /> View Quote
+                          </Link>
+                        </div>
                       </div>
                     )}
                   </div>

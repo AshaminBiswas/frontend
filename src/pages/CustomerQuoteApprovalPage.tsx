@@ -24,6 +24,9 @@ export function CustomerQuoteApprovalPage() {
   // Copy signature hash state
   const [copiedSignature, setCopiedSignature] = useState(false);
 
+  // PDF Download State
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   const fetchQuote = async () => {
@@ -75,6 +78,19 @@ export function CustomerQuoteApprovalPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!token || !quote) return;
+    setDownloadingPdf(true);
+    setDecisionError("");
+    try {
+      await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
+    } catch (err: any) {
+      setDecisionError(err?.message || "Failed to download quotation PDF.");
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const handleCopySignature = () => {
@@ -139,11 +155,25 @@ export function CustomerQuoteApprovalPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+            >
+              {downloadingPdf ? (
+                <RefreshCw size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
+              <span>{downloadingPdf ? "Generating PDF..." : "Download Official PDF"}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handlePrint}
-              className="bg-white border border-[#34150F]/15 hover:border-[#34150F] text-[#34150F] font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-2"
+              className="bg-white border border-[#34150F]/15 hover:border-[#34150F] text-[#34150F] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
             >
               <Printer size={14} />
-              <span>Print / Download PDF</span>
+              <span>Print</span>
             </button>
           </div>
         </div>
@@ -295,15 +325,26 @@ export function CustomerQuoteApprovalPage() {
 
               {quote.digitalSignature && (
                 <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-400">
-                  <span className="truncate max-w-[200px]">SHA256: {quote.digitalSignature}</span>
-                  <button
-                    type="button"
-                    onClick={handleCopySignature}
-                    className="hover:text-white flex items-center gap-1 ml-2 shrink-0"
-                    title="Copy Signature Hash"
-                  >
-                    {copiedSignature ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                  </button>
+                  <span className="truncate max-w-[180px]">SHA256: {quote.digitalSignature}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopySignature}
+                      className="hover:text-white flex items-center gap-1 shrink-0"
+                      title="Copy Signature Hash"
+                    >
+                      {copiedSignature ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={downloadingPdf}
+                      className="text-emerald-400 hover:text-emerald-300 font-sans font-bold text-[10px] flex items-center gap-1 ml-1"
+                    >
+                      <Download size={11} />
+                      <span>PDF</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
