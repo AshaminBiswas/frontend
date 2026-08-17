@@ -3,27 +3,61 @@ import { Link } from "react-router-dom";
 import {
   Award, Truck, ShieldCheck, Lock, Search, Filter,
   Star, ShoppingCart, Heart, ChevronLeft, ChevronRight,
-  Package, Check, Flame, Users, ThumbsUp, ArrowRight, Sparkles
+  Package, Check, Flame, Users, ThumbsUp, ArrowRight, Sparkles, Building2
 } from "lucide-react";
 import { Product } from "../types";
-import {
-  BEST_SELLER_PRODUCTS,
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS
-} from "../data/products";
 import { bannerService, Banner } from "../services/bannerService";
-import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
-import { ProductCard } from "../components/product/ProductCard";
+import { fetchApi } from "../services/api";
+import { subscribeToProductSync } from "../services/productSyncService";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
+import { ProductGridSkeleton } from "../components/common/Skeletons";
 
-// Combine and deduplicate master catalog
-const ALL_CATALOG: Product[] = Array.from(
-  new Map(
-    [...BEST_SELLER_PRODUCTS, ...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS].map((p) => [p.id, p])
-  ).values()
-);
+function normalizeRawProduct(item: any): Product {
+  const rawId = item._id || item.id || item.apiId;
+  const apiIdStr = rawId ? String(rawId) : undefined;
+  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
+
+  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
+  const backendSale = item.offerPrice ?? item.salePrice;
+
+  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
+    ? Number(backendSale)
+    : Number(item.price || 0);
+
+  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
+
+  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
+  if (typeof item.image === "string" && item.image.trim()) {
+    image = item.image;
+  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
+    image = item.thumbnail;
+  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
+    image = item.images[0];
+  }
+
+  const categoryName = typeof item.category === "object" && item.category?.name
+    ? item.category.name
+    : (typeof item.category === "string" ? item.category : "Hardware");
+
+  return {
+    ...item,
+    id: finalId,
+    apiId: apiIdStr,
+    name: item.name || item.title || "Architectural Hardware",
+    category: categoryName,
+    price: effectiveSale,
+    salePrice: effectiveSale,
+    offerPrice: effectiveSale,
+    regularPrice: effectiveRegular,
+    originalPrice: effectiveRegular,
+    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
+    image,
+    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
+    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
+  };
+}
 
 /* ── Safe Image Thumbnail ── */
 function ProductThumb({ src, name }: { src?: string; name: string }) {
@@ -50,14 +84,12 @@ function ProductThumb({ src, name }: { src?: string; name: string }) {
 }
 
 const REVIEWS = [
-  { id: 1, name: "Vikram R.", role: "Architect, Mumbai", rating: 5, comment: "Unmatched finishing and strength. These handles completely elevated our duplex interior project." },
-  { id: 2, name: "Sneha Kapoor", role: "Interior Stylist, Delhi", rating: 5, comment: "Fast pan-India delivery and 100% genuine brass fittings. PRC Hardware is my permanent vendor." },
-  { id: 3, name: "Rohan Patel", role: "Contractor, Ahmedabad", rating: 5, comment: "Ordered 200+ sets for a hotel project. Heavy duty, zero defects, and amazing bulk pricing." },
-  { id: 4, name: "Ananya Iyer", role: "Homeowner, Bengaluru", rating: 5, comment: "The soft-close hinges work silently. Upgraded all my kitchen cabinets — super satisfied!" },
-  { id: 5, name: "Manish Sharma", role: "Furniture Maker, Pune", rating: 5, comment: "Precision engineering and reliable locks. Customer support gave great guidance." },
+  { id: 1, name: "Vikram R.", role: "Architect, Mumbai", rating: 5, comment: "Unmatched finishing and strength. These fittings completely elevated our commercial project." },
+  { id: 2, name: "Sneha Kapoor", role: "Interior Stylist, Delhi", rating: 5, comment: "Fast pan-India delivery and 100% genuine stainless steel fittings. PRC Hardware is our permanent vendor." },
+  { id: 3, name: "Rohan Patel", role: "Contractor, Ahmedabad", rating: 5, comment: "Heavy duty, zero defects, and amazing bulk B2B contract pricing." },
+  { id: 4, name: "Ananya Iyer", role: "Project Manager, Bengaluru", rating: 5, comment: "Precision engineering and dependable fittings. Super satisfied!" },
+  { id: 5, name: "Manish Sharma", role: "Builder, Pune", rating: 5, comment: "Exceptional quality and reliable dimensions. Customer support gave great guidance." },
 ];
-
-const RELATED_PRODUCTS = ALL_CATALOG.slice(4, 8);
 
 interface BestSellersPageProps {
   onAddToCart: (product: Product) => void;
@@ -68,9 +100,14 @@ interface BestSellersPageProps {
 export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSellersPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
+
   // Banners state
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
+
+  // Products state from live API
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Filters state
   const [search, setSearch] = useState("");
@@ -84,13 +121,12 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+  const [addedIds, setAddedIds] = useState<Set<number | string>>(new Set());
 
   // Auto-scroll reviewer carousel
   const marqueeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch banners from API
     bannerService.getPublicBanners("BESTSELLERS_TOP").then((res) => {
       if (res.success && res.data && res.data.length > 0) setTopBanner(res.data[0]);
     }).catch(() => {});
@@ -100,21 +136,61 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
     }).catch(() => {});
   }, []);
 
-  const [liveCatalog, setLiveCatalog] = useState<Product[]>(() => getLiveCatalog(ALL_CATALOG));
+  const loadData = () => {
+    setLoading(true);
+    fetchApi<any>("/products?limit=100")
+      .then((res) => {
+        if (res && res.success && res.data) {
+          const rawList = Array.isArray(res.data.products)
+            ? res.data.products
+            : Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res.data.items)
+            ? res.data.items
+            : [];
+
+          if (rawList.length > 0) {
+            const normalized = rawList.map(normalizeRawProduct);
+            setProducts(normalized);
+          } else {
+            setProducts([]);
+          }
+        } else {
+          setProducts([]);
+        }
+      })
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    const refresh = () => setLiveCatalog(getLiveCatalog(ALL_CATALOG));
-    refresh();
-    return subscribeToProductSync(refresh);
+    loadData();
+    return subscribeToProductSync(loadData);
   }, []);
 
-  // Filter products logic
+  // Filter products: prefer those marked isBestseller or return real catalog
+  const bestSellerList = useMemo(() => {
+    const marked = products.filter((p) => p.isBestseller === true || (Array.isArray(p.tags) && p.tags.includes("bestseller")));
+    return marked.length > 0 ? marked : products;
+  }, [products]);
+
+  // Extract unique category names
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(String(p.category));
+    });
+    return Array.from(set);
+  }, [products]);
+
+  // Filtered products based on user controls
   const filteredProducts = useMemo(() => {
-    return liveCatalog.filter((p) => {
+    return bestSellerList.filter((p) => {
       if (search.trim() && !p.name.toLowerCase().includes(search.toLowerCase().trim())) return false;
-      if (category !== "ALL" && p.category?.toUpperCase() !== category.toUpperCase()) return false;
+      if (category !== "ALL" && String(p.category).toUpperCase() !== category.toUpperCase()) return false;
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) return false;
       if (minRating === "4" && (p.rating || 5) < 4) return false;
+
       const effective = getEffectivePrice(p, user, 1, b2bCache);
       const currentPrice = effective.unitPrice;
       if (priceRange === "UNDER_200" && currentPrice >= 200) return false;
@@ -122,7 +198,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
       if (priceRange === "OVER_500" && currentPrice <= 500) return false;
       return true;
     });
-  }, [search, category, priceRange, minRating, inStockOnly, liveCatalog, user, b2bCache]);
+  }, [search, category, priceRange, minRating, inStockOnly, bestSellerList, user, b2bCache]);
 
   // Displayed products based on viewMode & pagination
   const displayedProducts = useMemo(() => {
@@ -134,7 +210,11 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
     }
   }, [filteredProducts, viewMode, page]);
 
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const relatedProducts = useMemo(() => {
+    return products
+      .filter((p) => !displayedProducts.some((d) => String(d.id) === String(p.id) || (d.apiId && d.apiId === p.apiId)))
+      .slice(0, 4);
+  }, [products, displayedProducts]);
 
   const handleAddToCart = (product: Product) => {
     onAddToCart(product);
@@ -151,9 +231,8 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
   return (
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
-      {/* ═══════════════ SECTION 1: TOP BANNER (2/3 SCREEN HEIGHT) ═══════════════ */}
+      {/* ═══════════════ SECTION 1: TOP BANNER ═══════════════ */}
       <section className="relative h-[60vh] min-h-[420px] bg-[#34150F] flex items-center justify-center text-center overflow-hidden">
-        {/* Background Image / Overlay */}
         <div className="absolute inset-0 z-0">
           <img
             src={
@@ -166,7 +245,6 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
           <div className="absolute inset-0 bg-gradient-to-t from-[#34150F]/75 via-[#34150F]/35 to-black/20" />
         </div>
 
-        {/* Content */}
         <div className="relative z-10 max-w-4xl px-4 sm:px-8">
           <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-4 py-1.5 rounded-full mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <Flame size={16} className="text-[#D39858] animate-bounce" />
@@ -184,7 +262,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
 
           <p className="text-sm sm:text-base md:text-lg text-[#EACEAA]/80 max-w-2xl mx-auto mb-8 font-medium leading-relaxed">
             {topBanner?.subtitle ||
-              "Precision-crafted handles, hinges, locks, and fittings loved by over 12,000+ architects, interior designers, and homeowners across India."}
+              "Precision-crafted handles, hinges, locks, and fittings trusted by architects, interior designers, and enterprises across India."}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -202,7 +280,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
               }}
               className="bg-[#EACEAA]/10 text-[#EACEAA] border border-[#EACEAA]/30 font-bold px-8 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA]/20 transition-all duration-300 text-sm"
             >
-              View Full Catalog (20+)
+              View Full Catalog ({products.length})
             </button>
           </div>
         </div>
@@ -212,9 +290,9 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
       <section className="bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.1)] py-6 px-4 md:px-8 lg:px-16">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center">
           {[
-            { icon: Award, label: "Top Rated Product", sub: "Rated 4.9/5 by 12k+ users" },
+            { icon: Award, label: "Top Rated Product", sub: "Rated 4.9/5 by architects" },
             { icon: Truck, label: "Pan India Delivery", sub: "Fast express logistics" },
-            { icon: ShieldCheck, label: "Industry Trusted", sub: "15+ years of excellence" },
+            { icon: ShieldCheck, label: "Industry Trusted", sub: "Commercial grade quality" },
             { icon: Lock, label: "Secure Checkout", sub: "GST invoice included" },
           ].map(({ icon: Icon, label, sub }) => (
             <div
@@ -263,11 +341,9 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
               className="w-full max-w-full bg-[#EACEAA] text-[#34150F] px-3 py-2 rounded-tr-xl rounded-bl-xl text-xs border border-[rgba(52,21,15,0.15)] focus:outline-none focus:border-[#D39858] font-semibold truncate"
             >
               <option value="ALL">All Categories</option>
-              <option value="HANDLES">Handles</option>
-              <option value="HINGES">Hinges</option>
-              <option value="LOCKS">Locks</option>
-              <option value="KNOBS">Knobs</option>
-              <option value="TRACKS">Tracks</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
 
             {/* Price Range */}
@@ -305,7 +381,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
           </div>
         </div>
 
-        {/* ═══════════════ SECTION 4: BEST SELLER PRODUCTS GRID ═══════════════ */}
+        {/* ═══════════════ SECTION 4: PRODUCTS GRID ═══════════════ */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2
@@ -329,7 +405,9 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
           )}
         </div>
 
-        {displayedProducts.length === 0 ? (
+        {loading ? (
+          <ProductGridSkeleton count={4} />
+        ) : displayedProducts.length === 0 ? (
           <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-12 text-center border border-[rgba(52,21,15,0.08)]">
             <Package size={40} className="text-[#85431E]/40 mx-auto mb-3" />
             <h3 className="text-base font-bold text-[#34150F] mb-1">No products match filters</h3>
@@ -344,6 +422,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                 wishlist.has(product.id) ||
                 wishlist.has(String(product.id)) ||
                 ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
+
               const effective = getEffectivePrice(product, user, 1, b2bCache);
               const discountPercent = effective.isB2B
                 ? effective.b2bDiscountPercent
@@ -353,7 +432,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
 
               return (
                 <div
-                  key={product.id}
+                  key={product.apiId || product.id}
                   className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                 >
                   <div>
@@ -394,26 +473,26 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                         </p>
                       )}
 
-                      {/* Stars */}
+                      {/* Rating */}
                       <div className="flex items-center gap-1 mb-3">
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((s) => (
                             <Star
                               key={s}
                               size={12}
-                              fill={s <= (product.rating || 5) ? "#D39858" : "none"}
+                              fill={s <= Math.round(Number(product.rating || 5)) ? "#D39858" : "none"}
                               stroke="#D39858"
                               strokeWidth={1.5}
                             />
                           ))}
                         </div>
                         <span className="text-[10px] text-[#85431E]/60 font-semibold">
-                          ({product.rating || 5}.0)
+                          ({Number(product.rating || 5.0).toFixed(1)})
                         </span>
                       </div>
 
-                      {/* Price */}
-                      <div className="flex items-baseline gap-2">
+                      {/* Price Row */}
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <span
                           className="text-lg font-black text-[#34150F]"
                           style={{ fontFamily: "'DM Mono', monospace" }}
@@ -426,11 +505,11 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                           </span>
                         )}
                         {effective.isB2B ? (
-                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
-                            B2B {discountPercent}% OFF
+                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider flex items-center gap-0.5">
+                            <Building2 size={10} /> B2B Rate
                           </span>
                         ) : discountPercent > 0 && (
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                             {discountPercent}% OFF
                           </span>
                         )}
@@ -451,7 +530,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                     >
                       {isAdded ? (
                         <>
-                          <Check size={14} /> Added to Cart!
+                          <Check size={14} /> Added
                         </>
                       ) : (
                         <>
@@ -466,224 +545,145 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
           </div>
         )}
 
-        {/* ═══════════════ SECTION 5: VIEW ALL PRODUCTS BUTTON + PAGINATION ═══════════════ */}
-        {viewMode === "TOP4" && filteredProducts.length > 4 && (
-          <div className="text-center my-8">
-            <button
-              type="button"
-              onClick={() => { setViewMode("ALL20"); setPage(1); }}
-              className="bg-[#34150F] text-[#EACEAA] font-black px-10 py-4 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all duration-300 text-sm shadow-lg active:scale-95 inline-flex items-center gap-2"
-            >
-              View All Best Sellers ({filteredProducts.length} Items) <ArrowRight size={16} />
-            </button>
+        {/* ═══════════════ SECTION 5: MID-PAGE PROMOTIONAL BANNER ═══════════════ */}
+        {midBanner && (
+          <div className="relative rounded-tr-3xl rounded-bl-3xl overflow-hidden bg-[#34150F] p-8 sm:p-12 mb-16 text-center text-[#EACEAA] border border-[#D39858]/30 shadow-xl">
+            <div className="absolute inset-0 z-0">
+              <img
+                src={midBanner.image || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=400&fit=crop"}
+                alt="Mid Banner"
+                className="w-full h-full object-cover opacity-20"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#34150F] via-[#34150F]/80 to-[#34150F]" />
+            </div>
+
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <span className="inline-block bg-[#D39858] text-[#34150F] font-black text-xs px-3 py-1 rounded-full uppercase tracking-widest mb-3">
+                Commercial Enterprise Solution
+              </span>
+              <h2
+                className="text-2xl sm:text-4xl font-bold mb-3"
+                style={{ fontFamily: "'Gilda Display', serif" }}
+              >
+                {midBanner.title}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#EACEAA]/80 mb-6 leading-relaxed">
+                {midBanner.subtitle}
+              </p>
+              {midBanner.link && (
+                <Link
+                  to={midBanner.link}
+                  className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-bold px-8 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs shadow-lg"
+                >
+                  Explore Contract Catalog <ArrowRight size={14} />
+                </Link>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Pagination Bar (when in ALL20 view mode) */}
-        {viewMode === "ALL20" && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 my-8">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="w-9 h-9 rounded-tr-lg rounded-bl-lg bg-[#f5e8d4] border border-[rgba(52,21,15,0.15)] flex items-center justify-center text-[#34150F] disabled:opacity-40 hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
+        {/* ═══════════════ SECTION 6: RELATED PRODUCTS (DYNAMIC) ═══════════════ */}
+        {relatedProducts.length > 0 && (
+          <div className="mb-16">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3
+                  className="text-xl font-bold text-[#34150F]"
+                  style={{ fontFamily: "'Gilda Display', serif" }}
+                >
+                  More Hardware Recommendations
+                </h3>
+                <p className="text-xs text-[#85431E]">Pairs exceptionally well with best selling collections</p>
+              </div>
+              <Link to="/products" className="text-xs font-bold text-[#85431E] hover:text-[#34150F] flex items-center gap-1">
+                View Catalog <ArrowRight size={12} />
+              </Link>
+            </div>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <button
-                key={pageNum}
-                onClick={() => setPage(pageNum)}
-                className={`w-9 h-9 rounded-tr-lg rounded-bl-lg font-bold text-xs transition-colors ${
-                  page === pageNum
-                    ? "bg-[#34150F] text-[#EACEAA]"
-                    : "bg-[#f5e8d4] border border-[rgba(52,21,15,0.15)] text-[#34150F] hover:bg-[#D39858]"
-                }`}
-              >
-                {pageNum}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="w-9 h-9 rounded-tr-lg rounded-bl-lg bg-[#f5e8d4] border border-[rgba(52,21,15,0.15)] flex items-center justify-center text-[#34150F] disabled:opacity-40 hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ═══════════════ SECTION 6: MID-PAGE BANNER (1/2 SCREEN HEIGHT) ═══════════════ */}
-      <section className="relative h-[40vh] min-h-[300px] bg-[#34150F] my-12 flex items-center justify-center text-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={
-              midBanner?.image ||
-              "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&h=600&fit=crop&auto=format"
-            }
-            alt="Mid Page Banner"
-            className="w-full h-full object-cover opacity-85 transition-opacity duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#34150F]/75 via-[#34150F]/40 to-black/20" />
-        </div>
-
-        <div className="relative z-10 max-w-3xl px-4">
-          <h2
-            className="text-3xl sm:text-4xl font-bold text-[#EACEAA] mb-3"
-            style={{ fontFamily: "'Gilda Display', serif" }}
-          >
-            {midBanner?.title || "Built with Precision. Designed for Distinction."}
-          </h2>
-          <p className="text-xs sm:text-sm text-[#EACEAA]/70 max-w-xl mx-auto mb-6">
-            {midBanner?.subtitle ||
-              "Discover our complete architectural range crafted from 304 & 316 marine-grade steel, solid brass, and anodized aluminum."}
-          </p>
-          <Link
-            to="/request-quote"
-            className="inline-flex items-center gap-2 bg-[#D39858] text-[#34150F] font-black px-7 py-3 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs uppercase tracking-wider"
-          >
-            Request B2B Bulk Quote →
-          </Link>
-        </div>
-      </section>
-
-      {/* ═══════════════ SECTION 7: WHY CUSTOMERS LOVED THESE PRODUCTS (AUTO-MOVING SLIDER) ═══════════════ */}
-      <section className="py-14 bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.08)] overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 mb-8 text-center">
-          <p className="text-[#D39858] text-xs font-extrabold uppercase tracking-[0.2em] mb-1">
-            Real Reviews
-          </p>
-          <h2
-            className="text-3xl font-bold text-[#34150F]"
-            style={{ fontFamily: "'Gilda Display', serif" }}
-          >
-            WHY CUSTOMERS LOVED THESE PRODUCTS
-          </h2>
-        </div>
-
-        {/* Single Row 5-Card Auto-Slider / Marquee */}
-        <div className="relative w-full overflow-hidden">
-          <div className="flex gap-5 animate-marquee whitespace-normal hover:[animation-play-state:paused]">
-            {[...REVIEWS, ...REVIEWS].map((rev, i) => (
-              <div
-                key={i}
-                className="w-72 sm:w-80 flex-shrink-0 bg-[#f5e8d4] p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm"
-              >
-                <div className="flex gap-1 mb-2">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} size={13} fill="#D39858" stroke="#D39858" />
-                  ))}
-                </div>
-                <p className="text-xs text-[#85431E] leading-relaxed mb-4 italic">
-                  &ldquo;{rev.comment}&rdquo;
-                </p>
-                <div className="border-t border-[rgba(52,21,15,0.08)] pt-3 flex justify-between items-baseline">
-                  <div>
-                    <p className="text-xs font-extrabold text-[#34150F]">{rev.name}</p>
-                    <p className="text-[10px] text-[#85431E]/60">{rev.role}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {relatedProducts.map((p) => {
+                const effective = getEffectivePrice(p, user, 1, b2bCache);
+                return (
+                  <div
+                    key={p.apiId || p.id}
+                    className="bg-[#FAF4ED] p-3 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.08)] flex flex-col justify-between group hover:border-[#D39858]/50 transition-colors"
+                  >
+                    <div>
+                      <div className="w-full h-32 overflow-hidden rounded-tr-lg rounded-bl-lg bg-[#EACEAA]/20 mb-2">
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <Link to={`/product/${(p as any).apiId || p.id}`}>
+                        <h4 className="text-xs font-bold text-[#34150F] line-clamp-1 hover:text-[#D39858] transition-colors mb-1">
+                          {p.name}
+                        </h4>
+                      </Link>
+                      <p className="text-xs font-black text-[#34150F]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                        ₹{effective.unitPrice.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(p)}
+                      className="mt-2 w-full py-1.5 bg-[#34150F] text-[#EACEAA] text-[11px] font-bold rounded-tr-md rounded-bl-md hover:bg-[#D39858] hover:text-[#34150F] transition-colors"
+                    >
+                      + Add
+                    </button>
                   </div>
-                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                    ✓ Verified Buyer
-                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════ SECTION 7: CUSTOMER REVIEWS CAROUSEL ═══════════════ */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <span className="text-xs font-extrabold text-[#D39858] uppercase tracking-widest bg-[#34150F] px-3 py-1 rounded-full">
+              Client Feedback
+            </span>
+            <h3
+              className="text-2xl font-bold text-[#34150F] mt-2"
+              style={{ fontFamily: "'Gilda Display', serif" }}
+            >
+              Trusted by Architects & Builders Pan-India
+            </h3>
+          </div>
+
+          <div
+            ref={marqueeRef}
+            className="flex gap-4 overflow-x-auto pb-4 scroll-smooth scrollbar-hide"
+          >
+            {REVIEWS.map((r) => (
+              <div
+                key={r.id}
+                className="flex-shrink-0 w-72 bg-[#FAF4ED] p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex gap-0.5 mb-2">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} size={13} fill="#D39858" stroke="#D39858" />
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#34150F] leading-relaxed italic mb-4">
+                    "{r.comment}"
+                  </p>
+                </div>
+                <div className="border-t border-[rgba(52,21,15,0.08)] pt-3">
+                  <p className="text-xs font-bold text-[#34150F]">{r.name}</p>
+                  <p className="text-[10px] text-[#85431E]/70 font-semibold">{r.role}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* ═══════════════ SECTION 8: LIVE STATS COUNTER ═══════════════ */}
-      <section className="py-14 px-4 md:px-8 lg:px-16">
-        <div className="max-w-6xl mx-auto bg-[#34150F] rounded-tr-3xl rounded-bl-3xl p-8 sm:p-10 shadow-2xl text-center grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              50,000+
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Products Sold
-            </p>
-          </div>
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              12,000+
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Happy Customers
-            </p>
-          </div>
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              4.9 ★
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Average Rating
-            </p>
-          </div>
-          <div>
-            <p
-              className="text-3xl sm:text-4xl font-black text-[#D39858] mb-1"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              98%
-            </p>
-            <p className="text-xs font-bold text-[#EACEAA]/80 uppercase tracking-wider">
-              Customer Satisfaction
-            </p>
-          </div>
-        </div>
-      </section>
+      </div>
 
-      {/* ═══════════════ SECTION 9: CUSTOMERS WHO BOUGHT THIS ALSO PURCHASED ═══════════════ */}
-      <section className="py-12 max-w-6xl mx-auto px-4 md:px-8 lg:px-16">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-[#D39858] text-xs font-extrabold uppercase tracking-widest mb-1">
-              Frequently Paired
-            </p>
-            <h2
-              className="text-2xl sm:text-3xl font-bold text-[#34150F]"
-              style={{ fontFamily: "'Gilda Display', serif" }}
-            >
-              CUSTOMERS WHO BOUGHT THIS ALSO PURCHASED
-            </h2>
-          </div>
-          <Link
-            to="/products"
-            className="text-xs font-bold text-[#85431E] hover:text-[#34150F] transition-colors hidden sm:block"
-          >
-            View All Products →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-          {RELATED_PRODUCTS.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onWishlist={onWishlist}
-              wishlisted={
-                wishlist.has(product.id) ||
-                wishlist.has(String(product.id)) ||
-                ((product as any).apiId ? wishlist.has((product as any).apiId) : false)
-              }
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ═══════════════ SECTION 10: WHY BUY FROM PRC HARDWARE ═══════════════ */}
+      {/* ═══════════════ SECTION 8: WHY BUY FROM PRC HARDWARE ═══════════════ */}
       <section className="bg-[#34150F] text-[#EACEAA] py-16 px-4 md:px-8 lg:px-16 border-t border-[#D39858]/20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -695,7 +695,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
               WHY BUY FROM PRC HARDWARE
             </h2>
             <p className="text-xs sm:text-sm text-[#EACEAA]/70 leading-relaxed">
-              We bridge the gap between premium architectural hardware manufacturing and your doorstep.
+              We bridge the gap between premium architectural hardware manufacturing and your project site.
             </p>
           </div>
 
@@ -704,12 +704,12 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
               {
                 icon: Award,
                 title: "100% Certified Raw Materials",
-                desc: "Grade 304/316 stainless steel, solid brass, and die-cast zinc built for extreme durability.",
+                desc: "Grade 304/316 stainless steel, solid brass, and precision fittings engineered for extreme longevity.",
               },
               {
                 icon: ThumbsUp,
                 title: "Direct Factory Pricing",
-                desc: "No middlemen markups. Get retail or wholesale pricing direct from our warehouses.",
+                desc: "No middlemen markups. Get retail or wholesale B2B contract pricing direct from manufacturing.",
               },
               {
                 icon: Truck,
@@ -718,8 +718,8 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
               },
               {
                 icon: ShieldCheck,
-                title: "7-Day Easy Returns & Warranty",
-                desc: "Comprehensive quality warranty on all hardware fittings with zero-hassle replacement.",
+                title: "Quality Warranty & Easy Support",
+                desc: "Comprehensive quality warranty on all hardware fittings with zero-hassle support.",
               },
             ].map(({ icon: Icon, title, desc }) => (
               <div
