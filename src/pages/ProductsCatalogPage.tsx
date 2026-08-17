@@ -111,6 +111,22 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
     return subscribeToProductSync(loadCatalog);
   }, []);
 
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [addedIds, setAddedIds] = useState<Set<number | string>>(new Set());
+
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 16;
+
+  const isB2B = !!(user && (user.companyName || user.gstin || user.role === "B2B"));
+
+  const searchFilter = searchParams.get("search") || "";
+  const categoryFilter = searchParams.get("category") || "";
+  const materialFilter = searchParams.get("material") || "";
+  const sortOption = searchParams.get("sort") || "featured";
+  const inStockFilter = searchParams.get("inStock") === "true";
+
+  const [localSearch, setLocalSearch] = useState(searchFilter);
+
   // Extract unique categories & materials
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -165,7 +181,7 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
       if (sortOption === "rating") return (b.rating || 5) - (a.rating || 5);
       return 0; // featured default
     });
-  }, [products, searchFilter, categoryFilter, materialFilter, inStockFilter, sortOption, user]);
+  }, [products, searchFilter, categoryFilter, materialFilter, inStockFilter, sortOption, user, b2bCache]);
 
   const displayedProducts = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
