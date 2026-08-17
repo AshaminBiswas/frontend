@@ -27,9 +27,12 @@ export function Footer() {
         {/* Col 1 – Logo & Description */}
         <Reveal delay={0}>
           <div>
-            <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-[#D39858] font-extrabold text-2xl" style={{ fontFamily: "'Gilda Display', serif" }}>PRC</span>
-              <span className="text-[#EACEAA] font-semibold text-lg">Hardware</span>
+            <div className="flex items-center gap-2.5 mb-4">
+              <img src="/logo.png" alt="PRC Logo" className="w-8 h-8 object-contain shrink-0" />
+              <div className="flex items-baseline gap-1">
+                <span className="text-[#D39858] font-extrabold text-2xl" style={{ fontFamily: "'Gilda Display', serif" }}>PRC</span>
+                <span className="text-[#EACEAA] font-semibold text-lg">Hardware</span>
+              </div>
             </div>
             <p className="text-[#EACEAA]/65 text-sm leading-relaxed mb-5">
               India's trusted destination for premium architectural hardware. From cabinet handles to industrial locks — quality crafted for every space.
@@ -37,7 +40,7 @@ export function Footer() {
             <div className="space-y-2 text-sm text-[#EACEAA]/60">
               <div className="flex items-center gap-2"><Phone size={13} /><span>+91 98765 43210</span></div>
               <div className="flex items-center gap-2"><Mail size={13} /><span>info@prchardware.in</span></div>
-              <div className="flex items-center gap-2"><MapPin size={13} /><span>New Delhi, India</span></div>
+              <div className="flex items-start gap-2"><MapPin size={13} className="shrink-0 mt-1" /><span className="text-xs leading-relaxed">H -3, J.R. COMPLEX GATE NO 4, MELA RAM FARM, MANDOLI, DELHI 110093, INDIA</span></div>
             </div>
           </div>
         </Reveal>

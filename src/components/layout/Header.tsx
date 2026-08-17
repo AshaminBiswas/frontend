@@ -196,9 +196,12 @@ export function Header({
             >
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
-            <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-baseline gap-1 group cursor-pointer">
-              <span className="text-[#D39858] font-extrabold text-xl sm:text-2xl tracking-tight transition-transform duration-300 group-hover:scale-105" style={{ fontFamily: "'Gilda Display', serif" }}>PRC</span>
-              <span className="text-[#EACEAA] font-semibold text-base sm:text-lg tracking-wide">Hardware</span>
+            <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 group cursor-pointer">
+              <img src="/logo.png" alt="PRC Logo" className="w-7 h-7 sm:w-8 sm:h-8 object-contain shrink-0" />
+              <div className="flex items-baseline gap-1">
+                <span className="text-[#D39858] font-extrabold text-xl sm:text-2xl tracking-tight transition-transform duration-300 group-hover:scale-105" style={{ fontFamily: "'Gilda Display', serif" }}>PRC</span>
+                <span className="text-[#EACEAA] font-semibold text-base sm:text-lg tracking-wide">Hardware</span>
+              </div>
             </Link>
           </div>
 
