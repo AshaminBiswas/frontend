@@ -17,6 +17,7 @@ import { ProductDetailSkeleton } from "../components/common/Skeletons";
 import { ProductReviewSection } from "../components/review/ProductReviewSection";
 
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 
 // Fallback master catalog
 const LOCAL_CATALOG: Product[] = [
@@ -66,6 +67,7 @@ export function ProductDetailPage({
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<"SPECS" | "DESC" | "MANUFACTURER" | "REVIEWS">("SPECS");
   const [added, setAdded] = useState(false);
+  const b2bCache = useB2BPricing();
 
   // 1. Fetch Product by ID or Slug dynamically from Backend API & Live Catalog
   useEffect(() => {
@@ -218,7 +220,7 @@ export function ProductDetailPage({
     wishlist.has(product.id) ||
     wishlist.has(String(product.id)) ||
     ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
-  const effective = getEffectivePrice(product, user, qty);
+  const effective = getEffectivePrice(product, user, qty, b2bCache);
   const stockInfo = getProductStockStatus(product.stock, (product as any).reorderLevel, (product as any).inStock);
   const discountPercent =
     effective.originalPrice > effective.unitPrice

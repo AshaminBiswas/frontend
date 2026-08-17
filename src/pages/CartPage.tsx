@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { CartItem } from "../types";
 import { useAuth } from "../context/AuthContext";
-import { getEffectivePrice } from "../utils/pricing";
+import { getEffectivePrice, isB2BUser } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 
 /* ─── Inline product image with graceful fallback ─── */
 function ProductThumb({ src, name }: { src?: string; name: string }) {
@@ -45,10 +46,11 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState("");
 
-  const isB2B = !!(user && (user.companyName || user.gstin || user.role === "B2B"));
+  const isB2B = isB2BUser(user);
+  const b2bCache = useB2BPricing();
 
   const subtotal = cart.reduce((sum, item) => {
-    const effective = getEffectivePrice(item, user, item.qty);
+    const effective = getEffectivePrice(item, user, item.qty, b2bCache);
     return sum + effective.totalPrice;
   }, 0);
 
@@ -139,7 +141,7 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
           {/* ── Cart Items ── */}
           <div className="space-y-3">
             {cart.map((item) => {
-              const effective = getEffectivePrice(item, user, item.qty);
+              const effective = getEffectivePrice(item, user, item.qty, b2bCache);
               const hasSaving = item.originalPrice && item.originalPrice > effective.unitPrice;
 
               return (

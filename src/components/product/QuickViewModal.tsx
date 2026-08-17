@@ -4,6 +4,7 @@ import { X, Heart, ShoppingCart, Check, Star, ShieldCheck, Truck, Package, Chevr
 import { Product } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 import { getProductStockStatus } from "../../utils/stock";
 
 interface QuickViewModalProps {
@@ -22,6 +23,7 @@ export function QuickViewModal({
   onWishlist,
 }: QuickViewModalProps) {
   const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -72,7 +74,7 @@ export function QuickViewModal({
     }, 120);
   };
 
-  const effective = getEffectivePrice(product, user, quantity);
+  const effective = getEffectivePrice(product, user, quantity, b2bCache);
   const stockInfo = getProductStockStatus(product.stock, (product as any).reorderLevel, (product as any).inStock);
   const discountPercent =
     effective.originalPrice > effective.unitPrice

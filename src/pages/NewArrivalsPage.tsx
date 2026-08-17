@@ -15,6 +15,9 @@ import {
 import { bannerService, Banner } from "../services/bannerService";
 import { fetchApi } from "../services/api";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
+import { useAuth } from "../context/AuthContext";
+import { getEffectivePrice } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 
 // Fallback master catalog
 const LOCAL_CATALOG: Product[] = [
@@ -71,6 +74,8 @@ interface NewArrivalsPageProps {
 }
 
 export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArrivalsPageProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG);
   const [loading, setLoading] = useState(false);
 
@@ -141,13 +146,13 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
     });
 
     if (priceSort === "LOW_HIGH") {
-      result = [...result].sort((a, b) => a.price - b.price);
+      result = [...result].sort((a, b) => getEffectivePrice(a, user, 1, b2bCache).unitPrice - getEffectivePrice(b, user, 1, b2bCache).unitPrice);
     } else if (priceSort === "HIGH_LOW") {
-      result = [...result].sort((a, b) => b.price - a.price);
+      result = [...result].sort((a, b) => getEffectivePrice(b, user, 1, b2bCache).unitPrice - getEffectivePrice(a, user, 1, b2bCache).unitPrice);
     }
 
     return result;
-  }, [products, search, selectedCat, priceSort, inStockOnly]);
+  }, [products, search, selectedCat, priceSort, inStockOnly, user, b2bCache]);
 
   const displayedProducts = useMemo(() => {
     if (viewMode === "TOP4") {
@@ -269,14 +274,26 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                       {highlightProduct.material || "304 Grade Solid Brass"}
                     </p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-lg font-black text-[#D39858]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                        ₹{highlightProduct.price.toLocaleString("en-IN")}
-                      </span>
-                      {highlightProduct.originalPrice && (
-                        <span className="text-xs text-[#EACEAA]/40 line-through">
-                          ₹{highlightProduct.originalPrice.toLocaleString("en-IN")}
-                        </span>
-                      )}
+                      {(() => {
+                        const effHighlight = getEffectivePrice(highlightProduct, user, 1, b2bCache);
+                        return (
+                          <>
+                            <span className="text-lg font-black text-[#D39858]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                              ₹{effHighlight.unitPrice.toLocaleString("en-IN")}
+                            </span>
+                            {effHighlight.originalPrice > effHighlight.unitPrice && (
+                              <span className="text-xs text-[#EACEAA]/40 line-through">
+                                ₹{effHighlight.originalPrice.toLocaleString("en-IN")}
+                              </span>
+                            )}
+                            {effHighlight.isB2B && (
+                              <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase">
+                                B2B
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -423,10 +440,12 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                 wishlist.has(product.id) ||
                 wishlist.has(String(product.id)) ||
                 ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
-              const discountPercent =
-                product.originalPrice && product.originalPrice > product.price
-                  ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                  : product.discount || 0;
+              const effective = getEffectivePrice(product, user, 1, b2bCache);
+              const discountPercent = effective.isB2B
+                ? effective.b2bDiscountPercent
+                : effective.originalPrice > effective.unitPrice
+                ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
+                : product.discount || 0;
 
               return (
                 <div
@@ -495,14 +514,18 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                           className="text-lg font-black text-[#34150F]"
                           style={{ fontFamily: "'DM Mono', monospace" }}
                         >
-                          ₹{product.price.toLocaleString("en-IN")}
+                          ₹{effective.unitPrice.toLocaleString("en-IN")}
                         </span>
-                        {product.originalPrice && product.originalPrice > product.price && (
+                        {effective.originalPrice > effective.unitPrice && (
                           <span className="text-xs text-[#85431E]/50 line-through font-semibold">
-                            ₹{product.originalPrice.toLocaleString("en-IN")}
+                            ₹{effective.originalPrice.toLocaleString("en-IN")}
                           </span>
                         )}
-                        {discountPercent > 0 && (
+                        {effective.isB2B ? (
+                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
+                            B2B {discountPercent}% OFF
+                          </span>
+                        ) : discountPercent > 0 && (
                           <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                             {discountPercent}% OFF
                           </span>
@@ -763,7 +786,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                     className="text-base font-black text-[#34150F] mb-3"
                     style={{ fontFamily: "'DM Mono', monospace" }}
                   >
-                    ₹{product.price.toLocaleString("en-IN")}
+                    ₹{getEffectivePrice(product, user, 1, b2bCache).unitPrice.toLocaleString("en-IN")}
                   </p>
                 </div>
 

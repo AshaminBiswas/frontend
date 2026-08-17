@@ -5,6 +5,7 @@ import { Product } from "../../types";
 import { QuickViewModal } from "./QuickViewModal";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 import { getProductStockStatus } from "../../utils/stock";
 
 interface SingleProductCardProps {
@@ -45,12 +46,13 @@ export function SingleProductCard({
 }: SingleProductCardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [quickView, setQuickView] = useState(false);
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const [activeImgIdx, setActiveImgIdx] = useState(0);
 
-  const effective = getEffectivePrice(product, user, qty);
+  const effective = getEffectivePrice(product, user, qty, b2bCache);
 
   // 1. Stock Status Logic from shared utility
   const stockInfo = getProductStockStatus(product.stock, (product as any).reorderLevel, (product as any).inStock);
@@ -62,24 +64,29 @@ export function SingleProductCard({
 
   const imageSrc = galleryImages[activeImgIdx] || product.thumbnail || product.image;
 
-  // 3. Pricing
-  const salePrice = Number((product as any).salePrice ?? (product as any).offerPrice ?? effective.unitPrice ?? product.price ?? 0);
-  let regularPrice = Number(
-    product.originalPrice ||
-    (product as any).regularPrice ||
-    (product as any).mrp ||
-    (product as any).price ||
-    salePrice
-  );
+  // 3. Pricing Priority: Prioritize B2B calculated tier rate when user is B2B
+  const salePrice = effective.isB2B
+    ? effective.unitPrice
+    : Number((product as any).salePrice ?? (product as any).offerPrice ?? effective.unitPrice ?? product.price ?? 0);
 
-  if (regularPrice <= salePrice && product.discount && product.discount > 0) {
+  let regularPrice = effective.isB2B
+    ? effective.originalPrice
+    : Number(
+        product.originalPrice ||
+        (product as any).regularPrice ||
+        (product as any).mrp ||
+        (product as any).price ||
+        salePrice
+      );
+
+  if (!effective.isB2B && regularPrice <= salePrice && product.discount && product.discount > 0) {
     regularPrice = Math.round(salePrice / (1 - product.discount / 100));
   }
 
   const hasDiscount = regularPrice > salePrice;
-  const discountPercent = hasDiscount
-    ? Math.round(((regularPrice - salePrice) / regularPrice) * 100)
-    : (product.discount || 0);
+  const discountPercent = effective.isB2B
+    ? effective.b2bDiscountPercent
+    : (hasDiscount ? Math.round(((regularPrice - salePrice) / regularPrice) * 100) : (product.discount || 0));
 
   // 4. Fields
   const categoryName = typeof product.category === 'object' && product.category !== null
@@ -108,42 +115,35 @@ export function SingleProductCard({
     setTimeout(() => setAdded(false), 2000);
   };
 
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleWishlist = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     onWishlist(product);
-  };
-
-  const handleOpenQuickView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setQuickView(true);
   };
 
   return (
     <>
-      <div
-        className={`bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[rgba(52,21,15,0.08)] shadow-md hover:shadow-xl transition-all duration-300 p-5 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center ${className}`}
-      >
-        {/* Left Column: Image Box & Gallery Thumbnails */}
-        <div className="md:col-span-5 relative">
+      <div className={`bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[rgba(52,21,15,0.08)] shadow-md hover:shadow-xl transition-all duration-300 p-5 md:p-7 grid grid-cols-1 md:grid-cols-12 gap-6 items-center ${className}`}>
+        
+        {/* Left Column: Gallery & Images */}
+        <div className="md:col-span-5 flex flex-col items-center">
           <div
             onClick={handleNavigateToDetail}
-            className="relative w-full overflow-hidden rounded-tr-2xl rounded-bl-2xl bg-[#EACEAA]/30 border border-[rgba(52,21,15,0.08)] cursor-pointer"
+            className="relative w-full aspect-square max-h-[360px] overflow-hidden rounded-tr-2xl rounded-bl-2xl bg-[#EACEAA]/30 border border-[#34150F]/10 cursor-pointer group mb-3"
           >
             <ProductThumb src={imageSrc} name={product.name} />
 
             {/* Discount Badge */}
             {discountPercent > 0 && (
-              <span className="absolute top-3 left-3 bg-[#34150F] text-[#D39858] text-[10px] font-black px-2.5 py-1 rounded-tr-md rounded-bl-md z-10 border border-[#D39858]/30">
+              <span className="absolute top-3 left-3 bg-[#34150F] text-[#D39858] text-[10px] font-black px-2.5 py-1 rounded-tr-lg rounded-bl-lg shadow border border-[#D39858]/30">
                 {discountPercent}% OFF
               </span>
             )}
 
-            {/* Wishlist Heart Button */}
+            {/* Wishlist Button */}
             <button
               type="button"
               onClick={handleWishlist}
-              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              className={`absolute top-3 right-3 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 ${
+              className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 ${
                 wishlisted
                   ? "bg-rose-500 text-white"
                   : "bg-[#34150F]/80 text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
@@ -153,34 +153,34 @@ export function SingleProductCard({
               <Heart size={16} className={wishlisted ? "fill-white" : ""} />
             </button>
 
-            {/* Hover Quick View Overlay */}
-            <div className="absolute inset-0 bg-[#34150F]/35 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10 flex items-center justify-center">
+            {/* Quick View Hover Button */}
+            <div className="absolute inset-0 bg-[#34150F]/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <button
                 type="button"
-                onClick={handleOpenQuickView}
-                className="flex items-center gap-2 bg-[#EACEAA] text-[#34150F] text-xs font-extrabold px-4 py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-colors shadow-lg active:scale-95 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuickView(true);
+                }}
+                className="flex items-center gap-1.5 bg-[#EACEAA] text-[#34150F] text-xs font-black px-4 py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-colors shadow-lg active:scale-95"
               >
-                <Eye size={15} />
-                Quick View
+                <Eye size={14} /> Quick View
               </button>
             </div>
           </div>
 
-          {/* Multiple Image Thumbnails Switcher */}
+          {/* Thumbnail Selector (if multiple images) */}
           {galleryImages.length > 1 && (
-            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none justify-center">
+            <div className="flex gap-2 overflow-x-auto max-w-full pb-1">
               {galleryImages.map((img, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setActiveImgIdx(idx)}
-                  className={`w-11 h-11 rounded-tr-md rounded-bl-md overflow-hidden border-2 transition-all flex-shrink-0 ${
-                    activeImgIdx === idx
-                      ? "border-[#34150F] scale-105 shadow"
-                      : "border-transparent opacity-60 hover:opacity-100"
+                  className={`w-12 h-12 rounded-tr-lg rounded-bl-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    activeImgIdx === idx ? "border-[#D39858] scale-105 shadow-sm" : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={`${product.name} thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

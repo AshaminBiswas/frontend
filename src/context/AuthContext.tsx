@@ -18,8 +18,7 @@ interface AuthContextType {
   verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string }>;
   resendOtp: () => Promise<{ success: boolean; message?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
-  resetPassword: (payload: ResetPasswordPayload) => Promise<{ success: boolean; message?: string }>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+  changePassword: (currentPassword: string, newPassword: string, confirmPassword?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>;
 }
@@ -221,8 +220,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 7. Change Password (For forced reset or settings)
-  const changePassword = async (currentPassword: string, newPassword: string) => {
-    const res = await authService.changePassword(currentPassword, newPassword);
+  const changePassword = async (currentPassword: string, newPassword: string, confirmPassword?: string) => {
+    const res = await authService.changePassword(currentPassword, newPassword, confirmPassword || newPassword);
     if (res.success) {
       if (user) {
         const updated = { ...user, mustChangePassword: false };

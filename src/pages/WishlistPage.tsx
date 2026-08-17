@@ -5,6 +5,9 @@ import {
   Star, ShieldCheck, Truck, RotateCcw, Check, Sparkles
 } from "lucide-react";
 import { Product } from "../types";
+import { useAuth } from "../context/AuthContext";
+import { getEffectivePrice } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 import {
   SUPER_SAVER_PRODUCTS,
   VALUE_MONEY_PRODUCTS,
@@ -59,6 +62,8 @@ export function WishlistPage({
   onToggleWishlist,
   onAddToCart,
 }: WishlistPageProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
 
   // Filter wishlisted items from saved items list & static catalog
@@ -180,10 +185,12 @@ export function WishlistPage({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 mb-12">
           {wishlistedItems.map((product) => {
             const isAdded = addedIds.has(product.id);
-            const discountPercent =
-              product.originalPrice && product.originalPrice > product.price
-                ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                : product.discount || 0;
+            const effective = getEffectivePrice(product, user, 1, b2bCache);
+            const discountPercent = effective.isB2B
+              ? effective.b2bDiscountPercent
+              : effective.originalPrice > effective.unitPrice
+              ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
+              : product.discount || 0;
 
             return (
               <div
@@ -206,7 +213,11 @@ export function WishlistPage({
                     </button>
 
                     {/* Discount Badge */}
-                    {discountPercent > 0 && (
+                    {effective.isB2B ? (
+                      <span className="absolute top-3 left-3 bg-[#D39858] text-[#34150F] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-tr-lg rounded-bl-lg shadow">
+                        B2B {discountPercent}% OFF
+                      </span>
+                    ) : discountPercent > 0 && (
                       <span className="absolute top-3 left-3 bg-[#D39858] text-[#34150F] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-tr-lg rounded-bl-lg shadow">
                         {discountPercent}% OFF
                       </span>
@@ -251,11 +262,15 @@ export function WishlistPage({
                         className="text-lg font-black text-[#34150F]"
                         style={{ fontFamily: "'DM Mono', monospace" }}
                       >
-                        ₹{product.price.toLocaleString("en-IN")}
+                        ₹{effective.unitPrice.toLocaleString("en-IN")}
                       </span>
-                      {product.originalPrice && product.originalPrice > product.price && (
+                      {effective.isB2B ? (
+                        <span className="text-[9px] font-bold text-[#D39858] bg-[#34150F] px-1.5 py-0.5 rounded uppercase">
+                          B2B
+                        </span>
+                      ) : effective.originalPrice > effective.unitPrice && (
                         <span className="text-xs text-[#85431E]/50 line-through">
-                          ₹{product.originalPrice.toLocaleString("en-IN")}
+                          ₹{effective.originalPrice.toLocaleString("en-IN")}
                         </span>
                       )}
                     </div>

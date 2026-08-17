@@ -10,6 +10,7 @@ import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS, CUBIC
 import { QuickViewModal } from "../components/product/QuickViewModal";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
 import { fetchApi } from "../services/api";
@@ -69,6 +70,7 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
 
   const [products, setProducts] = useState<Product[]>(() => getLiveCatalog(LOCAL_PRODUCTS));
   const [loading, setLoading] = useState(false);
+  const b2bCache = useB2BPricing();
 
   useEffect(() => {
     const refresh = () => setProducts(getLiveCatalog(LOCAL_PRODUCTS));
@@ -169,8 +171,8 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
     });
 
     return result.sort((a, b) => {
-      const priceA = getEffectivePrice(a, user).unitPrice;
-      const priceB = getEffectivePrice(b, user).unitPrice;
+      const priceA = getEffectivePrice(a, user, 1, b2bCache).unitPrice;
+      const priceB = getEffectivePrice(b, user, 1, b2bCache).unitPrice;
       if (sortOption === "low-to-high") return priceA - priceB;
       if (sortOption === "high-to-low") return priceB - priceA;
       if (sortOption === "rating") return (b.rating || 5) - (a.rating || 5);

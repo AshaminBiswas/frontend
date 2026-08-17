@@ -12,9 +12,12 @@ import {
   VALUE_MONEY_PRODUCTS,
   BEST_SELLER_PRODUCTS
 } from "../data/products";
-import { bannerService, Banner } from "../services/bannerService";
 import { couponService, Coupon } from "../services/couponService";
+import { bannerService, Banner } from "../services/bannerService";
 import { fetchApi } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { getEffectivePrice } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 
 // Fallback local products
@@ -86,6 +89,8 @@ interface OffersPageProps {
 }
 
 export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG);
   const [coupons, setCoupons] = useState<Coupon[]>(FALLBACK_COUPONS);
   const [loading, setLoading] = useState(false);
@@ -166,18 +171,20 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
       }
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) return false;
 
-      const discount =
-        p.originalPrice && p.originalPrice > p.price
-          ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
-          : p.discount || 0;
+      const effective = getEffectivePrice(p, user, 1, b2bCache);
+      const discount = effective.isB2B
+        ? effective.b2bDiscountPercent
+        : effective.originalPrice > effective.unitPrice
+        ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
+        : p.discount || 0;
 
       if (discountTier === "50_PLUS" && discount < 50) return false;
       if (discountTier === "40_PLUS" && discount < 40) return false;
-      if (discountTier === "UNDER_200" && p.price >= 200) return false;
+      if (discountTier === "UNDER_200" && effective.unitPrice >= 200) return false;
 
       return true;
     });
-  }, [products, search, category, discountTier, inStockOnly]);
+  }, [products, search, category, discountTier, inStockOnly, user, b2bCache]);
 
   const displayedProducts = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
@@ -399,11 +406,13 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                 wishlist.has(product.id) ||
                 wishlist.has(String(product.id)) ||
                 ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
-              const discountPercent =
-                product.originalPrice && product.originalPrice > product.price
-                  ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                  : product.discount || 0;
-              const savingsRupees = product.originalPrice ? product.originalPrice - product.price : 0;
+              const effective = getEffectivePrice(product, user, 1, b2bCache);
+              const discountPercent = effective.isB2B
+                ? effective.b2bDiscountPercent
+                : effective.originalPrice > effective.unitPrice
+                ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
+                : product.discount || 0;
+              const savingsRupees = Math.max(0, effective.originalPrice - effective.unitPrice);
 
               return (
                 <div
@@ -419,7 +428,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                       {discountPercent > 0 && (
                         <span className="absolute top-3 left-3 bg-[#34150F] text-[#D39858] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-tr-lg rounded-bl-lg shadow-md flex items-center gap-1 border border-[#D39858]/30">
                           <Flame size={11} className="fill-[#D39858]" />
-                          {discountPercent}% OFF
+                          {effective.isB2B ? `B2B ${discountPercent}% OFF` : `${discountPercent}% OFF`}
                         </span>
                       )}
 
@@ -475,11 +484,11 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                             className="text-lg font-black text-[#34150F]"
                             style={{ fontFamily: "'DM Mono', monospace" }}
                           >
-                            ₹{product.price.toLocaleString("en-IN")}
+                            ₹{effective.unitPrice.toLocaleString("en-IN")}
                           </span>
-                          {product.originalPrice && product.originalPrice > product.price && (
+                          {effective.originalPrice > effective.unitPrice && (
                             <span className="text-xs text-[#85431E]/50 line-through font-semibold">
-                              ₹{product.originalPrice.toLocaleString("en-IN")}
+                              ₹{effective.originalPrice.toLocaleString("en-IN")}
                             </span>
                           )}
                         </div>

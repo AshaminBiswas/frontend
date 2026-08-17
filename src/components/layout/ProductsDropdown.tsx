@@ -4,6 +4,9 @@ import { ChevronRight, Package } from "lucide-react";
 import { Product } from "../../types";
 import { getAllProductsApi } from "../../services/productService";
 import { getLiveCatalog, subscribeToProductSync } from "../../services/productSyncService";
+import { useAuth } from "../../context/AuthContext";
+import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 import {
   CUBICLE_HARDWARE_PRODUCTS,
   LOCKER_HARDWARE_PRODUCTS,
@@ -25,6 +28,8 @@ interface ProductsDropdownProps {
 }
 
 export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -154,10 +159,13 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
               ) : (
                 <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 max-h-[340px] md:max-h-none overflow-y-auto pr-0.5 md:pr-0">
                   {displayProducts.map((prod) => {
-                    const price = prod.price || prod.salePrice || 0;
-                    const origPrice = prod.originalPrice || prod.regularPrice || 0;
+                    const effective = getEffectivePrice(prod, user, 1, b2bCache);
+                    const price = effective.unitPrice;
+                    const origPrice = effective.originalPrice;
                     const hasDiscount = origPrice > price;
-                    const discount = prod.discount || (hasDiscount ? Math.round(((origPrice - price) / origPrice) * 100) : 0);
+                    const discount = effective.isB2B
+                      ? effective.b2bDiscountPercent
+                      : (hasDiscount ? Math.round(((origPrice - price) / origPrice) * 100) : (prod.discount || 0));
                     const catName = typeof prod.category === "object" ? (prod.category as any).name : (prod.category || "Hardware");
 
                     return (
@@ -181,7 +189,7 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
                           )}
                           {discount > 0 && (
                             <span className="absolute top-0.5 left-0.5 bg-[#34150F]/90 text-[#D39858] text-[7px] font-black px-0.5 rounded-sm border border-[#D39858]/30 leading-none">
-                              {discount}%
+                              {effective.isB2B ? `B2B ${discount}%` : `${discount}%`}
                             </span>
                           )}
                         </div>
@@ -198,11 +206,15 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
                           </div>
                           <div className="flex items-baseline gap-1 mt-0.5">
                             <span className="text-[11px] sm:text-xs font-black text-[#D39858] leading-none" style={{ fontFamily: "'DM Mono', monospace" }}>
-                              ₹{price.toLocaleString()}
+                              ₹{price.toLocaleString("en-IN")}
                             </span>
-                            {hasDiscount && (
+                            {effective.isB2B ? (
+                              <span className="bg-[#D39858] text-[#34150F] text-[7px] font-black px-1 py-0.2 rounded leading-none uppercase">
+                                B2B
+                              </span>
+                            ) : hasDiscount && (
                               <span className="text-[8px] sm:text-[9px] text-[#EACEAA]/40 line-through font-semibold leading-none">
-                                ₹{origPrice.toLocaleString()}
+                                ₹{origPrice.toLocaleString("en-IN")}
                               </span>
                             )}
                           </div>

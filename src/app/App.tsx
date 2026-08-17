@@ -22,6 +22,7 @@ import { OrderSuccessPage } from '../pages/OrderSuccessPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { AppointmentsPage } from '../pages/AppointmentsPage';
 import { RequestQuotePage } from '../pages/RequestQuotePage';
+import { CustomerQuoteApprovalPage } from '../pages/CustomerQuoteApprovalPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { WishlistPage } from '../pages/WishlistPage';
 import { BestSellersPage } from '../pages/BestSellersPage';
@@ -138,6 +139,8 @@ function AppContent() {
             <Route path="/profile/*" element={<ProfilePage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} wishlist={wishlist} onToggleWishlist={toggleWishlist} onAddToCart={addToCart} />} />
             <Route path="/services/appointments" element={<AppointmentsPage />} />
             <Route path="/request-quote" element={<RequestQuotePage />} />
+            <Route path="/quote/:token" element={<CustomerQuoteApprovalPage />} />
+            <Route path="/quotation/view/:token" element={<CustomerQuoteApprovalPage />} />
 
             {/* Navigation routes */}
             <Route path="/notifications" element={<NotificationsPage />} />

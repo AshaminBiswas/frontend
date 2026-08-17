@@ -5,6 +5,7 @@ import { Product } from "../../types";
 import { QuickViewModal } from "./QuickViewModal";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 import { getProductStockStatus } from "../../utils/stock";
 
 interface ProductCardProps {
@@ -43,10 +44,11 @@ export const ProductCard = memo(function ProductCard({
 }: ProductCardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const [quickView, setQuickView] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const effective = getEffectivePrice(product, user);
+  const effective = getEffectivePrice(product, user, 1, b2bCache);
 
   // Dynamic stock status from shared utility
   const stockInfo = getProductStockStatus(product.stock, (product as any).reorderLevel, (product as any).inStock);
@@ -58,24 +60,29 @@ export const ProductCard = memo(function ProductCard({
     product.image ||
     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
 
-  // 2. Pricing Priority: salePrice, price line-through, discount percent
-  const salePrice = Number((product as any).salePrice ?? (product as any).offerPrice ?? effective.unitPrice ?? product.price ?? 0);
-  let regularPrice = Number(
-    product.originalPrice ||
-    (product as any).regularPrice ||
-    (product as any).mrp ||
-    (product as any).price ||
-    salePrice
-  );
+  // 2. Pricing Priority: Prioritize B2B calculated tier rate when user is B2B
+  const salePrice = effective.isB2B
+    ? effective.unitPrice
+    : Number((product as any).salePrice ?? (product as any).offerPrice ?? effective.unitPrice ?? product.price ?? 0);
 
-  if (regularPrice <= salePrice && product.discount && product.discount > 0) {
+  let regularPrice = effective.isB2B
+    ? effective.originalPrice
+    : Number(
+        product.originalPrice ||
+        (product as any).regularPrice ||
+        (product as any).mrp ||
+        (product as any).price ||
+        salePrice
+      );
+
+  if (!effective.isB2B && regularPrice <= salePrice && product.discount && product.discount > 0) {
     regularPrice = Math.round(salePrice / (1 - product.discount / 100));
   }
 
   const hasDiscount = regularPrice > salePrice;
-  const discountPercent = hasDiscount
-    ? Math.round(((regularPrice - salePrice) / regularPrice) * 100)
-    : (product.discount || 0);
+  const discountPercent = effective.isB2B
+    ? effective.b2bDiscountPercent
+    : (hasDiscount ? Math.round(((regularPrice - salePrice) / regularPrice) * 100) : (product.discount || 0));
 
   // 3. Short description
   const shortDescriptionText =
@@ -190,8 +197,12 @@ export const ProductCard = memo(function ProductCard({
                 </span>
               )}
 
-              {/* Discount Percentage Badge */}
-              {discountPercent > 0 && (
+              {/* Discount / B2B Percentage Badge */}
+              {effective.isB2B ? (
+                <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
+                  B2B {discountPercent}% OFF
+                </span>
+              ) : discountPercent > 0 && (
                 <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                   {discountPercent}% OFF
                 </span>

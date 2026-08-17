@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   User, Mail, Phone, Building2, FileText, Shield,
   Edit3, Save, X, LogOut, ChevronRight, Package,
@@ -13,6 +13,9 @@ import { fetchApi } from "../../services/api";
 import { CartItem, Product } from "../../types";
 import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../../data/products";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { B2BQuotationManager } from "../b2b/B2BQuotationManager";
+import { isB2BUser, getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 
 const ALL_PRODUCTS: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
 
@@ -26,7 +29,7 @@ interface UserProfilePageProps {
   onAddToCart: (product: Product) => void;
 }
 
-type ProfileTab = "overview" | "edit" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
+type ProfileTab = "overview" | "edit" | "quotes" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
 
 interface Address {
   id: string;
@@ -57,9 +60,24 @@ export function UserProfilePage({
   onAddToCart,
 }: UserProfilePageProps) {
   const { user, logout, updateUser } = useAuth();
+  const b2bCache = useB2BPricing();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isB2B = isB2BUser(user);
 
-  const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
+  const tabParam = searchParams.get("tab") as ProfileTab | null;
+  const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
+    if (tabParam && ["overview", "edit", "quotes", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+      return tabParam;
+    }
+    return "overview";
+  });
+
+  useEffect(() => {
+    if (tabParam && ["overview", "edit", "quotes", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -164,6 +182,7 @@ export function UserProfilePage({
       return;
     }
     setActiveTab(tab);
+    setSearchParams({ tab });
     clearFeedback();
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -243,8 +262,6 @@ export function UserProfilePage({
     return f + l || "U";
   };
 
-  const isB2B = !!(user?.companyName || user?.gstin);
-
   // Fetch notifications when tab selected
   useEffect(() => {
     if (activeTab !== "notifications") return;
@@ -274,6 +291,9 @@ export function UserProfilePage({
   const TABS: { key: ProfileTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { key: "overview", label: "Overview", icon: <User size={15} /> },
     { key: "edit", label: "Edit Profile", icon: <Edit3 size={15} /> },
+    ...(isB2B
+      ? [{ key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> }]
+      : []),
     { key: "orders", label: "My Orders", icon: <Package size={15} /> },
     { key: "cart", label: "My Cart", icon: <ShoppingCart size={15} />, badge: cart.reduce((s, i) => s + i.qty, 0) },
     { key: "wishlist", label: "Wishlist", icon: <Heart size={15} />, badge: wishlist.size },
@@ -449,18 +469,27 @@ export function UserProfilePage({
                 <Building2 size={14} className="text-[#D39858]" /> Business Info
               </h3>
               {isB2B ? (
-                <dl className="space-y-0">
-                  {[
-                    { label: "Company", value: user?.companyName || "—" },
-                    { label: "GSTIN", value: user?.gstin || "—" },
-                    { label: "Type", value: "B2B Wholesale" },
-                  ].map((i) => (
-                    <div key={i.label} className="flex items-start justify-between py-2.5 border-b border-[#34150F]/5 last:border-0 gap-3">
-                      <dt className="text-xs text-[#85431E] font-semibold shrink-0">{i.label}</dt>
-                      <dd className="text-xs font-bold text-[#34150F] text-right break-all font-mono">{i.value}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <div>
+                  <dl className="space-y-0">
+                    {[
+                      { label: "Company", value: user?.companyName || "—" },
+                      { label: "GSTIN", value: user?.gstin || "—" },
+                      { label: "Type", value: "B2B Wholesale Partner" },
+                    ].map((i) => (
+                      <div key={i.label} className="flex items-start justify-between py-2.5 border-b border-[#34150F]/5 last:border-0 gap-3">
+                        <dt className="text-xs text-[#85431E] font-semibold shrink-0">{i.label}</dt>
+                        <dd className="text-xs font-bold text-[#34150F] text-right break-all font-mono">{i.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <button
+                    type="button"
+                    onClick={() => switchTab("quotes")}
+                    className="w-full mt-3 flex items-center justify-center gap-2 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs"
+                  >
+                    <FileText size={13} /> Manage Project Quotations →
+                  </button>
+                </div>
               ) : (
                 <div className="flex flex-col items-center py-8 text-center">
                   <Building2 size={32} className="text-[#D39858]/35 mb-3" />
@@ -504,10 +533,11 @@ export function UserProfilePage({
               </h3>
               <div className="space-y-2">
                 {([
-                  { icon: <Edit3 size={13} />, label: "Edit My Profile", tab: "edit" },
-                  { icon: <MapPin size={13} />, label: "Manage Addresses", tab: "addresses" },
-                  { icon: <Lock size={13} />, label: "Change Password", tab: "security" },
-                  { icon: <Package size={13} />, label: "View My Orders", tab: "orders" },
+                  { icon: <Edit3 size={13} />, label: "Edit My Profile", tab: "edit" as ProfileTab },
+                  ...(isB2B ? [{ icon: <FileText size={13} />, label: "My Project Quotations", tab: "quotes" as ProfileTab }] : []),
+                  { icon: <MapPin size={13} />, label: "Manage Addresses", tab: "addresses" as ProfileTab },
+                  { icon: <Lock size={13} />, label: "Change Password", tab: "security" as ProfileTab },
+                  { icon: <Package size={13} />, label: "View My Orders", tab: "orders" as ProfileTab },
                 ] as { icon: React.ReactNode; label: string; tab: ProfileTab }[]).map((a) => (
                   <button
                     key={a.label}
@@ -525,6 +555,11 @@ export function UserProfilePage({
               </div>
             </div>
           </div>
+        )}
+
+        {/* ═══════════════ B2B QUOTATIONS (EXCLUSIVE) ═══════════════ */}
+        {activeTab === "quotes" && (
+          <B2BQuotationManager onGoToProfileEdit={() => switchTab("edit")} />
         )}
 
         {/* ═══════════════ EDIT PROFILE ═══════════════ */}
@@ -857,7 +892,7 @@ export function UserProfilePage({
 
         {/* ═══════════════ CART ═══════════════ */}
         {activeTab === "cart" && (() => {
-          const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+          const cartTotal = cart.reduce((s, i) => s + getEffectivePrice(i, user, i.qty, b2bCache).totalPrice, 0);
           const cartCount = cart.reduce((s, i) => s + i.qty, 0);
           return (
             <div>
@@ -935,12 +970,17 @@ export function UserProfilePage({
                             </button>
                           </div>
                           {/* Line total */}
-                          <div className="text-right">
-                            {item.originalPrice && item.originalPrice > item.price && (
-                              <p className="text-[10px] text-[#85431E]/50 line-through">₹{(item.originalPrice * item.qty).toLocaleString("en-IN")}</p>
-                            )}
-                            <p className="text-sm font-black text-[#34150F]">₹{(item.price * item.qty).toLocaleString("en-IN")}</p>
-                          </div>
+                          {(() => {
+                            const eff = getEffectivePrice(item, user, item.qty, b2bCache);
+                            return (
+                              <div className="text-right">
+                                {eff.originalPrice > eff.unitPrice && (
+                                  <p className="text-[10px] text-[#85431E]/50 line-through">₹{(eff.originalPrice * item.qty).toLocaleString("en-IN")}</p>
+                                )}
+                                <p className="text-sm font-black text-[#34150F]">₹{eff.totalPrice.toLocaleString("en-IN")}</p>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1044,17 +1084,31 @@ export function UserProfilePage({
                               {item.category}
                             </span>
                           )}
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-black text-[#34150F]">₹{item.price.toLocaleString("en-IN")}</span>
-                            {item.originalPrice > item.price && (
-                              <span className="text-[10px] text-[#85431E]/50 line-through">₹{item.originalPrice.toLocaleString("en-IN")}</span>
-                            )}
-                            {item.discount > 0 && (
-                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                {item.discount}% OFF
-                              </span>
-                            )}
-                          </div>
+                          {(() => {
+                            const eff = getEffectivePrice(item, user, 1, b2bCache);
+                            const discount = eff.isB2B
+                              ? eff.b2bDiscountPercent
+                              : eff.originalPrice > eff.unitPrice
+                              ? Math.round(((eff.originalPrice - eff.unitPrice) / eff.originalPrice) * 100)
+                              : item.discount || 0;
+                            return (
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-black text-[#34150F]">₹{eff.unitPrice.toLocaleString("en-IN")}</span>
+                                {eff.originalPrice > eff.unitPrice && (
+                                  <span className="text-[10px] text-[#85431E]/50 line-through">₹{eff.originalPrice.toLocaleString("en-IN")}</span>
+                                )}
+                                {eff.isB2B ? (
+                                  <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase">
+                                    B2B {discount}% OFF
+                                  </span>
+                                ) : discount > 0 ? (
+                                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                    {discount}% OFF
+                                  </span>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                       <button

@@ -5,6 +5,9 @@ import {
   Package, Truck, Heart
 } from "lucide-react";
 import { CartItem } from "../../types";
+import { useAuth } from "../../context/AuthContext";
+import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 
 /* ── Safe Thumbnail Component — Never breaks container dimensions ── */
 function DrawerThumb({ src, name }: { src?: string; name: string }) {
@@ -39,7 +42,12 @@ interface CartDrawerProps {
 
 export function CartDrawer({ cart, onClose, onRemove, onQty }: CartDrawerProps) {
   const navigate = useNavigate();
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
+  const total = cart.reduce((s, i) => {
+    const effective = getEffectivePrice(i, user, i.qty, b2bCache);
+    return s + effective.totalPrice;
+  }, 0);
   const totalItems = cart.reduce((s, i) => s + i.qty, 0);
   const freeShipping = total >= 2000;
 
@@ -151,63 +159,76 @@ export function CartDrawer({ cart, onClose, onRemove, onQty }: CartDrawerProps) 
               </button>
             </div>
           ) : (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex gap-3 bg-[#FAF4ED] p-3.5 rounded-tr-xl rounded-bl-xl border border-[#34150F]/10 shadow-xs hover:border-[#D39858]/40 transition-colors"
-              >
-                <DrawerThumb src={item.image} name={item.name} />
+            cart.map((item) => {
+              const effective = getEffectivePrice(item, user, item.qty, b2bCache);
+              return (
+                <div
+                  key={item.id}
+                  className="flex gap-3 bg-[#FAF4ED] p-3.5 rounded-tr-xl rounded-bl-xl border border-[#34150F]/10 shadow-xs hover:border-[#D39858]/40 transition-colors"
+                >
+                  <DrawerThumb src={item.image} name={item.name} />
 
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  {/* Title + Delete */}
-                  <div className="flex items-start justify-between gap-1">
-                    <h4 className="text-[#34150F] text-xs font-bold leading-snug line-clamp-2 pr-1">
-                      {item.name}
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(item.id)}
-                      className="text-red-500 hover:text-red-700 transition-colors p-1 flex-shrink-0"
-                      title="Remove item"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  {/* Pricing + Stepper */}
-                  <div className="flex items-center justify-between gap-2 mt-2">
-                    {/* Qty modifier */}
-                    <div className="flex items-center gap-1.5 bg-[#EACEAA]/60 rounded-tr-lg rounded-bl-lg px-1.5 py-0.5 border border-[#34150F]/10">
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    {/* Title + Delete */}
+                    <div className="flex items-start justify-between gap-1">
+                      <h4 className="text-[#34150F] text-xs font-bold leading-snug line-clamp-2 pr-1">
+                        {item.name}
+                      </h4>
                       <button
                         type="button"
-                        onClick={() => onQty(item.id, -1)}
-                        disabled={item.qty <= 1}
-                        className="w-5 h-5 rounded-full bg-[#34150F]/10 hover:bg-[#34150F]/20 flex items-center justify-center text-[#34150F] text-xs transition-colors disabled:opacity-30"
+                        onClick={() => onRemove(item.id)}
+                        className="text-red-500 hover:text-red-700 transition-colors p-1 flex-shrink-0"
+                        title="Remove item"
                       >
-                        <Minus size={10} />
-                      </button>
-                      <span className="text-xs font-black text-[#34150F] w-5 text-center select-none">
-                        {item.qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onQty(item.id, 1)}
-                        className="w-5 h-5 rounded-full bg-[#34150F]/10 hover:bg-[#34150F]/20 flex items-center justify-center text-[#34150F] text-xs transition-colors"
-                      >
-                        <Plus size={10} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
 
-                    {/* Total price for line */}
-                    <div className="text-right">
-                      <p className="text-xs sm:text-sm font-black text-[#34150F]">
-                        ₹{(item.price * item.qty).toLocaleString("en-IN")}
-                      </p>
+                    {/* Pricing + Stepper */}
+                    <div className="flex items-center justify-between gap-2 mt-2">
+                      {/* Qty modifier */}
+                      <div className="flex items-center gap-1.5 bg-[#EACEAA]/60 rounded-tr-lg rounded-bl-lg px-1.5 py-0.5 border border-[#34150F]/10">
+                        <button
+                          type="button"
+                          onClick={() => onQty(item.id, -1)}
+                          disabled={item.qty <= 1}
+                          className="w-5 h-5 rounded-full bg-[#34150F]/10 hover:bg-[#34150F]/20 flex items-center justify-center text-[#34150F] text-xs transition-colors disabled:opacity-30"
+                        >
+                          <Minus size={10} />
+                        </button>
+                        <span className="text-xs font-black text-[#34150F] w-5 text-center select-none">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onQty(item.id, 1)}
+                          className="w-5 h-5 rounded-full bg-[#34150F]/10 hover:bg-[#34150F]/20 flex items-center justify-center text-[#34150F] text-xs transition-colors"
+                        >
+                          <Plus size={10} />
+                        </button>
+                      </div>
+
+                      {/* Total price for line */}
+                      <div className="text-right">
+                        <p className="text-xs sm:text-sm font-black text-[#34150F]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                          ₹{effective.totalPrice.toLocaleString("en-IN")}
+                        </p>
+                        <div className="flex items-center justify-end gap-1 mt-0.5">
+                          <span className="text-[10px] text-[#85431E]/70 font-semibold">
+                            ₹{effective.unitPrice.toLocaleString("en-IN")}/u
+                          </span>
+                          {effective.isB2B && (
+                            <span className="text-[8px] bg-[#D39858] text-[#34150F] px-1 py-0.2 rounded font-black uppercase leading-none">
+                              B2B
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

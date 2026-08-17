@@ -3,6 +3,9 @@ import { Search, X } from "lucide-react";
 import { Product } from "../../types";
 import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../../data/products";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { useAuth } from "../../context/AuthContext";
+import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -31,6 +34,8 @@ const POPULAR_SUGGESTIONS = [
 ];
 
 export function SearchOverlay({ searchQuery, setSearchQuery, onClose, onAddToCart }: SearchOverlayProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -120,15 +125,28 @@ export function SearchOverlay({ searchQuery, setSearchQuery, onClose, onAddToCar
                   <div className="w-14 h-14 rounded-tr-xl rounded-bl-xl overflow-hidden bg-[#EACEAA]/10 flex-shrink-0">
                     <ImageWithFallback src={p.image} alt={p.name} className="w-full h-full object-cover" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#EACEAA] text-sm font-medium truncate group-hover:text-[#D39858] transition-colors">
-                      {p.name}
-                    </p>
-                    <p className="text-[#D39858] text-xs mt-0.5 font-bold">
-                      ₹{p.price}{" "}
-                      <span className="text-[#EACEAA]/40 line-through font-normal ml-1">₹{p.originalPrice}</span>
-                    </p>
-                  </div>
+                  {(() => {
+                    const effective = getEffectivePrice(p, user, 1, b2bCache);
+                    return (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[#EACEAA] text-sm font-medium truncate group-hover:text-[#D39858] transition-colors">
+                          {p.name}
+                        </p>
+                        <p className="text-[#D39858] text-xs mt-0.5 font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>
+                          ₹{effective.unitPrice.toLocaleString("en-IN")}{" "}
+                          {effective.isB2B ? (
+                            <span className="text-[8px] bg-[#D39858] text-[#34150F] px-1 py-0.2 rounded font-black uppercase ml-1">
+                              B2B
+                            </span>
+                          ) : effective.originalPrice > effective.unitPrice ? (
+                            <span className="text-[#EACEAA]/40 line-through font-normal ml-1">
+                              ₹{effective.originalPrice.toLocaleString("en-IN")}
+                            </span>
+                          ) : null}
+                        </p>
+                      </div>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={(e) => {

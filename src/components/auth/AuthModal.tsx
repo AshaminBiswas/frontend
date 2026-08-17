@@ -96,7 +96,7 @@ export function AuthModal() {
     }
 
     setIsSubmitting(true);
-    const res = await changePassword(currentTempPassword.trim(), newPermanentPassword);
+    const res = await changePassword(currentTempPassword.trim(), newPermanentPassword, confirmPermanentPassword);
     setIsSubmitting(false);
 
     if (res.success) {

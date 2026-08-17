@@ -8,6 +8,8 @@ import { getCategoryBySlugApi, ApiCategoryDetail } from "../services/categorySer
 import { getProductsByCategorySlugApi } from "../services/productService";
 import { ProductCard } from "../components/product/ProductCard";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
+import { getEffectivePrice } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 
 const ALL_PRODUCTS: Product[] = [
   ...SUPER_SAVER_PRODUCTS,
@@ -31,6 +33,7 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const b2bCache = useB2BPricing();
 
   const [categoryDetail, setCategoryDetail] = useState<ApiCategoryDetail | null>(() => {
     return slug && categoryCacheMap.has(slug) ? categoryCacheMap.get(slug)! : null;
@@ -132,14 +135,14 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
         });
 
     return [...baseList].sort((a, b) => {
-      const priceA = a.price || 0;
-      const priceB = b.price || 0;
+      const priceA = getEffectivePrice(a, user, 1, b2bCache).unitPrice;
+      const priceB = getEffectivePrice(b, user, 1, b2bCache).unitPrice;
       if (sortOption === "low-to-high") return priceA - priceB;
       if (sortOption === "high-to-low") return priceB - priceA;
       if (sortOption === "discount") return (b.discount || 0) - (a.discount || 0);
       return a.id - b.id;
     });
-  }, [apiProducts, categoryName, slug, sortOption]);
+  }, [apiProducts, categoryName, slug, sortOption, user, b2bCache]);
 
   return (
     <div className="min-h-screen bg-[#EACEAA]/20 py-5 sm:py-8 px-3 sm:px-4 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>

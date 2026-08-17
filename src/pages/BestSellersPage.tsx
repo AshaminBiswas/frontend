@@ -14,6 +14,9 @@ import {
 import { bannerService, Banner } from "../services/bannerService";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
+import { useAuth } from "../context/AuthContext";
+import { getEffectivePrice } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 
 // Combine and deduplicate master catalog
 const ALL_CATALOG: Product[] = Array.from(
@@ -63,6 +66,8 @@ interface BestSellersPageProps {
 }
 
 export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSellersPageProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   // Banners state
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -110,12 +115,14 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
       if (category !== "ALL" && p.category?.toUpperCase() !== category.toUpperCase()) return false;
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) return false;
       if (minRating === "4" && (p.rating || 5) < 4) return false;
-      if (priceRange === "UNDER_200" && p.price >= 200) return false;
-      if (priceRange === "200_500" && (p.price < 200 || p.price > 500)) return false;
-      if (priceRange === "OVER_500" && p.price <= 500) return false;
+      const effective = getEffectivePrice(p, user, 1, b2bCache);
+      const currentPrice = effective.unitPrice;
+      if (priceRange === "UNDER_200" && currentPrice >= 200) return false;
+      if (priceRange === "200_500" && (currentPrice < 200 || currentPrice > 500)) return false;
+      if (priceRange === "OVER_500" && currentPrice <= 500) return false;
       return true;
     });
-  }, [search, category, priceRange, minRating, inStockOnly, liveCatalog]);
+  }, [search, category, priceRange, minRating, inStockOnly, liveCatalog, user, b2bCache]);
 
   // Displayed products based on viewMode & pagination
   const displayedProducts = useMemo(() => {
@@ -337,10 +344,12 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                 wishlist.has(product.id) ||
                 wishlist.has(String(product.id)) ||
                 ((product as any).apiId ? wishlist.has((product as any).apiId) : false);
-              const discountPercent =
-                product.originalPrice && product.originalPrice > product.price
-                  ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                  : product.discount || 0;
+              const effective = getEffectivePrice(product, user, 1, b2bCache);
+              const discountPercent = effective.isB2B
+                ? effective.b2bDiscountPercent
+                : effective.originalPrice > effective.unitPrice
+                ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
+                : product.discount || 0;
 
               return (
                 <div
@@ -409,14 +418,18 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                           className="text-lg font-black text-[#34150F]"
                           style={{ fontFamily: "'DM Mono', monospace" }}
                         >
-                          ₹{product.price.toLocaleString("en-IN")}
+                          ₹{effective.unitPrice.toLocaleString("en-IN")}
                         </span>
-                        {product.originalPrice && product.originalPrice > product.price && (
+                        {effective.originalPrice > effective.unitPrice && (
                           <span className="text-xs text-[#85431E]/50 line-through font-semibold">
-                            ₹{product.originalPrice.toLocaleString("en-IN")}
+                            ₹{effective.originalPrice.toLocaleString("en-IN")}
                           </span>
                         )}
-                        {discountPercent > 0 && (
+                        {effective.isB2B ? (
+                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
+                            B2B {discountPercent}% OFF
+                          </span>
+                        ) : discountPercent > 0 && (
                           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                             {discountPercent}% OFF
                           </span>

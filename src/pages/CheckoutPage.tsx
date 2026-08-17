@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { ShieldCheck, CreditCard, MapPin, Building2, Lock, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { CartItem } from "../types";
 import { useAuth } from "../context/AuthContext";
-import { getEffectivePrice } from "../utils/pricing";
+import { getEffectivePrice, isB2BUser } from "../utils/pricing";
+import { useB2BPricing } from "../hooks/useB2BPricing";
 import { fetchApi } from "../services/api";
 
 interface CheckoutPageProps {
@@ -27,10 +28,11 @@ export function CheckoutPage({ cart, onClearCart }: CheckoutPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const isB2B = !!(user && (user.companyName || user.gstin || user.role === "B2B"));
+  const isB2B = isB2BUser(user);
+  const b2bCache = useB2BPricing();
 
   const subtotal = cart.reduce((sum, item) => {
-    const effective = getEffectivePrice(item, user, item.qty);
+    const effective = getEffectivePrice(item, user, item.qty, b2bCache);
     return sum + effective.totalPrice;
   }, 0);
 
@@ -65,7 +67,7 @@ export function CheckoutPage({ cart, onClearCart }: CheckoutPageProps) {
         items: cart.map((i) => ({
           productId: i.id,
           quantity: i.qty,
-          unitPrice: getEffectivePrice(i, user, i.qty).unitPrice,
+          unitPrice: getEffectivePrice(i, user, i.qty, b2bCache).unitPrice,
         })),
         shippingAddress: { line1: addressLine, city, state, pincode },
         gstin: isB2B ? gstin : undefined,
@@ -273,7 +275,7 @@ export function CheckoutPage({ cart, onClearCart }: CheckoutPageProps) {
 
               <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1">
                 {cart.map((item) => {
-                  const effective = getEffectivePrice(item, user, item.qty);
+                  const effective = getEffectivePrice(item, user, item.qty, b2bCache);
                   return (
                     <div key={item.id} className="flex items-center justify-between text-xs py-1 border-b border-[#34150F]/6">
                       <div className="truncate pr-2">

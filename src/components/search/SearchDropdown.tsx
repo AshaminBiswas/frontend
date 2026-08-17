@@ -3,6 +3,9 @@ import { Search, X, Plus, Check } from "lucide-react";
 import { Product } from "../../types";
 import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../../data/products";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
+import { useAuth } from "../../context/AuthContext";
+import { getEffectivePrice } from "../../utils/pricing";
+import { useB2BPricing } from "../../hooks/useB2BPricing";
 
 interface SearchDropdownProps {
   searchQuery: string;
@@ -29,6 +32,8 @@ const POPULAR_SUGGESTIONS = [
 ];
 
 export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCart }: SearchDropdownProps) {
+  const { user } = useAuth();
+  const b2bCache = useB2BPricing();
   const ref = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [addedId, setAddedId] = useState<number | null>(null);
@@ -146,15 +151,30 @@ export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCa
                   <p className="text-[#EACEAA] text-xs md:text-sm font-semibold truncate leading-tight">
                     {p.name}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[#D39858] text-xs font-bold">₹{p.price}</span>
-                    <span className="text-[#EACEAA]/40 text-[10px] line-through">₹{p.originalPrice}</span>
-                    {p.material && (
-                      <span className="text-[10px] bg-[#D39858]/20 text-[#D39858] px-2 py-0.5 rounded-full font-medium truncate">
-                        {p.material}
-                      </span>
-                    )}
-                  </div>
+                  {(() => {
+                    const effective = getEffectivePrice(p, user, 1, b2bCache);
+                    return (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[#D39858] text-xs font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>
+                          ₹{effective.unitPrice.toLocaleString("en-IN")}
+                        </span>
+                        {effective.isB2B ? (
+                          <span className="text-[8px] bg-[#D39858] text-[#34150F] px-1 py-0.2 rounded font-black uppercase">
+                            B2B
+                          </span>
+                        ) : effective.originalPrice > effective.unitPrice ? (
+                          <span className="text-[#EACEAA]/40 text-[10px] line-through">
+                            ₹{effective.originalPrice.toLocaleString("en-IN")}
+                          </span>
+                        ) : null}
+                        {p.material && (
+                          <span className="text-[10px] bg-[#D39858]/20 text-[#D39858] px-2 py-0.5 rounded-full font-medium truncate">
+                            {p.material}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Action button micro-interaction */}
