@@ -2,27 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Grid, ChevronRight, Package, Sparkles, Layers, ArrowRight } from "lucide-react";
 import { Product } from "../types";
-import {
-  CATEGORY_OPTIONS,
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS,
-  CUBICLE_HARDWARE_PRODUCTS,
-  LOCKER_HARDWARE_PRODUCTS,
-} from "../data/products";
 import { getCategoriesApi, ApiCategory } from "../services/categoryService";
 import { fetchApi } from "../services/api";
-import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
+import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
 import { CategoriesCatalogSkeleton } from "../components/common/Skeletons";
-
-const BASELINE_PRODUCTS: Product[] = [
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
 
 function safeCategoryString(category: any): string {
   if (!category) return "";
@@ -71,6 +55,7 @@ function normalizeRawProduct(item: any): Product {
     discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
     image,
     material: item.material || item.specifications?.material || "Stainless Steel / Brass",
+    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
   };
 }
 
@@ -90,63 +75,47 @@ export function CategoriesPage({
   const [loading, setLoading] = useState(true);
   const [selectedLine, setSelectedLine] = useState<string>("ALL");
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [catData, prodRes] = await Promise.allSettled([
+        getCategoriesApi(1, 50),
+        fetchApi<any>("/products?limit=200"),
+      ]);
 
-    async function loadData() {
-      setLoading(true);
-      try {
-        const [catData, prodRes] = await Promise.allSettled([
-          getCategoriesApi(1, 50),
-          fetchApi<any>("/products"),
-        ]);
-
-        if (!isMounted) return;
-
-        if (catData.status === "fulfilled" && Array.isArray(catData.value) && catData.value.length > 0) {
-          setCategories(catData.value);
-        }
-
-        if (prodRes.status === "fulfilled" && prodRes.value && prodRes.value.success && prodRes.value.data) {
-          let rawList: any[] = [];
-          if (Array.isArray(prodRes.value.data.products)) {
-            rawList = prodRes.value.data.products;
-          } else if (Array.isArray(prodRes.value.data)) {
-            rawList = prodRes.value.data;
-          } else if (Array.isArray(prodRes.value.data.items)) {
-            rawList = prodRes.value.data.items;
-          }
-
-          if (rawList.length > 0) {
-            const normalized = rawList.map(normalizeRawProduct);
-            setProducts(getLiveCatalog(normalized));
-          } else {
-            setProducts(getLiveCatalog(BASELINE_PRODUCTS));
-          }
-        } else {
-          setProducts(getLiveCatalog(BASELINE_PRODUCTS));
-        }
-      } catch {
-        if (isMounted) {
-          setProducts(getLiveCatalog(BASELINE_PRODUCTS));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (catData.status === "fulfilled" && Array.isArray(catData.value) && catData.value.length > 0) {
+        setCategories(catData.value);
       }
+
+      if (prodRes.status === "fulfilled" && prodRes.value && prodRes.value.success && prodRes.value.data) {
+        let rawList: any[] = [];
+        if (Array.isArray(prodRes.value.data.products)) {
+          rawList = prodRes.value.data.products;
+        } else if (Array.isArray(prodRes.value.data)) {
+          rawList = prodRes.value.data;
+        } else if (Array.isArray(prodRes.value.data.items)) {
+          rawList = prodRes.value.data.items;
+        }
+
+        if (rawList.length > 0) {
+          const normalized = rawList.map(normalizeRawProduct);
+          setProducts(normalized);
+        } else {
+          setProducts([]);
+        }
+      } else {
+        setProducts([]);
+      }
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     loadData();
-
-    const unsubscribe = subscribeToProductSync(() => {
-      setProducts((prev) => getLiveCatalog(prev.length > 0 ? prev : BASELINE_PRODUCTS));
-    });
-
-    return () => {
-      isMounted = false;
-      unsubscribe();
-    };
+    return subscribeToProductSync(loadData);
   }, []);
 
   // Dynamic Category Cards Display List

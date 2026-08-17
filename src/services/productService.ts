@@ -1,8 +1,5 @@
 import { fetchApi } from "./api";
 import { Product } from "../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../data/products";
-
-const STATIC_CATALOG: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
 
 export interface ApiProductsByCategoryResponse {
   category?: {
@@ -135,24 +132,11 @@ export async function getProductsByCategorySlugApi(slug: string): Promise<{ prod
     }
   }
 
-  // Fallback: Filter local static catalog if API is offline or returns 0 results
-  const term = slug.replace(/-/g, ' ').toLowerCase();
-  const fallbackList = STATIC_CATALOG.filter((p) => {
-    const pCat = (p.category || "").toLowerCase();
-    const cleanSlug = slug.toLowerCase();
-    return (
-      pCat.includes(term) ||
-      term.includes(pCat) ||
-      pCat.replace(/\s+/g, '-').includes(cleanSlug) ||
-      cleanSlug.includes(pCat.replace(/\s+/g, '-'))
-    );
-  });
-
-  return { products: fallbackList };
+  return { products: [] };
 }
 
 /**
- * Global product loader: fetches all live products from API with caching and fallback
+ * Global product loader: fetches all live products from API with caching
  */
 export async function getAllProductsApi(limit = 100): Promise<Product[]> {
   try {
@@ -188,5 +172,5 @@ export async function getAllProductsApi(limit = 100): Promise<Product[]> {
     }
   } catch {}
 
-  return STATIC_CATALOG;
+  return [];
 }

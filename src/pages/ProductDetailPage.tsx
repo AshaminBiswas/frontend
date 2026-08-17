@@ -126,10 +126,9 @@ export function ProductDetailPage({
             b2bPrice: raw.b2bPrice !== undefined ? Number(raw.b2bPrice) : (raw.b2b_price !== undefined ? Number(raw.b2b_price) : undefined),
           };
 
-          const finalMerged = foundLocal ? { ...foundLocal, ...normalized } : normalized;
-          setProduct(finalMerged);
-          if (finalMerged.colours && finalMerged.colours.length > 0) {
-            setSelectedColor(finalMerged.colours[0]);
+          setProduct(normalized);
+          if (normalized.colours && normalized.colours.length > 0) {
+            setSelectedColor(normalized.colours[0]);
           }
         } else if (foundLocal) {
           setProduct(foundLocal);

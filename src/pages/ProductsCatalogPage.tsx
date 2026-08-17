@@ -6,23 +6,14 @@ import {
   ChevronRight, Star, Flame, ShieldCheck, Truck, Layers
 } from "lucide-react";
 import { Product } from "../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS, CUBICLE_HARDWARE_PRODUCTS, LOCKER_HARDWARE_PRODUCTS } from "../data/products";
 import { QuickViewModal } from "../components/product/QuickViewModal";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
-import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
+import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
 import { fetchApi } from "../services/api";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
-
-const LOCAL_PRODUCTS: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-];
 
 function safeCategoryString(category: any): string {
   if (!category) return "";
@@ -68,8 +59,8 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [products, setProducts] = useState<Product[]>(() => getLiveCatalog(LOCAL_PRODUCTS));
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const b2bCache = useB2BPricing();
 
   const loadCatalog = () => {
@@ -96,13 +87,13 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
             }));
             setProducts(normalized);
           } else {
-            setProducts(getLiveCatalog(LOCAL_PRODUCTS));
+            setProducts([]);
           }
         } else {
-          setProducts(getLiveCatalog(LOCAL_PRODUCTS));
+          setProducts([]);
         }
       })
-      .catch(() => setProducts(getLiveCatalog(LOCAL_PRODUCTS)))
+      .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   };
 

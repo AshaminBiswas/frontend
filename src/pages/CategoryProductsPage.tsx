@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Filter, ArrowUpDown, ArrowLeft } from "lucide-react";
 import { Product } from "../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS, CUBICLE_HARDWARE_PRODUCTS, LOCKER_HARDWARE_PRODUCTS } from "../data/products";
 import { useAuth } from "../context/AuthContext";
 import { getCategoryBySlugApi, ApiCategoryDetail } from "../services/categoryService";
 import { getProductsByCategorySlugApi } from "../services/productService";
@@ -12,18 +11,6 @@ import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 
-const ALL_PRODUCTS: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-];
-
-// In-memory cache for category metadata to prevent re-loading flicker on category switches
-const categoryCacheMap = new Map<string, ApiCategoryDetail>();
-const productsCacheMap = new Map<string, Product[]>();
-
 interface CategoryProductsPageProps {
   onAddToCart: (p: Product) => void;
   onWishlist: (p: Product | number | string) => void;
@@ -32,19 +19,12 @@ interface CategoryProductsPageProps {
 
 export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: CategoryProductsPageProps) {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
 
-  const [categoryDetail, setCategoryDetail] = useState<ApiCategoryDetail | null>(() => {
-    return slug && categoryCacheMap.has(slug) ? categoryCacheMap.get(slug)! : null;
-  });
-  const [apiProducts, setApiProducts] = useState<Product[]>(() => {
-    return slug && productsCacheMap.has(slug) ? productsCacheMap.get(slug)! : [];
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    return !(slug && categoryCacheMap.has(slug) && productsCacheMap.has(slug));
-  });
+  const [categoryDetail, setCategoryDetail] = useState<ApiCategoryDetail | null>(null);
+  const [apiProducts, setApiProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [sortOption, setSortOption] = useState("featured");
 
   useEffect(() => {
@@ -52,17 +32,7 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
 
     async function loadData() {
       if (!slug) return;
-
-      if (categoryCacheMap.has(slug)) {
-        setCategoryDetail(categoryCacheMap.get(slug)!);
-      }
-      if (productsCacheMap.has(slug)) {
-        setApiProducts(productsCacheMap.get(slug)!);
-      }
-
-      if (!categoryCacheMap.has(slug) || !productsCacheMap.has(slug)) {
-        setLoading(true);
-      }
+      setLoading(true);
 
       try {
         const [catRes, prodRes] = await Promise.all([
@@ -73,22 +43,23 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
         if (isMounted) {
           if (catRes) {
             setCategoryDetail(catRes);
-            categoryCacheMap.set(slug, catRes);
           }
-          if (prodRes && prodRes.products && prodRes.products.length > 0) {
+          if (prodRes && prodRes.products) {
             setApiProducts(prodRes.products);
-            productsCacheMap.set(slug, prodRes.products);
             if (prodRes.categoryName && !catRes) {
               setCategoryDetail((prev) => ({
                 ...(prev || { id: slug, slug, name: prodRes.categoryName! }),
                 name: prodRes.categoryName!,
-                description: prodRes.description || prev?.description
+                description: prodRes.description || prev?.description,
               }));
             }
+          } else {
+            setApiProducts([]);
           }
         }
       } catch (err) {
         console.error("Failed to fetch category products:", err);
+        if (isMounted) setApiProducts([]);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -96,9 +67,9 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
 
     loadData();
     const unsubscribe = subscribeToProductSync(() => {
-      if (slug) productsCacheMap.delete(slug);
       loadData();
     });
+
     return () => {
       isMounted = false;
       unsubscribe();
@@ -114,41 +85,17 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
   }, [categoryDetail, slug]);
 
   const filteredProducts = useMemo(() => {
-    let baseList = apiProducts.length > 0
-      ? apiProducts.filter((p) => {
-          if (!slug) return true;
-          const catStr = (p.category || "").toLowerCase();
-          const targetSlug = slug.toLowerCase().replace(/-/g, ' ');
-          if (targetSlug.includes("cubicle")) return catStr.includes("cubicle");
-          if (targetSlug.includes("locker")) return catStr.includes("locker");
-          return catStr.includes(targetSlug) || targetSlug.includes(catStr);
-        })
-      : ALL_PRODUCTS.filter((p) => {
-          const catStr = (p.category || "").toLowerCase();
-          const targetSlug = (slug || "").toLowerCase().replace(/-/g, ' ');
-          const targetName = categoryName.toLowerCase();
-          if (targetSlug.includes("cubicle") || targetName.includes("cubicle")) {
-            return catStr.includes("cubicle");
-          }
-          if (targetSlug.includes("locker") || targetName.includes("locker")) {
-            return catStr.includes("locker");
-          }
-          return (
-            catStr.includes(targetSlug) ||
-            catStr.includes(targetName) ||
-            targetSlug.includes(catStr)
-          );
-        });
+    const list = [...apiProducts];
 
-    return [...baseList].sort((a, b) => {
+    return list.sort((a, b) => {
       const priceA = getEffectivePrice(a, user, 1, b2bCache).unitPrice;
       const priceB = getEffectivePrice(b, user, 1, b2bCache).unitPrice;
       if (sortOption === "low-to-high") return priceA - priceB;
       if (sortOption === "high-to-low") return priceB - priceA;
       if (sortOption === "discount") return (b.discount || 0) - (a.discount || 0);
-      return a.id - b.id;
+      return String(a.id).localeCompare(String(b.id));
     });
-  }, [apiProducts, categoryName, slug, sortOption, user, b2bCache]);
+  }, [apiProducts, sortOption, user, b2bCache]);
 
   return (
     <div className="min-h-screen bg-[#EACEAA]/20 py-5 sm:py-8 px-3 sm:px-4 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
@@ -219,7 +166,6 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
             })}
           </div>
         )}
-
       </div>
     </div>
   );
