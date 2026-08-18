@@ -271,3 +271,37 @@ export async function saveAddressApi(address: PoAddress & { label?: string; isDe
   return res.data;
 }
 
+export async function downloadPaymentReceiptFile(poId: string, poNumber: string, inline = false): Promise<void> {
+  const token = getStoredToken();
+  const endpoint = inline
+    ? `${API_BASE_URL}/purchase-orders/${poId}/payment-receipt/view`
+    : `${API_BASE_URL}/purchase-orders/${poId}/payment-receipt/download`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const json = await response.json().catch(() => ({}));
+    throw new Error(json.error?.message || 'Payment receipt not available for download');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  if (inline) {
+    window.open(url, '_blank');
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PaymentReceipt_${poNumber.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+}
+
