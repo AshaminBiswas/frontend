@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   getCustomerPurchaseOrderByIdApi,
   uploadPaymentReceiptApi,
+  downloadPoPdf,
   downloadPackingListPdf,
   downloadPoInvoicePdf,
+  downloadPaymentReceiptFile,
   CustomerPurchaseOrder,
 } from '../services/poService';
 import {
@@ -22,6 +24,7 @@ import {
   Truck,
   FileCheck,
   Receipt,
+  Eye,
 } from 'lucide-react';
 
 export function CustomerPoDetailPage() {
@@ -100,6 +103,15 @@ export function CustomerPoDetailPage() {
     }
   };
 
+  const handleDownloadPo = async () => {
+    if (!po) return;
+    try {
+      await downloadPoPdf(po.id, po.poNumber);
+    } catch (err: any) {
+      alert(err.message || 'Failed to download Purchase Order PDF');
+    }
+  };
+
   const handleDownloadPackingList = async () => {
     if (!po) return;
     try {
@@ -116,6 +128,24 @@ export function CustomerPoDetailPage() {
       await downloadPoInvoicePdf(po.id, invNum);
     } catch (err: any) {
       alert(err.message || 'Failed to download Tax Invoice');
+    }
+  };
+
+  const handleViewReceipt = async () => {
+    if (!po) return;
+    try {
+      await downloadPaymentReceiptFile(po.id, po.poNumber, true);
+    } catch (err: any) {
+      alert(err.message || 'Failed to view payment receipt');
+    }
+  };
+
+  const handleDownloadReceipt = async () => {
+    if (!po) return;
+    try {
+      await downloadPaymentReceiptFile(po.id, po.poNumber, false);
+    } catch (err: any) {
+      alert(err.message || 'Failed to download payment receipt file');
     }
   };
 
@@ -208,6 +238,14 @@ export function CustomerPoDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleDownloadPo}
+              className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md flex items-center space-x-2"
+            >
+              <Download className="w-4 h-4 text-[#D39858]" />
+              <span>Download Purchase Order (PDF)</span>
+            </button>
+
             {hasPackingList && (
               <button
                 onClick={handleDownloadPackingList}
@@ -397,7 +435,7 @@ export function CustomerPoDetailPage() {
 
               {/* Active Receipt Metadata */}
               {activeReceipt && (
-                <div className="bg-[#FAF5EE] rounded-xl p-4 border border-[rgba(52,21,15,0.08)] space-y-2 text-xs">
+                <div className="bg-[#FAF5EE] rounded-xl p-4 border border-[rgba(52,21,15,0.08)] space-y-3 text-xs">
                   <div className="flex justify-between items-center text-[#85431E]">
                     <span>Current Active Receipt (v{activeReceipt.version}):</span>
                     <span className="font-bold text-[#34150F]">{activeReceipt.originalFileName}</span>
@@ -421,6 +459,26 @@ export function CustomerPoDetailPage() {
                       <strong>Rejection Note:</strong> {activeReceipt.rejectionReason}
                     </div>
                   )}
+
+                  {/* Customer Receipt View & Download Actions */}
+                  <div className="flex items-center space-x-2 pt-2 border-t border-[rgba(52,21,15,0.08)]">
+                    <button
+                      type="button"
+                      onClick={handleViewReceipt}
+                      className="bg-[#34150F] hover:bg-[#D39858] hover:text-[#34150F] text-[#EACEAA] font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs transition-colors shadow-sm"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View Receipt</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadReceipt}
+                      className="bg-[#FAF5EE] hover:bg-[#EACEAA] text-[#34150F] border border-[rgba(52,21,15,0.2)] font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download File</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

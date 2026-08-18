@@ -200,6 +200,31 @@ export async function uploadPaymentReceiptApi(poId: string, file: File): Promise
   return json.data;
 }
 
+export async function downloadPoPdf(poId: string, poNumber: string): Promise<void> {
+  const token = getStoredToken();
+  const response = await fetch(`${API_BASE_URL}/purchase-orders/${poId}/download`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const json = await response.json().catch(() => ({}));
+    throw new Error(json.error?.message || 'Purchase Order PDF not available for download');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `PRC_PurchaseOrder_${poNumber.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
 export async function downloadPackingListPdf(poId: string, poNumber: string): Promise<void> {
   const token = getStoredToken();
   const response = await fetch(`${API_BASE_URL}/purchase-orders/${poId}/packing-list`, {

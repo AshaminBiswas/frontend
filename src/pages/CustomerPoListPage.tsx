@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCustomerPurchaseOrdersApi, CustomerPurchaseOrder } from '../services/poService';
+import { getCustomerPurchaseOrdersApi, downloadPoPdf, CustomerPurchaseOrder } from '../services/poService';
 import { FileText, Plus, ArrowRight, Download, Clock, CheckCircle } from 'lucide-react';
 
 export function CustomerPoListPage() {
@@ -113,9 +113,23 @@ export function CustomerPoListPage() {
 
                 <div className="flex justify-between items-center text-[11px] text-[#85431E] pt-1">
                   <span>Date: {new Date(po.submittedAt).toLocaleDateString('en-IN')}</span>
-                  <div className="flex items-center text-[#34150F] font-bold space-x-1 hover:text-[#D39858]">
-                    <span>View Details</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadPoPdf(po.id, po.poNumber);
+                      }}
+                      className="px-2 py-1 rounded bg-[#FAF5EE] hover:bg-[#EACEAA] text-[#34150F] font-bold border border-[rgba(52,21,15,0.15)] flex items-center space-x-1 transition-colors"
+                      title="Download PO PDF"
+                    >
+                      <Download className="w-3 h-3 text-[#85431E]" />
+                      <span>PO PDF</span>
+                    </button>
+                    <div className="flex items-center text-[#34150F] font-bold space-x-1 hover:text-[#D39858]">
+                      <span>Details</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
                 </div>
               </div>
