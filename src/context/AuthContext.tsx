@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, AuthModalView, RegisterPayload, LoginPayload, VerifyOtpPayload, ResetPasswordPayload } from "../types";
 import { authService } from "../services/authService";
 import { setStoredTokens, clearStoredTokens, getStoredToken, getStoredUser, setStoredUser } from "../services/api";
+import { invalidateB2BPricingCache } from "../services/b2bPricingService";
 
 interface AuthContextType {
   user: User | null;
@@ -239,6 +240,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 8. Logout
   const logout = async () => {
+    if (user?.id) {
+      invalidateB2BPricingCache(user.id);
+    }
     await authService.logout();
     clearStoredTokens();
     setUser(null);

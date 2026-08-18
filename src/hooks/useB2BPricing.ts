@@ -1,47 +1,74 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { isB2BUser } from "../utils/pricing";
-import { fetchB2BPricingMatrix, invalidateB2BPricingCache } from "../services/b2bPricingService";
+import {
+  fetchB2BPricingMatrix,
+  invalidateB2BPricingCache,
+  readStoredB2BPricing,
+  B2BPricingCache
+} from "../services/b2bPricingService";
 
 // How often to silently poll for price updates in the background (ms)
-const POLL_INTERVAL_MS = 15 * 1000; // every 15 seconds
+const POLL_INTERVAL_MS = 20 * 1000; // every 20 seconds
 
 /**
  * Hook that keeps B2B custom prices in sync with the admin panel in real-time.
  *
- * Real-time synchronization mechanisms:
- *  1. BroadcastChannel ("prc_b2b_pricing_channel") — Instant 0ms sync when
+ * Zero-Flicker Architecture:
+ *  1. Synchronous First Paint — Reads persistent localStorage cache during initial state creation.
+ *     No flash of base/sale prices on initial load or page refresh.
+ *  2. Silent Background Sync — Silently revalidates in the background and updates cache seamlessly.
+ *  3. BroadcastChannel ("prc_b2b_pricing_channel") — Instant 0ms sync when
  *     changes are saved in the admin panel on the same device/browser.
- *  2. LocalStorage storage event ("prc_b2b_pricing_updated") — Instant cross-tab sync.
- *  3. Visibility change listener — Instant sync when the user switches tabs.
- *  4. Periodic polling (15s) — Catches updates from other devices/users.
- *  5. Shared in-memory request deduplication — Zero duplicate API calls.
+ *  4. LocalStorage storage event ("prc_b2b_pricing_updated") — Instant cross-tab sync.
+ *  5. Visibility change listener — Instant sync when the user switches tabs.
+ *  6. Shared in-memory request deduplication — Zero duplicate API calls.
  */
 export function useB2BPricing(): { prices: Record<string, any> } | null {
   const { user } = useAuth();
-  const [b2bCache, setB2BCache] = useState<{ prices: Record<string, any> } | null>(null);
+
+  // Initialize state SYNCHRONOUSLY from persistent storage to guarantee zero-flicker on first paint & refresh
+  const [b2bCache, setB2BCache] = useState<B2BPricingCache | null>(() => {
+    if (!user || !isB2BUser(user)) return null;
+    return readStoredB2BPricing(user.id);
+  });
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Sync state if user changes
+  useEffect(() => {
+    if (!user || !isB2BUser(user)) {
+      setB2BCache(null);
+    } else {
+      const stored = readStoredB2BPricing(user.id);
+      if (stored) {
+        setB2BCache(stored);
+      }
+    }
+  }, [user?.id]);
 
   const fetchFresh = useCallback(async (bust = false) => {
     if (!user || !isB2BUser(user)) {
       setB2BCache(null);
       return;
     }
-    if (bust) invalidateB2BPricingCache();
+    if (bust) invalidateB2BPricingCache(user.id);
     const cache = await fetchB2BPricingMatrix(user.id);
-    setB2BCache(cache);
+    if (cache) {
+      setB2BCache(cache);
+    }
   }, [user?.id]);
 
-  // ── 1. Initial fetch on mount / user change ───────────────────────────────
+  // ── 1. Silent Background Verification on Mount / User change ──────────────
   useEffect(() => {
     if (!user || !isB2BUser(user)) {
       setB2BCache(null);
       return;
     }
-    fetchFresh(true);
-  }, [user?.id]);
+    fetchFresh(false);
+  }, [user?.id, fetchFresh]);
 
-  // ── 2. Background polling every 15 seconds ────────────────────────────────
+  // ── 2. Background polling every 20 seconds ────────────────────────────────
   useEffect(() => {
     if (!user || !isB2BUser(user)) return;
 
@@ -49,7 +76,7 @@ export function useB2BPricing(): { prices: Record<string, any> } | null {
 
     pollRef.current = setInterval(() => {
       if (document.visibilityState === "visible") {
-        fetchFresh(true);
+        fetchFresh(false);
       }
     }, POLL_INTERVAL_MS);
 
@@ -64,7 +91,7 @@ export function useB2BPricing(): { prices: Record<string, any> } | null {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        fetchFresh(true);
+        fetchFresh(false);
       }
     };
 

@@ -12,40 +12,73 @@ export interface B2BProductPrice {
 export interface B2BPricingCache {
   userId: string;
   fetchedAt: number;
-  prices: Record<string, B2BProductPrice>; // keyed by productId
+  prices: Record<string, B2BProductPrice>; // keyed by productId, slug, sku, and name
 }
 
-// In-memory cache — no TTL. The hook calls invalidateB2BPricingCache()
-// before every poll/focus-fetch to ensure fresh data every time.
+const STORAGE_KEY_PREFIX = "prc_b2b_matrix_";
+
+// In-memory cache for instant synchronous access
 let _memCache: B2BPricingCache | null = null;
 let _inflightFetch: Promise<B2BPricingCache | null> | null = null;
 
-function readMemCache(userId: string): B2BPricingCache | null {
-  if (!_memCache || _memCache.userId !== userId) return null;
-  return _memCache; // Valid until invalidated
+/**
+ * Synchronously reads the last-known B2B custom pricing cache from localStorage.
+ * Enables zero-flicker first-paint display on page loads and refreshes.
+ */
+export function readStoredB2BPricing(userId?: string | null): B2BPricingCache | null {
+  if (!userId) return null;
+  if (_memCache && _memCache.userId === userId) {
+    return _memCache;
+  }
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${userId}`);
+    if (raw) {
+      const parsed: B2BPricingCache = JSON.parse(raw);
+      if (parsed && parsed.userId === userId && parsed.prices) {
+        _memCache = parsed;
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 /**
- * Call this to force an immediate re-fetch on next getCustomerPricing call.
- * Called on logout, user change, or visibilitychange (tab focus).
+ * Persists the B2B pricing cache to localStorage and in-memory cache.
  */
-export function invalidateB2BPricingCache() {
-  _memCache = null;
+function saveStoredB2BPricing(cache: B2BPricingCache) {
+  _memCache = cache;
+  try {
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}${cache.userId}`, JSON.stringify(cache));
+  } catch {}
+}
+
+/**
+ * Clears the B2B pricing cache (e.g. on logout or user change).
+ */
+export function invalidateB2BPricingCache(userId?: string) {
+  if (userId) {
+    try {
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}${userId}`);
+    } catch {}
+    if (_memCache?.userId === userId) {
+      _memCache = null;
+    }
+  } else {
+    _memCache = null;
+  }
   _inflightFetch = null;
 }
 
 /**
  * Fetches the full B2B custom pricing matrix for the logged-in user.
- * - Uses a short 30s in-memory cache to prevent redundant calls.
  * - Deduplicates concurrent calls via a shared in-flight promise.
- * - Call invalidateB2BPricingCache() to force an immediate re-fetch.
+ * - Saves result to localStorage for instant subsequent first paints.
  */
 export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingCache | null> {
-  // Return fresh memory cache if still valid
-  const cached = readMemCache(userId);
-  if (cached) return cached;
+  if (!userId) return null;
 
-  // Deduplicate concurrent callers — they all get the same promise
+  // Deduplicate concurrent callers — they all get the same in-flight promise
   if (_inflightFetch) return _inflightFetch;
 
   _inflightFetch = (async () => {
@@ -60,7 +93,10 @@ export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingC
           ? res
           : null;
 
-      if (!payload) return null;
+      if (!payload) {
+        // Fallback to previously stored cache if offline/temporary network error
+        return readStoredB2BPricing(userId);
+      }
 
       const items: any[] = Array.isArray(payload.items) ? payload.items : [];
 
@@ -89,10 +125,10 @@ export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingC
         prices: priceMap,
       };
 
-      _memCache = cache;
+      saveStoredB2BPricing(cache);
       return cache;
     } catch {
-      return null;
+      return readStoredB2BPricing(userId);
     } finally {
       _inflightFetch = null;
     }

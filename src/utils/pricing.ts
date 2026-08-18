@@ -1,5 +1,4 @@
 import { Product, User } from "../types";
-import type { } from "./b2bPricingService"; // type-only import guard
 
 export interface EffectivePriceResult {
   unitPrice: number;
@@ -11,6 +10,7 @@ export interface EffectivePriceResult {
   tierName?: string;
   isCustomB2BPrice?: boolean;
   minQuantity?: number;
+  currency?: "INR" | "AED" | string;
 }
 
 export function isB2BUser(user: User | null): boolean {
@@ -31,14 +31,17 @@ export function isB2BUser(user: User | null): boolean {
 /**
  * Calculates the effective price for a product based on user account type (B2C vs B2B).
  *
- * For B2B users:
- *  1. If a custom admin-set price exists in `b2bCache`, use it.
- *  2. Otherwise fall back to volume-tiered discounts off the retail price.
+ * Rules:
+ *  - B2C customers: see `offerPrice` when an offer is active, otherwise `salePrice` / regular `price`.
+ *  - B2B customers:
+ *      1. If a custom admin-set price exists in `b2bCache`, use it on the very first paint.
+ *      2. If direct `b2bPrice` exists on the product, use that.
+ *      3. Otherwise fall back to automated volume-tiered discounts off the base price.
  *
  * @param product   - The product to price
  * @param user      - The currently logged-in user (or null)
  * @param qty       - Quantity being purchased (used for volume tiers)
- * @param b2bCache  - Optional B2B pricing cache from fetchB2BPricingMatrix()
+ * @param b2bCache  - Optional B2B pricing cache from fetchB2BPricingMatrix() or readStoredB2BPricing()
  */
 export function getEffectivePrice(
   product: Product,
@@ -47,14 +50,29 @@ export function getEffectivePrice(
   b2bCache?: { prices: Record<string, any> } | null
 ): EffectivePriceResult {
   const isB2B = isB2BUser(user);
-  const basePrice = Number(product.price || (product as any).salePrice || (product as any).unitPrice || 0);
+
+  const activeOfferPrice =
+    product.offerPrice !== undefined && product.offerPrice !== null && Number(product.offerPrice) > 0
+      ? Number(product.offerPrice)
+      : null;
+
+  const activeSalePrice =
+    product.salePrice !== undefined && product.salePrice !== null && Number(product.salePrice) > 0
+      ? Number(product.salePrice)
+      : null;
+
+  const standardPrice = Number(product.price || 0);
+
+  // B2C price logic: offerPrice if active, otherwise salePrice or price
+  const basePrice = activeOfferPrice ?? activeSalePrice ?? standardPrice;
+
   const originalPrice = Number(
     product.originalPrice ||
     (product as any).mrp ||
+    product.regularPrice ||
     (product as any).compareAtPrice ||
-    (product as any).regularPrice ||
     (product as any).listPrice ||
-    basePrice
+    (standardPrice > basePrice ? standardPrice : (activeSalePrice && activeOfferPrice && activeSalePrice > activeOfferPrice ? activeSalePrice : basePrice))
   );
 
   let unitPrice = basePrice;
@@ -101,7 +119,7 @@ export function getEffectivePrice(
       isCustomB2BPrice = true;
       tierName = "B2B Contract Rate";
     } else {
-      // ── 2. Fallback: volume-tiered discount off retail base price ──
+      // ── 2. Fallback: volume-tiered discount off base price ──
       const b2bRate = Math.round(basePrice * 0.8); // Standard 20% off
 
       if (qty >= 100) {
@@ -120,8 +138,8 @@ export function getEffectivePrice(
     }
   }
 
-  const totalPrice = unitPrice * qty;
-  const savings = Math.max(0, originalPrice - unitPrice) * qty;
+  const totalPrice = unitPrice * Math.max(1, qty);
+  const savings = Math.max(0, originalPrice - unitPrice) * Math.max(1, qty);
   const b2bDiscountPercent =
     isB2B && originalPrice > 0
       ? Math.round(((originalPrice - unitPrice) / originalPrice) * 100)
@@ -137,5 +155,6 @@ export function getEffectivePrice(
     tierName,
     isCustomB2BPrice,
     minQuantity,
+    currency: "INR",
   };
 }
