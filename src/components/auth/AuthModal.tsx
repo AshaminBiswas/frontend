@@ -260,7 +260,11 @@ export function AuthModal() {
     }
 
     setIsSubmitting(true);
-    const res = await resetPassword({ token: resetToken.trim(), password });
+    const res = await resetPassword({
+      token: resetToken.trim(),
+      password,
+      confirmPassword: confirmPassword || password,
+    });
     setIsSubmitting(false);
 
     if (res.success) {

@@ -117,6 +117,7 @@ export interface ForgotPasswordPayload {
 export interface ResetPasswordPayload {
   token: string;
   password: string;
+  confirmPassword?: string;
 }
 
 export type AuthModalView = 'login' | 'register' | 'otp' | 'forgot' | 'reset' | 'profile' | 'force-change-password';
