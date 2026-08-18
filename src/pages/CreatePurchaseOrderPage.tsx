@@ -24,6 +24,7 @@ export function CreatePurchaseOrderPage() {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string>(preselectedQuoteId || '');
   const [quoteDetail, setQuoteDetail] = useState<any | null>(null);
   const [pricingSummary, setPricingSummary] = useState<any | null>(null);
+  const [advancePercentage, setAdvancePercentage] = useState<number>(30);
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
 
   // Form state
@@ -91,6 +92,9 @@ export function CreatePurchaseOrderPage() {
               setQuoteDetail(data.quote);
               setPricingSummary(data.pricingSummary);
               setSelectedQuoteId(data.quote.id);
+              if (data.pricingSummary?.advancePercentage) {
+                setAdvancePercentage(Number(data.pricingSummary.advancePercentage));
+              }
 
               setEligibleQuotes((prev) => {
                 if (prev.some((q) => q.id === data.quote.id || q.referenceNo === data.quote.referenceNo)) {
@@ -151,6 +155,9 @@ export function CreatePurchaseOrderPage() {
         setQuoteDetail(data.quote);
         setPricingSummary(data.pricingSummary);
         setSelectedQuoteId(data.quote.id);
+        if (data.pricingSummary?.advancePercentage) {
+          setAdvancePercentage(Number(data.pricingSummary.advancePercentage));
+        }
 
         setEligibleQuotes((prev) => {
           if (prev.some((q) => q.id === data.quote.id || q.referenceNo === data.quote.referenceNo)) {
@@ -189,6 +196,11 @@ export function CreatePurchaseOrderPage() {
     if (target === 'billing') setBillingAddress(formatted);
     else setDeliveryAddress(formatted);
   };
+
+  const grandTotal = Number(pricingSummary?.grandTotal || 0);
+  const currentAdvancePct = Math.min(100, Math.max(10, advancePercentage));
+  const liveAdvanceAmount = Math.round((grandTotal * (currentAdvancePct / 100)) * 100) / 100;
+  const liveBalanceAmount = Math.round((grandTotal - liveAdvanceAmount) * 100) / 100;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,6 +252,7 @@ export function CreatePurchaseOrderPage() {
     try {
       const created = await createPurchaseOrderApi({
         quotationId: finalQuoteId,
+        advancePercentage: currentAdvancePct,
         customerPoReferenceNumber: customerPoRef.trim() || undefined,
         billingAddress,
         deliveryAddress: sameAsBilling ? undefined : effectiveDeliveryAddress,
@@ -429,11 +442,111 @@ export function CreatePurchaseOrderPage() {
               </div>
             </div>
 
-            {/* Step 3: Billing Address */}
+            {/* Step 3: Advance Payment Terms & Custom Percentage */}
             <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[rgba(52,21,15,0.08)] pb-3">
                 <div className="flex items-center space-x-3">
                   <span className="w-6 h-6 rounded-full bg-[#34150F] text-[#EACEAA] text-xs font-extrabold flex items-center justify-center">3</span>
+                  <h3 className="font-extrabold text-[#34150F] text-sm uppercase tracking-wide">Advance Payment Terms</h3>
+                </div>
+                <span className="text-xs font-mono font-extrabold bg-[#34150F] text-[#EACEAA] px-2.5 py-1 rounded-lg">
+                  {currentAdvancePct}% Advance / {100 - currentAdvancePct}% Balance
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-xs text-[#85431E]">
+                  Choose your initial advance deposit percentage. The advance amount is payable via NEFT/RTGS to initiate order fabrication and inventory allocation. The remaining balance is payable upon packing & dispatch.
+                </p>
+
+                {/* Preset Chips */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { pct: 30, label: '30% (Standard 30/70)' },
+                    { pct: 50, label: '50% (50/50 Split)' },
+                    { pct: 75, label: '75% (Priority Batch)' },
+                    { pct: 100, label: '100% (Full Advance)' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.pct}
+                      type="button"
+                      onClick={() => setAdvancePercentage(preset.pct)}
+                      className={`py-2 px-3 rounded-xl font-bold text-xs transition-all border text-center ${
+                        currentAdvancePct === preset.pct
+                          ? 'bg-[#34150F] text-[#EACEAA] border-[#34150F] shadow-sm'
+                          : 'bg-[#FAF5EE] text-[#34150F] border-[rgba(52,21,15,0.15)] hover:border-[#D39858]'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Interactive Slider & Number Input */}
+                <div className="bg-[#FAF5EE] p-4 rounded-xl border border-[rgba(52,21,15,0.1)] space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#34150F]">
+                    <span>Set Custom Advance Percentage:</span>
+                    <div className="flex items-center space-x-1">
+                      <input
+                        type="number"
+                        min={10}
+                        max={100}
+                        step={1}
+                        value={advancePercentage}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (!isNaN(val)) {
+                            setAdvancePercentage(Math.min(100, Math.max(10, val)));
+                          }
+                        }}
+                        className="w-16 bg-white border border-[rgba(52,21,15,0.2)] rounded-lg px-2 py-1 text-right font-mono font-bold text-[#34150F] text-xs focus:ring-1 focus:ring-[#D39858]"
+                      />
+                      <span className="font-mono">%</span>
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={1}
+                    value={currentAdvancePct}
+                    onChange={(e) => setAdvancePercentage(Number(e.target.value))}
+                    className="w-full h-2 bg-[#EACEAA] rounded-lg appearance-none cursor-pointer accent-[#34150F]"
+                  />
+
+                  {/* Visual Ratio Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="h-3 w-full bg-[#EACEAA]/50 rounded-full overflow-hidden flex border border-[rgba(52,21,15,0.1)]">
+                      <div
+                        className="bg-[#34150F] h-full transition-all duration-200"
+                        style={{ width: `${currentAdvancePct}%` }}
+                      ></div>
+                      <div
+                        className="bg-[#D39858] h-full transition-all duration-200"
+                        style={{ width: `${100 - currentAdvancePct}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold">
+                      <span className="text-[#34150F] flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#34150F] inline-block"></span>
+                        Advance Due Now: ₹{liveAdvanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} ({currentAdvancePct}%)
+                      </span>
+                      <span className="text-[#85431E] flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D39858] inline-block"></span>
+                        Balance on Dispatch: ₹{liveBalanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} ({100 - currentAdvancePct}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 4: Billing Address */}
+            <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[rgba(52,21,15,0.08)] pb-3">
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 rounded-full bg-[#34150F] text-[#EACEAA] text-xs font-extrabold flex items-center justify-center">4</span>
                   <h3 className="font-extrabold text-[#34150F] text-sm uppercase tracking-wide">Billing Address</h3>
                 </div>
                 {savedAddresses.length > 0 && (
@@ -555,11 +668,11 @@ export function CreatePurchaseOrderPage() {
               </div>
             </div>
 
-            {/* Step 4: Delivery Address */}
+            {/* Step 5: Delivery Address */}
             <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[rgba(52,21,15,0.08)] pb-3">
                 <div className="flex items-center space-x-3">
-                  <span className="w-6 h-6 rounded-full bg-[#34150F] text-[#EACEAA] text-xs font-extrabold flex items-center justify-center">4</span>
+                  <span className="w-6 h-6 rounded-full bg-[#34150F] text-[#EACEAA] text-xs font-extrabold flex items-center justify-center">5</span>
                   <h3 className="font-extrabold text-[#34150F] text-sm uppercase tracking-wide">Delivery / Shipping Destination</h3>
                 </div>
                 {!sameAsBilling && savedAddresses.length > 0 && (
@@ -730,20 +843,22 @@ export function CreatePurchaseOrderPage() {
                   
                   <div className="border-t border-[rgba(52,21,15,0.12)] pt-2 flex justify-between text-sm font-extrabold text-[#34150F]">
                     <span>Total PO Value:</span>
-                    <span className="font-mono">₹{pricingSummary.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
 
                   {/* Advance Required Highlight */}
-                  <div className="bg-[#FAF5EE] rounded-xl p-4 border-2 border-[#D39858] space-y-2 mt-3">
+                  <div className="bg-[#FAF5EE] rounded-xl p-4 border-2 border-[#D39858] space-y-2.5 mt-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-[#85431E]">Advance Required ({pricingSummary.advancePercentage}%):</span>
+                      <span className="font-bold text-[#85431E]">Advance Required ({currentAdvancePct}%):</span>
                       <span className="font-mono font-black text-[#34150F] text-base">
-                        ₹{pricingSummary.advanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹{liveAdvanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between text-[11px] text-[#85431E]">
-                      <span>Balance on Dispatch:</span>
-                      <span className="font-mono font-bold">₹{pricingSummary.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <span>Balance on Dispatch ({100 - currentAdvancePct}%):</span>
+                      <span className="font-mono font-bold">
+                        ₹{liveBalanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
                     <p className="text-[10px] text-[#85431E] leading-tight pt-1">
                       * Upon PO submission, bank account details will be emailed to you for direct NEFT/RTGS transfer.

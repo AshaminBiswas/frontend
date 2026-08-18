@@ -119,6 +119,7 @@ export interface CustomerPurchaseOrder {
 
 export interface CreatePoPayload {
   quotationId: string;
+  advancePercentage?: number;
   customerPoReferenceNumber?: string;
   billingAddress: PoAddress;
   deliveryAddress?: PoAddress;
