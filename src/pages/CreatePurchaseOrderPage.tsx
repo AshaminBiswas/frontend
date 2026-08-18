@@ -13,7 +13,7 @@ import { FileText, CheckCircle, ArrowRight, ShieldCheck, Truck, Building, AlertC
 export function CreatePurchaseOrderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const preselectedQuoteId = searchParams.get('quoteId');
+  const preselectedQuoteId = searchParams.get('quoteId') || searchParams.get('quoteNumber');
   const { user, isAuthenticated } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -61,65 +61,117 @@ export function CreatePurchaseOrderPage() {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadData() {
       setLoading(true);
+      setError(null);
       try {
-        const [quotes, addresses] = await Promise.all([
+        const [quotesRes, addressesRes] = await Promise.allSettled([
           getEligibleQuotationsApi(),
           getSavedAddressesApi(),
         ]);
+
+        const quotes = quotesRes.status === 'fulfilled' ? quotesRes.value : [];
+        const addresses = addressesRes.status === 'fulfilled' ? addressesRes.value : [];
+
+        if (!isMounted) return;
+
         setEligibleQuotes(quotes);
         setSavedAddresses(addresses);
 
-        if (quotes.length > 0 && !selectedQuoteId) {
-          setSelectedQuoteId(quotes[0].id);
+        const targetQuoteId = preselectedQuoteId || (quotes.length > 0 ? quotes[0].id : '');
+
+        if (targetQuoteId) {
+          setSelectedQuoteId(targetQuoteId);
+          try {
+            const data = await getQuotationForPoApi(targetQuoteId);
+            if (!isMounted) return;
+            if (data?.quote) {
+              setQuoteDetail(data.quote);
+              setPricingSummary(data.pricingSummary);
+              setSelectedQuoteId(data.quote.id);
+
+              setEligibleQuotes((prev) => {
+                if (prev.some((q) => q.id === data.quote.id || q.referenceNo === data.quote.referenceNo)) {
+                  return prev;
+                }
+                return [data.quote, ...prev];
+              });
+
+              // Pre-fill contact details from quote
+              setBillingAddress((prev) => ({
+                ...prev,
+                attentionTo: prev.attentionTo || `${data.quote.firstName || ''} ${data.quote.lastName || ''}`.trim(),
+                companyName: prev.companyName || data.quote.companyName || '',
+                email: prev.email || data.quote.email || '',
+                phone: prev.phone || data.quote.phone || '',
+              }));
+            }
+          } catch (err: any) {
+            console.error('Failed to load preselected quote detail:', err);
+          }
         }
 
         // Pre-fill user details if available
-        if (user) {
+        if (user && isMounted) {
           setBillingAddress((prev) => ({
             ...prev,
-            attentionTo: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            companyName: user.companyName || '',
-            email: user.email || '',
-            phone: user.phone || '',
+            attentionTo: prev.attentionTo || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            companyName: prev.companyName || user.companyName || '',
+            email: prev.email || user.email || '',
+            phone: prev.phone || user.phone || '',
           }));
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load eligible quotations');
+        if (isMounted) setError(err.message || 'Failed to load eligible quotations');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
-    loadData();
-  }, [user]);
 
-  // Load detailed quotation when selected
-  useEffect(() => {
-    if (!selectedQuoteId) return;
-    async function fetchDetail() {
-      try {
-        setError(null);
-        const data = await getQuotationForPoApi(selectedQuoteId);
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, preselectedQuoteId]);
+
+  const handleSelectQuote = async (quoteId: string) => {
+    setSelectedQuoteId(quoteId);
+    if (!quoteId) {
+      setQuoteDetail(null);
+      setPricingSummary(null);
+      return;
+    }
+    try {
+      setError(null);
+      const data = await getQuotationForPoApi(quoteId);
+      if (data?.quote) {
         setQuoteDetail(data.quote);
         setPricingSummary(data.pricingSummary);
+        setSelectedQuoteId(data.quote.id);
 
-        // Pre-fill contact details from quote if available
-        if (data.quote) {
-          setBillingAddress((prev) => ({
-            ...prev,
-            attentionTo: prev.attentionTo || `${data.quote.firstName || ''} ${data.quote.lastName || ''}`.trim(),
-            companyName: prev.companyName || data.quote.companyName || '',
-            email: prev.email || data.quote.email || '',
-            phone: prev.phone || data.quote.phone || '',
-          }));
-        }
-      } catch (err: any) {
-        setError(err.message);
+        setEligibleQuotes((prev) => {
+          if (prev.some((q) => q.id === data.quote.id || q.referenceNo === data.quote.referenceNo)) {
+            return prev;
+          }
+          return [data.quote, ...prev];
+        });
+
+        // Pre-fill contact details
+        setBillingAddress((prev) => ({
+          ...prev,
+          attentionTo: prev.attentionTo || `${data.quote.firstName || ''} ${data.quote.lastName || ''}`.trim(),
+          companyName: prev.companyName || data.quote.companyName || '',
+          email: prev.email || data.quote.email || '',
+          phone: prev.phone || data.quote.phone || '',
+        }));
       }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load quotation details');
     }
-    fetchDetail();
-  }, [selectedQuoteId]);
+  };
 
   const handleApplySavedAddress = (addr: any, target: 'billing' | 'delivery') => {
     const formatted: PoAddress = {
@@ -140,7 +192,8 @@ export function CreatePurchaseOrderPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedQuoteId) {
+    const finalQuoteId = quoteDetail?.id || selectedQuoteId;
+    if (!finalQuoteId) {
       setError('Please select an eligible approved quotation');
       return;
     }
@@ -163,7 +216,7 @@ export function CreatePurchaseOrderPage() {
 
     try {
       const created = await createPurchaseOrderApi({
-        quotationId: selectedQuoteId,
+        quotationId: finalQuoteId,
         customerPoReferenceNumber: customerPoRef.trim() || undefined,
         billingAddress,
         deliveryAddress: sameAsBilling ? undefined : deliveryAddress,
@@ -274,7 +327,7 @@ export function CreatePurchaseOrderPage() {
                 <label className="block text-xs font-bold text-[#34150F] mb-1">Select Active Quotation *</label>
                 <select
                   value={selectedQuoteId}
-                  onChange={(e) => setSelectedQuoteId(e.target.value)}
+                  onChange={(e) => handleSelectQuote(e.target.value)}
                   className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2.5 text-xs text-[#34150F] font-bold focus:outline-none focus:ring-2 focus:ring-[#D39858]"
                 >
                   {eligibleQuotes.map((q) => (
