@@ -198,7 +198,9 @@ export function CreatePurchaseOrderPage() {
   };
 
   const grandTotal = Number(pricingSummary?.grandTotal || 0);
-  const currentAdvancePct = Math.min(100, Math.max(10, advancePercentage));
+  const minPct = Number(pricingSummary?.minPercentage || 1);
+  const maxPct = Number(pricingSummary?.maxPercentage || 100);
+  const currentAdvancePct = Math.min(maxPct, Math.max(minPct, Number(advancePercentage) || 30));
   const liveAdvanceAmount = Math.round((grandTotal * (currentAdvancePct / 100)) * 100) / 100;
   const liveBalanceAmount = Math.round((grandTotal - liveAdvanceAmount) * 100) / 100;
 
@@ -489,14 +491,14 @@ export function CreatePurchaseOrderPage() {
                     <div className="flex items-center space-x-1">
                       <input
                         type="number"
-                        min={10}
-                        max={100}
+                        min={minPct}
+                        max={maxPct}
                         step={1}
                         value={advancePercentage}
                         onChange={(e) => {
                           const val = Number(e.target.value);
                           if (!isNaN(val)) {
-                            setAdvancePercentage(Math.min(100, Math.max(10, val)));
+                            setAdvancePercentage(Math.min(maxPct, Math.max(minPct, val)));
                           }
                         }}
                         className="w-16 bg-white border border-[rgba(52,21,15,0.2)] rounded-lg px-2 py-1 text-right font-mono font-bold text-[#34150F] text-xs focus:ring-1 focus:ring-[#D39858]"
@@ -507,8 +509,8 @@ export function CreatePurchaseOrderPage() {
 
                   <input
                     type="range"
-                    min={10}
-                    max={100}
+                    min={minPct}
+                    max={maxPct}
                     step={1}
                     value={currentAdvancePct}
                     onChange={(e) => setAdvancePercentage(Number(e.target.value))}

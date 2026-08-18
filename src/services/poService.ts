@@ -330,3 +330,14 @@ export async function downloadPaymentReceiptFile(poId: string, poNumber: string,
   }
 }
 
+export async function deletePurchaseOrderApi(poId: string): Promise<any> {
+  const res = await fetchApi<any>(`/purchase-orders/${poId}`, {
+    method: 'DELETE',
+  });
+  if (!res.success) {
+    throw new Error(res.error?.message || 'Failed to delete Purchase Order');
+  }
+  return res.data;
+}
+
+

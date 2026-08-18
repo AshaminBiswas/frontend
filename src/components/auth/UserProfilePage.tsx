@@ -21,6 +21,7 @@ import {
   getCustomerPurchaseOrdersApi,
   downloadPackingListPdf,
   downloadPoInvoicePdf,
+  deletePurchaseOrderApi,
 } from "../../services/poService";
 
 const ALL_PRODUCTS: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
@@ -1051,17 +1052,39 @@ export function UserProfilePage({
                             )}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onClose();
-                              navigate(`/purchase-orders/${po.id}`);
-                            }}
-                            className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-1.5 rounded-xl transition-all shadow-sm ml-auto"
-                          >
-                            <span>View PO & Receipts</span>
-                            <ChevronRight size={13} />
-                          </button>
+                          <div className="flex items-center gap-2 ml-auto">
+                            {!["DISPATCHED", "INVOICED"].includes(po.status) && (
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!window.confirm(`Are you sure you want to cancel and delete Purchase Order "${po.poNumber}"?`)) return;
+                                  try {
+                                    await deletePurchaseOrderApi(po.id);
+                                    setPurchaseOrders((prev) => prev.filter((p) => p.id !== po.id));
+                                  } catch (err: any) {
+                                    alert(err.message || "Failed to delete Purchase Order");
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                                title="Cancel / Delete Purchase Order"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                navigate(`/purchase-orders/${po.id}`);
+                              }}
+                              className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-1.5 rounded-xl transition-all shadow-sm"
+                            >
+                              <span>View PO & Receipts</span>
+                              <ChevronRight size={13} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

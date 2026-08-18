@@ -7,6 +7,7 @@ import {
   downloadPackingListPdf,
   downloadPoInvoicePdf,
   downloadPaymentReceiptFile,
+  deletePurchaseOrderApi,
   CustomerPurchaseOrder,
 } from '../services/poService';
 import {
@@ -25,6 +26,7 @@ import {
   FileCheck,
   Receipt,
   Eye,
+  Trash2,
 } from 'lucide-react';
 
 export function CustomerPoDetailPage() {
@@ -149,6 +151,24 @@ export function CustomerPoDetailPage() {
     }
   };
 
+  const handleDeletePo = async () => {
+    if (!po) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to cancel and permanently delete Purchase Order "${po.poNumber}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await deletePurchaseOrderApi(po.id);
+      alert(`Purchase Order ${po.poNumber} has been deleted successfully.`);
+      navigate('/purchase-orders');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete Purchase Order');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#EACEAA] py-16 px-4 flex items-center justify-center">
@@ -262,6 +282,17 @@ export function CustomerPoDetailPage() {
               >
                 <Receipt className="w-4 h-4" />
                 <span>Download Tax Invoice</span>
+              </button>
+            )}
+
+            {!isDispatched && (
+              <button
+                onClick={handleDeletePo}
+                className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-2"
+                title="Cancel or delete this Purchase Order"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <span>Cancel / Delete PO</span>
               </button>
             )}
           </div>
