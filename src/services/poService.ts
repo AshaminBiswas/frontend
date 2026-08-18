@@ -1,0 +1,216 @@
+import { fetchApi, API_BASE_URL, getStoredToken } from './api';
+import { ApiResponse } from '../types';
+
+export interface PoAddress {
+  attentionTo: string;
+  companyName?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+  email: string;
+}
+
+export interface CustomerPurchaseOrder {
+  id: string;
+  poNumber: string;
+  quotationId: string;
+  quotationNumber: string;
+  customerId: string;
+  status:
+    | 'DRAFT'
+    | 'SUBMITTED'
+    | 'VALIDATION_FAILED'
+    | 'AWAITING_ADVANCE_PAYMENT'
+    | 'PAYMENT_RECEIPT_SUBMITTED'
+    | 'PAYMENT_ACKNOWLEDGED'
+    | 'PAYMENT_VERIFIED'
+    | 'PACKING_LIST_GENERATED'
+    | 'REJECTED'
+    | 'CANCELLED';
+  customerPoReferenceNumber?: string | null;
+  billingAddress: PoAddress;
+  deliveryAddress: PoAddress;
+  deliveryInstructions?: string | null;
+  requestedDeliveryDate?: string | null;
+  subtotal: number;
+  taxTotal: number;
+  discountTotal: number;
+  shippingCost: number;
+  totalAmount: number;
+  currency: string;
+  advancePercentage: number;
+  advanceAmount: number;
+  balanceAmount: number;
+  submittedAt: string;
+  validatedAt?: string | null;
+  items: Array<{
+    id: string;
+    slNo: number;
+    productId: string;
+    productName: string;
+    sku?: string | null;
+    unit: string;
+    quantity: number;
+    rate: number;
+    amount: number;
+    taxAmount: number;
+    total: number;
+  }>;
+  receipts?: Array<{
+    id: string;
+    status: 'PENDING_REVIEW' | 'REJECTED' | 'ACKNOWLEDGED' | 'VERIFIED';
+    fileStorageKey: string;
+    originalFileName: string;
+    fileSizeBytes: number;
+    mimeType: string;
+    fileHash: string;
+    version: number;
+    amountReceived?: number | null;
+    paymentDate?: string | null;
+    paymentReference?: string | null;
+    paymentMethod?: string | null;
+    remarks?: string | null;
+    rejectionReason?: string | null;
+    uploadedAt: string;
+    verifiedAt?: string | null;
+  }>;
+  packingList?: {
+    id: string;
+    fileStorageKey: string;
+    generatedAt: string;
+    totalPackages: number;
+    totalQuantity: number;
+  } | null;
+  bankDetails?: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    ifscOrRoutingNumber: string;
+    swiftCode?: string | null;
+    branch?: string | null;
+  };
+  createdAt: string;
+}
+
+export interface CreatePoPayload {
+  quotationId: string;
+  customerPoReferenceNumber?: string;
+  billingAddress: PoAddress;
+  deliveryAddress?: PoAddress;
+  sameAsBilling?: boolean;
+  deliveryInstructions?: string;
+  requestedDeliveryDate?: string;
+  saveBillingAddress?: boolean;
+  saveDeliveryAddress?: boolean;
+  billingAddressLabel?: string;
+  deliveryAddressLabel?: string;
+}
+
+// ─── API Methods ──────────────────────────────────────────────────────────────
+
+export async function getEligibleQuotationsApi(): Promise<any[]> {
+  const res = await fetchApi<any[]>('/purchase-orders/eligible-quotations');
+  return res.success && res.data ? res.data : [];
+}
+
+export async function getQuotationForPoApi(quotationId: string): Promise<any> {
+  const res = await fetchApi<any>(`/purchase-orders/quotation/${quotationId}`);
+  if (!res.success) {
+    throw new Error(res.error?.message || 'Failed to fetch quotation details');
+  }
+  return res.data;
+}
+
+export async function createPurchaseOrderApi(payload: CreatePoPayload): Promise<CustomerPurchaseOrder> {
+  const res = await fetchApi<CustomerPurchaseOrder>('/purchase-orders', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message || 'Failed to create Purchase Order');
+  }
+  return res.data;
+}
+
+export async function getCustomerPurchaseOrdersApi(params?: { status?: string; page?: number; limit?: number }): Promise<{ items: CustomerPurchaseOrder[]; total: number }> {
+  const query = new URLSearchParams();
+  if (params?.status && params.status !== 'ALL') query.set('status', params.status);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+
+  const res = await fetchApi<CustomerPurchaseOrder[]>(`/purchase-orders?${query.toString()}`);
+  return {
+    items: res.data || [],
+    total: (res as any).pagination?.totalItems || (res.data ? res.data.length : 0),
+  };
+}
+
+export async function getCustomerPurchaseOrderByIdApi(id: string): Promise<CustomerPurchaseOrder> {
+  const res = await fetchApi<CustomerPurchaseOrder>(`/purchase-orders/${id}`);
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message || 'Failed to fetch Purchase Order details');
+  }
+  return res.data;
+}
+
+export async function uploadPaymentReceiptApi(poId: string, file: File): Promise<any> {
+  const token = getStoredToken();
+  const formData = new FormData();
+  formData.append('receipt', file);
+
+  const response = await fetch(`${API_BASE_URL}/purchase-orders/${poId}/payment-receipt`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  const json: ApiResponse<any> = await response.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || 'Failed to upload payment receipt');
+  }
+  return json.data;
+}
+
+export async function downloadPackingListPdf(poId: string, poNumber: string): Promise<void> {
+  const token = getStoredToken();
+  const response = await fetch(`${API_BASE_URL}/purchase-orders/${poId}/packing-list`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const json = await response.json().catch(() => ({}));
+    throw new Error(json.error?.message || 'Packing list not available for download');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `PackingList_${poNumber.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function getSavedAddressesApi(): Promise<any[]> {
+  const res = await fetchApi<any[]>('/purchase-orders/addresses/all');
+  return res.success && res.data ? res.data : [];
+}
+
+export async function saveAddressApi(address: PoAddress & { label?: string; isDefaultBilling?: boolean; isDefaultDelivery?: boolean }): Promise<any> {
+  const res = await fetchApi('/purchase-orders/addresses/save', {
+    method: 'POST',
+    body: JSON.stringify(address),
+  });
+  return res.data;
+}

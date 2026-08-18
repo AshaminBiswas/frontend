@@ -25,6 +25,9 @@ const ProfilePage = lazy(() => import('../pages/ProfilePage').then((m) => ({ def
 const AppointmentsPage = lazy(() => import('../pages/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })));
 const RequestQuotePage = lazy(() => import('../pages/RequestQuotePage').then((m) => ({ default: m.RequestQuotePage })));
 const CustomerQuoteApprovalPage = lazy(() => import('../pages/CustomerQuoteApprovalPage').then((m) => ({ default: m.CustomerQuoteApprovalPage })));
+const CustomerPoListPage = lazy(() => import('../pages/CustomerPoListPage').then((m) => ({ default: m.CustomerPoListPage })));
+const CreatePurchaseOrderPage = lazy(() => import('../pages/CreatePurchaseOrderPage').then((m) => ({ default: m.CreatePurchaseOrderPage })));
+const CustomerPoDetailPage = lazy(() => import('../pages/CustomerPoDetailPage').then((m) => ({ default: m.CustomerPoDetailPage })));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const WishlistPage = lazy(() => import('../pages/WishlistPage').then((m) => ({ default: m.WishlistPage })));
 const BestSellersPage = lazy(() => import('../pages/BestSellersPage').then((m) => ({ default: m.BestSellersPage })));
@@ -144,6 +147,9 @@ function AppContent() {
               <Route path="/request-quote" element={<RequestQuotePage />} />
               <Route path="/quote/:token" element={<CustomerQuoteApprovalPage />} />
               <Route path="/quotation/view/:token" element={<CustomerQuoteApprovalPage />} />
+              <Route path="/purchase-orders" element={<CustomerPoListPage />} />
+              <Route path="/purchase-orders/create" element={<CreatePurchaseOrderPage />} />
+              <Route path="/purchase-orders/:id" element={<CustomerPoDetailPage />} />
 
               {/* Navigation routes */}
               <Route path="/notifications" element={<NotificationsPage />} />
