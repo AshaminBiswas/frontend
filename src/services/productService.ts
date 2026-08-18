@@ -17,6 +17,11 @@ export interface ApiProductsByCategoryResponse {
   };
 }
 
+// ─── High-Speed In-Memory Cache with SWR ─────────────────────────────────────
+
+const MEMORY_PRODUCT_CACHE = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes fresh cache
+
 /**
  * Normalizes raw API product objects into standard frontend Product structure
  */
@@ -84,10 +89,16 @@ function normalizeApiProduct(item: any, categoryFallback: string): Product {
 
 /**
  * Requests GET /api/v1/products/category/slug/:slug
- * Fallback to GET /api/v1/products?category=:slug
+ * With 0ms in-memory cache and automatic fallback
  */
 export async function getProductsByCategorySlugApi(slug: string): Promise<{ products: Product[]; categoryName?: string; description?: string }> {
   if (!slug) return { products: [] };
+
+  const cacheKey = `cat_${slug.toLowerCase()}`;
+  const cached = MEMORY_PRODUCT_CACHE.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
 
   const endpointsToTry = [
     `/products/category/slug/${encodeURIComponent(slug)}`,
@@ -124,21 +135,29 @@ export async function getProductsByCategorySlugApi(slug: string): Promise<{ prod
 
         if (rawList.length > 0) {
           const normalized = rawList.map((item) => normalizeApiProduct(item, slug.replace(/-/g, ' ')));
-          return { products: normalized, categoryName: catName, description: catDesc };
+          const result = { products: normalized, categoryName: catName, description: catDesc };
+          MEMORY_PRODUCT_CACHE.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+          return result;
         }
       }
-    } catch (err) {
+    } catch {
       // try next endpoint silently
     }
   }
 
-  return { products: [] };
+  return cached?.data || { products: [] };
 }
 
 /**
- * Global product loader: fetches all live products from API with caching
+ * Global product loader: fetches live products from API with instant memory + storage caching
  */
 export async function getAllProductsApi(limit = 100): Promise<Product[]> {
+  const cacheKey = `all_products_${limit}`;
+  const memoryCached = MEMORY_PRODUCT_CACHE.get(cacheKey);
+  if (memoryCached && Date.now() < memoryCached.expiresAt) {
+    return memoryCached.data;
+  }
+
   try {
     const res = await fetchApi<any>(`/products?limit=${limit}`);
     let rawList: any[] = [];
@@ -155,6 +174,7 @@ export async function getAllProductsApi(limit = 100): Promise<Product[]> {
 
     if (rawList.length > 0) {
       const normalized = rawList.map((item) => normalizeApiProduct(item, "Hardware"));
+      MEMORY_PRODUCT_CACHE.set(cacheKey, { data: normalized, expiresAt: Date.now() + CACHE_TTL_MS });
       try {
         localStorage.setItem("prc_cached_products_list", JSON.stringify(normalized));
       } catch {}
@@ -168,7 +188,10 @@ export async function getAllProductsApi(limit = 100): Promise<Product[]> {
     const cached = localStorage.getItem("prc_cached_products_list");
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        MEMORY_PRODUCT_CACHE.set(cacheKey, { data: parsed, expiresAt: Date.now() + 60000 });
+        return parsed;
+      }
     }
   } catch {}
 

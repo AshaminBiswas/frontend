@@ -1,4 +1,4 @@
-import { useState, useEffect, Component, ReactNode } from 'react';
+import { useState, useEffect, Component, ReactNode, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { AuthModal } from '../components/auth/AuthModal';
@@ -9,36 +9,38 @@ import { Footer } from '../components/layout/Footer';
 import { ScrollToTop } from '../components/common/ScrollToTop';
 import { CartDrawer } from '../components/cart/CartDrawer';
 import { getAllProductsApi } from '../services/productService';
+import { PageSkeleton } from '../components/common/PageSkeleton';
 
-// Eagerly imported pages for instantaneous, zero-error reloading across all routes
-import { HomePage } from '../pages/HomePage';
-import { ProductsCatalogPage } from '../pages/ProductsCatalogPage';
-import { ProductDetailPage } from '../pages/ProductDetailPage';
-import { CategoriesPage } from '../pages/CategoriesPage';
-import { CategoryProductsPage } from '../pages/CategoryProductsPage';
-import { CartPage } from '../pages/CartPage';
-import { CheckoutPage } from '../pages/CheckoutPage';
-import { OrderSuccessPage } from '../pages/OrderSuccessPage';
-import { ProfilePage } from '../pages/ProfilePage';
-import { AppointmentsPage } from '../pages/AppointmentsPage';
-import { RequestQuotePage } from '../pages/RequestQuotePage';
-import { CustomerQuoteApprovalPage } from '../pages/CustomerQuoteApprovalPage';
-import { NotFoundPage } from '../pages/NotFoundPage';
-import { WishlistPage } from '../pages/WishlistPage';
-import { BestSellersPage } from '../pages/BestSellersPage';
-import { NewArrivalsPage } from '../pages/NewArrivalsPage';
-import { OffersPage } from '../pages/OffersPage';
-import { NotificationsPage } from '../pages/NotificationsPage';
-import { TrackOrderPage } from '../pages/TrackOrderPage';
-import { AboutPage } from '../pages/AboutPage';
-import { ContactPage } from '../pages/ContactPage';
-import { PolicyPage } from '../pages/PolicyPage';
-import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
-import { RefundPolicyPage } from '../pages/RefundPolicyPage';
-import { ShippingPolicyPage } from '../pages/ShippingPolicyPage';
-import { TermsOfServicePage } from '../pages/TermsOfServicePage';
-import { FaqPage } from '../pages/FaqPage';
-import { WarrantyClaimPage } from '../pages/WarrantyClaimPage';
+// ─── Code-Split Page Routes with React.lazy() ─────────────────────────────────
+
+const HomePage = lazy(() => import('../pages/HomePage').then((m) => ({ default: m.HomePage })));
+const ProductsCatalogPage = lazy(() => import('../pages/ProductsCatalogPage').then((m) => ({ default: m.ProductsCatalogPage })));
+const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
+const CategoriesPage = lazy(() => import('../pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
+const CategoryProductsPage = lazy(() => import('../pages/CategoryProductsPage').then((m) => ({ default: m.CategoryProductsPage })));
+const CartPage = lazy(() => import('../pages/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = lazy(() => import('../pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
+const ProfilePage = lazy(() => import('../pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const AppointmentsPage = lazy(() => import('../pages/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })));
+const RequestQuotePage = lazy(() => import('../pages/RequestQuotePage').then((m) => ({ default: m.RequestQuotePage })));
+const CustomerQuoteApprovalPage = lazy(() => import('../pages/CustomerQuoteApprovalPage').then((m) => ({ default: m.CustomerQuoteApprovalPage })));
+const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const WishlistPage = lazy(() => import('../pages/WishlistPage').then((m) => ({ default: m.WishlistPage })));
+const BestSellersPage = lazy(() => import('../pages/BestSellersPage').then((m) => ({ default: m.BestSellersPage })));
+const NewArrivalsPage = lazy(() => import('../pages/NewArrivalsPage').then((m) => ({ default: m.NewArrivalsPage })));
+const OffersPage = lazy(() => import('../pages/OffersPage').then((m) => ({ default: m.OffersPage })));
+const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+const TrackOrderPage = lazy(() => import('../pages/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage })));
+const AboutPage = lazy(() => import('../pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazy(() => import('../pages/ContactPage').then((m) => ({ default: m.ContactPage })));
+const PolicyPage = lazy(() => import('../pages/PolicyPage').then((m) => ({ default: m.PolicyPage })));
+const PrivacyPolicyPage = lazy(() => import('../pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
+const RefundPolicyPage = lazy(() => import('../pages/RefundPolicyPage').then((m) => ({ default: m.RefundPolicyPage })));
+const ShippingPolicyPage = lazy(() => import('../pages/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage })));
+const TermsOfServicePage = lazy(() => import('../pages/TermsOfServicePage').then((m) => ({ default: m.TermsOfServicePage })));
+const FaqPage = lazy(() => import('../pages/FaqPage').then((m) => ({ default: m.FaqPage })));
+const WarrantyClaimPage = lazy(() => import('../pages/WarrantyClaimPage').then((m) => ({ default: m.WarrantyClaimPage })));
 
 // Error Boundary Component to prevent white screens on reload
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -89,7 +91,7 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Preload all products dynamically on first website load
+  // Preload products in background
   useEffect(() => {
     getAllProductsApi(100);
   }, []);
@@ -100,7 +102,7 @@ function AppContent() {
   };
 
   const handleClearCart = () => {
-    cart.forEach(item => removeFromCart(item.id));
+    cart.forEach((item) => removeFromCart(item.id));
   };
 
   return (
@@ -121,48 +123,50 @@ function AppContent() {
         />
 
         <ErrorBoundary>
-          <Routes>
-            {/* Core routes */}
-            <Route path="/" element={<HomePage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} onSelectCategory={handleSelectCategory} />} />
-            <Route path="/products" element={<ProductsCatalogPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/bestsellers" element={<BestSellersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/new-arrivals" element={<NewArrivalsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/offers" element={<OffersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/product/:id" element={<ProductDetailPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/categories" element={<CategoriesPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/category/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/categories/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
-            <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} />} />
-            <Route path="/wishlist" element={<WishlistPage wishlist={wishlist} wishlistItems={wishlistItems} onToggleWishlist={toggleWishlist} onAddToCart={addToCart} />} />
-            <Route path="/checkout" element={<CheckoutPage cart={cart} onClearCart={handleClearCart} />} />
-            <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-            <Route path="/profile/*" element={<ProfilePage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} wishlist={wishlist} onToggleWishlist={toggleWishlist} onAddToCart={addToCart} />} />
-            <Route path="/services/appointments" element={<AppointmentsPage />} />
-            <Route path="/request-quote" element={<RequestQuotePage />} />
-            <Route path="/quote/:token" element={<CustomerQuoteApprovalPage />} />
-            <Route path="/quotation/view/:token" element={<CustomerQuoteApprovalPage />} />
+          <Suspense fallback={<PageSkeleton />}>
+            <Routes>
+              {/* Core routes */}
+              <Route path="/" element={<HomePage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} onSelectCategory={handleSelectCategory} />} />
+              <Route path="/products" element={<ProductsCatalogPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/bestsellers" element={<BestSellersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/new-arrivals" element={<NewArrivalsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/offers" element={<OffersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/product/:id" element={<ProductDetailPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/categories" element={<CategoriesPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/category/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/categories/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} />} />
+              <Route path="/wishlist" element={<WishlistPage wishlist={wishlist} wishlistItems={wishlistItems} onToggleWishlist={toggleWishlist} onAddToCart={addToCart} />} />
+              <Route path="/checkout" element={<CheckoutPage cart={cart} onClearCart={handleClearCart} />} />
+              <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+              <Route path="/profile/*" element={<ProfilePage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} wishlist={wishlist} onToggleWishlist={toggleWishlist} onAddToCart={addToCart} />} />
+              <Route path="/services/appointments" element={<AppointmentsPage />} />
+              <Route path="/request-quote" element={<RequestQuotePage />} />
+              <Route path="/quote/:token" element={<CustomerQuoteApprovalPage />} />
+              <Route path="/quotation/view/:token" element={<CustomerQuoteApprovalPage />} />
 
-            {/* Navigation routes */}
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/track-order" element={<TrackOrderPage />} />
-            <Route path="/track-order/:orderId" element={<TrackOrderPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
+              {/* Navigation routes */}
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/track-order" element={<TrackOrderPage />} />
+              <Route path="/track-order/:orderId" element={<TrackOrderPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
 
-            {/* Policy & FAQ Routes */}
-            <Route path="/faq" element={<FaqPage />} />
-            <Route path="/faqs" element={<FaqPage />} />
-            <Route path="/warranty-claim" element={<WarrantyClaimPage />} />
-            <Route path="/policy/warranty" element={<WarrantyClaimPage />} />
-            <Route path="/policy/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/policy/returns" element={<RefundPolicyPage />} />
-            <Route path="/policy/refund" element={<RefundPolicyPage />} />
-            <Route path="/policy/shipping" element={<ShippingPolicyPage />} />
-            <Route path="/policy/terms" element={<TermsOfServicePage />} />
-            <Route path="/policy/:slug" element={<PolicyPage />} />
+              {/* Policy & FAQ Routes */}
+              <Route path="/faq" element={<FaqPage />} />
+              <Route path="/faqs" element={<FaqPage />} />
+              <Route path="/warranty-claim" element={<WarrantyClaimPage />} />
+              <Route path="/policy/warranty" element={<WarrantyClaimPage />} />
+              <Route path="/policy/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/policy/returns" element={<RefundPolicyPage />} />
+              <Route path="/policy/refund" element={<RefundPolicyPage />} />
+              <Route path="/policy/shipping" element={<ShippingPolicyPage />} />
+              <Route path="/policy/terms" element={<TermsOfServicePage />} />
+              <Route path="/policy/:slug" element={<PolicyPage />} />
 
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
         </ErrorBoundary>
       </div>
 

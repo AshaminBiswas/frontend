@@ -31,23 +31,43 @@ export interface ApiCategoryDetail {
   };
 }
 
+// ─── High-Speed In-Memory Cache ───────────────────────────────────────────────
+
+const CATEGORY_CACHE = new Map<string, { data: any; expiresAt: number }>();
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes fresh cache
+
 export async function getCategoriesApi(page = 1, limit = 20): Promise<ApiCategory[]> {
+  const cacheKey = `categories_${page}_${limit}`;
+  const cached = CATEGORY_CACHE.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   try {
     const res = await fetchApi<ApiCategory[]>(`/categories?page=${page}&limit=${limit}`);
     if (res && res.success && Array.isArray(res.data)) {
       // Filter to ONLY return ACTIVE and visible categories
-      return res.data.filter(
+      const activeOnly = res.data.filter(
         (cat) => cat.status === "ACTIVE" && cat.isVisible !== false
       );
+      CATEGORY_CACHE.set(cacheKey, { data: activeOnly, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
+      return activeOnly;
     }
   } catch (err) {
     console.error("Failed to fetch categories:", err);
   }
-  return [];
+  return cached?.data || [];
 }
 
 export async function getCategoryBySlugApi(slug: string): Promise<ApiCategoryDetail | null> {
   if (!slug) return null;
+
+  const cacheKey = `cat_slug_${slug.toLowerCase()}`;
+  const cached = CATEGORY_CACHE.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   const endpointsToTry = [
     `/categories/${encodeURIComponent(slug)}`,
     `/categories/slug/${encodeURIComponent(slug)}`,
@@ -58,11 +78,12 @@ export async function getCategoryBySlugApi(slug: string): Promise<ApiCategoryDet
     try {
       const res = await fetchApi<ApiCategoryDetail>(endpoint);
       if (res && res.success && res.data) {
+        CATEGORY_CACHE.set(cacheKey, { data: res.data, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
         return res.data;
       }
-    } catch (err) {
+    } catch {
       // try next silently
     }
   }
-  return null;
+  return cached?.data || null;
 }
