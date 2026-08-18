@@ -198,15 +198,38 @@ export function CreatePurchaseOrderPage() {
       return;
     }
 
-    // Validation
-    if (!billingAddress.attentionTo || !billingAddress.addressLine1 || !billingAddress.city || !billingAddress.state || !billingAddress.postalCode || !billingAddress.phone || !billingAddress.email) {
-      setError('Please complete all required fields in the Billing Address');
+    // Billing Address Validation
+    if (
+      !billingAddress.attentionTo?.trim() ||
+      !billingAddress.addressLine1?.trim() ||
+      !billingAddress.city?.trim() ||
+      !billingAddress.state?.trim() ||
+      !billingAddress.postalCode?.trim() ||
+      !billingAddress.phone?.trim() ||
+      !billingAddress.email?.trim()
+    ) {
+      setError('Please complete all required fields in the Billing Address (Contact Name, Address, City, State, Postal Code, Phone, and Email)');
       return;
     }
 
+    // Delivery Address Handling & Validation
+    const effectiveDeliveryAddress: PoAddress = sameAsBilling
+      ? { ...billingAddress }
+      : {
+          ...deliveryAddress,
+          email: deliveryAddress.email?.trim() || billingAddress.email?.trim() || user?.email || '',
+        };
+
     if (!sameAsBilling) {
-      if (!deliveryAddress.attentionTo || !deliveryAddress.addressLine1 || !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.postalCode || !deliveryAddress.phone || !deliveryAddress.email) {
-        setError('Please complete all required fields in the Delivery Address');
+      if (
+        !effectiveDeliveryAddress.attentionTo?.trim() ||
+        !effectiveDeliveryAddress.addressLine1?.trim() ||
+        !effectiveDeliveryAddress.city?.trim() ||
+        !effectiveDeliveryAddress.state?.trim() ||
+        !effectiveDeliveryAddress.postalCode?.trim() ||
+        !effectiveDeliveryAddress.phone?.trim()
+      ) {
+        setError('Please complete all required fields in the Delivery Address (Receiver Name, Address Line 1, City, State, Postal Code, and Site Phone)');
         return;
       }
     }
@@ -219,7 +242,7 @@ export function CreatePurchaseOrderPage() {
         quotationId: finalQuoteId,
         customerPoReferenceNumber: customerPoRef.trim() || undefined,
         billingAddress,
-        deliveryAddress: sameAsBilling ? undefined : deliveryAddress,
+        deliveryAddress: sameAsBilling ? undefined : effectiveDeliveryAddress,
         sameAsBilling,
         deliveryInstructions: deliveryInstructions.trim() || undefined,
         requestedDeliveryDate: requestedDeliveryDate || undefined,
@@ -539,6 +562,20 @@ export function CreatePurchaseOrderPage() {
                   <span className="w-6 h-6 rounded-full bg-[#34150F] text-[#EACEAA] text-xs font-extrabold flex items-center justify-center">4</span>
                   <h3 className="font-extrabold text-[#34150F] text-sm uppercase tracking-wide">Delivery / Shipping Destination</h3>
                 </div>
+                {!sameAsBilling && savedAddresses.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      const addr = savedAddresses.find((a) => a.id === e.target.value);
+                      if (addr) handleApplySavedAddress(addr, 'delivery');
+                    }}
+                    className="bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] text-[11px] font-bold text-[#34150F] rounded-lg px-2 py-1"
+                  >
+                    <option value="">Choose Saved Address...</option>
+                    {savedAddresses.map((a) => (
+                      <option key={a.id} value={a.id}>{a.label || a.attentionTo} ({a.city})</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="flex items-center space-x-2 bg-[#FAF5EE] p-3 rounded-xl border border-[rgba(52,21,15,0.1)]">
@@ -555,84 +592,111 @@ export function CreatePurchaseOrderPage() {
               </div>
 
               {!sameAsBilling && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site / Receiver Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={deliveryAddress.attentionTo}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, attentionTo: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site / Receiver Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Site Contact or Supervisor"
+                        value={deliveryAddress.attentionTo}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, attentionTo: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site / Company Name</label>
+                      <input
+                        type="text"
+                        placeholder="Company or Project Site"
+                        value={deliveryAddress.companyName}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, companyName: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Delivery Address Line 1 *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Plot, Building, Street"
+                        value={deliveryAddress.addressLine1}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, addressLine1: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Delivery Address Line 2 (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="Landmark, Gate No., Industrial Area"
+                        value={deliveryAddress.addressLine2}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, addressLine2: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">City *</label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddress.city}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">State / Province *</label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddress.state}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, state: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Postal / ZIP Code *</label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddress.postalCode}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, postalCode: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site Contact Phone *</label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryAddress.phone}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, phone: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site Contact Email (Optional)</label>
+                      <input
+                        type="email"
+                        placeholder={billingAddress.email || "site@company.com"}
+                        value={deliveryAddress.email}
+                        onChange={(e) => setDeliveryAddress({ ...deliveryAddress, email: e.target.value })}
+                        className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site / Company Name</label>
+
+                  <div className="pt-2 flex items-center space-x-2">
                     <input
-                      type="text"
-                      value={deliveryAddress.companyName}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, companyName: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
+                      type="checkbox"
+                      id="saveDelivery"
+                      checked={saveDelivery}
+                      onChange={(e) => setSaveDelivery(e.target.checked)}
+                      className="rounded text-[#34150F]"
                     />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">Delivery Address Line 1 *</label>
-                    <input
-                      type="text"
-                      required
-                      value={deliveryAddress.addressLine1}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, addressLine1: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">Delivery Address Line 2</label>
-                    <input
-                      type="text"
-                      value={deliveryAddress.addressLine2}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, addressLine2: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">City *</label>
-                    <input
-                      type="text"
-                      required
-                      value={deliveryAddress.city}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">State *</label>
-                    <input
-                      type="text"
-                      required
-                      value={deliveryAddress.state}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, state: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">Postal Code *</label>
-                    <input
-                      type="text"
-                      required
-                      value={deliveryAddress.postalCode}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, postalCode: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#34150F] mb-1">Site Phone *</label>
-                    <input
-                      type="text"
-                      required
-                      value={deliveryAddress.phone}
-                      onChange={(e) => setDeliveryAddress({ ...deliveryAddress, phone: e.target.value })}
-                      className="w-full bg-[#FAF5EE] border border-[rgba(52,21,15,0.2)] rounded-xl px-3 py-2 text-xs text-[#34150F]"
-                    />
+                    <label htmlFor="saveDelivery" className="text-xs text-[#85431E]">Save delivery address to address book</label>
                   </div>
                 </div>
               )}
