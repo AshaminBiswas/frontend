@@ -435,6 +435,24 @@ export function CustomerQuoteApprovalPage() {
                 </p>
               )}
 
+              {quote.customerResponse === "accepted" && (
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <Link
+                    to={`/purchase-orders/create?quoteNumber=${encodeURIComponent(quote.referenceNo)}&quoteId=${encodeURIComponent(quote.id)}`}
+                    className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-md flex items-center gap-2"
+                  >
+                    <FileText size={15} />
+                    <span>Submit Official Purchase Order (PO) →</span>
+                  </Link>
+                  <Link
+                    to="/purchase-orders"
+                    className="bg-[#EACEAA]/40 hover:bg-[#D39858]/30 text-[#34150F] font-bold text-xs px-4 py-3 rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-2"
+                  >
+                    <span>View All Purchase Orders</span>
+                  </Link>
+                </div>
+              )}
+
               <p className="text-[11px] text-[#85431E]/80 pt-1">
                 Your response is locked in our central order processing pipeline. For further scope revisions, contact support@pacifichardware.com.
               </p>

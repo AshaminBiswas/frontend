@@ -533,16 +533,19 @@ export function UserProfilePage({
               </h3>
               <div className="space-y-2">
                 {([
-                  { icon: <Edit3 size={13} />, label: "Edit My Profile", tab: "edit" as ProfileTab },
-                  ...(isB2B ? [{ icon: <FileText size={13} />, label: "My Project Quotations", tab: "quotes" as ProfileTab }] : []),
-                  { icon: <MapPin size={13} />, label: "Manage Addresses", tab: "addresses" as ProfileTab },
-                  { icon: <Lock size={13} />, label: "Change Password", tab: "security" as ProfileTab },
-                  { icon: <Package size={13} />, label: "View My Orders", tab: "orders" as ProfileTab },
-                ] as { icon: React.ReactNode; label: string; tab: ProfileTab }[]).map((a) => (
+                  { icon: <Edit3 size={13} />, label: "Edit My Profile", action: () => switchTab("edit") },
+                  ...(isB2B ? [
+                    { icon: <FileText size={13} />, label: "My Project Quotations", action: () => switchTab("quotes") },
+                    { icon: <Package size={13} />, label: "My Purchase Orders (PO)", action: () => { onClose(); navigate("/purchase-orders"); } },
+                  ] : []),
+                  { icon: <MapPin size={13} />, label: "Manage Addresses", action: () => switchTab("addresses") },
+                  { icon: <Lock size={13} />, label: "Change Password", action: () => switchTab("security") },
+                  { icon: <Package size={13} />, label: "View My Orders", action: () => switchTab("orders") },
+                ] as { icon: React.ReactNode; label: string; action: () => void }[]).map((a) => (
                   <button
                     key={a.label}
                     type="button"
-                    onClick={() => switchTab(a.tab)}
+                    onClick={a.action}
                     className="w-full flex items-center justify-between p-3 bg-[#EACEAA]/40 hover:bg-[#D39858]/12 rounded-tr-xl rounded-bl-xl transition-colors text-xs font-bold"
                   >
                     <span className="flex items-center gap-2">
