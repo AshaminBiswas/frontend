@@ -163,7 +163,8 @@ export async function getCustomerPurchaseOrdersApi(params?: { status?: string; p
   if (params?.page) query.set('page', String(params.page));
   if (params?.limit) query.set('limit', String(params.limit));
 
-  const res = await fetchApi<CustomerPurchaseOrder[]>(`/purchase-orders?${query.toString()}`);
+  const qs = query.toString();
+  const res = await fetchApi<CustomerPurchaseOrder[]>(`/purchase-orders${qs ? `?${qs}` : ''}`);
   return {
     items: res.data || [],
     total: (res as any).pagination?.totalItems || (res.data ? res.data.length : 0),
