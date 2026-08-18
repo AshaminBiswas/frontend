@@ -29,6 +29,9 @@ export interface CustomerPurchaseOrder {
     | 'PAYMENT_ACKNOWLEDGED'
     | 'PAYMENT_VERIFIED'
     | 'PACKING_LIST_GENERATED'
+    | 'DISPATCHED'
+    | 'INVOICE_GENERATION_FAILED'
+    | 'INVOICED'
     | 'REJECTED'
     | 'CANCELLED';
   customerPoReferenceNumber?: string | null;
@@ -84,6 +87,24 @@ export interface CustomerPurchaseOrder {
     generatedAt: string;
     totalPackages: number;
     totalQuantity: number;
+  } | null;
+  dispatch?: {
+    id: string;
+    carrierName: string;
+    trackingNumber?: string | null;
+    dispatchedAt: string;
+    dispatchNotes?: string | null;
+  } | null;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    quotationNumber: string;
+    poNumber: string;
+    amountInvoiced: number;
+    amountPaidAdvance: number;
+    balanceDue: number;
+    status: string;
+    generatedAt: string;
   } | null;
   bankDetails?: {
     accountHolderName: string;
@@ -202,6 +223,39 @@ export async function downloadPackingListPdf(poId: string, poNumber: string): Pr
   document.body.removeChild(a);
 }
 
+export async function getPoInvoiceApi(poId: string): Promise<any> {
+  const res = await fetchApi<any>(`/purchase-orders/${poId}/invoice`);
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message || 'Failed to fetch Invoice details');
+  }
+  return res.data;
+}
+
+export async function downloadPoInvoicePdf(poId: string, invoiceNumber: string): Promise<void> {
+  const token = getStoredToken();
+  const response = await fetch(`${API_BASE_URL}/purchase-orders/${poId}/invoice/download`, {
+    method: 'GET',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const json = await response.json().catch(() => ({}));
+    throw new Error(json.error?.message || 'Invoice PDF not available for download');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `TaxInvoice_${invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
 export async function getSavedAddressesApi(): Promise<any[]> {
   const res = await fetchApi<any[]>('/purchase-orders/addresses/all');
   return res.success && res.data ? res.data : [];
@@ -214,3 +268,4 @@ export async function saveAddressApi(address: PoAddress & { label?: string; isDe
   });
   return res.data;
 }
+

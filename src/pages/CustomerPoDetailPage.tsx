@@ -4,6 +4,7 @@ import {
   getCustomerPurchaseOrderByIdApi,
   uploadPaymentReceiptApi,
   downloadPackingListPdf,
+  downloadPoInvoicePdf,
   CustomerPurchaseOrder,
 } from '../services/poService';
 import {
@@ -20,6 +21,7 @@ import {
   Building,
   Truck,
   FileCheck,
+  Receipt,
 } from 'lucide-react';
 
 export function CustomerPoDetailPage() {
@@ -107,6 +109,16 @@ export function CustomerPoDetailPage() {
     }
   };
 
+  const handleDownloadInvoice = async () => {
+    if (!po) return;
+    try {
+      const invNum = po.invoice?.invoiceNumber || `INV-${po.poNumber}`;
+      await downloadPoInvoicePdf(po.id, invNum);
+    } catch (err: any) {
+      alert(err.message || 'Failed to download Tax Invoice');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#EACEAA] py-16 px-4 flex items-center justify-center">
@@ -137,16 +149,19 @@ export function CustomerPoDetailPage() {
   }
 
   const activeReceipt = po.receipts && po.receipts[0];
-  const isVerified = po.status === 'PAYMENT_VERIFIED' || po.status === 'PACKING_LIST_GENERATED';
-  const hasPackingList = !!po.packingList || po.status === 'PACKING_LIST_GENERATED';
+  const isVerified = ['PAYMENT_VERIFIED', 'PACKING_LIST_GENERATED', 'DISPATCHED', 'INVOICED'].includes(po.status);
+  const hasPackingList = !!po.packingList || ['PACKING_LIST_GENERATED', 'DISPATCHED', 'INVOICED'].includes(po.status);
+  const isInvoiced = po.status === 'INVOICED' || !!po.invoice;
+  const isDispatched = ['DISPATCHED', 'INVOICED'].includes(po.status) || !!po.dispatch;
 
-  // Status step index (0 to 4)
+  // Status step index (0 to 5)
   const steps = [
     { title: 'Submitted', key: 'SUBMITTED' },
     { title: 'Awaiting Advance', key: 'AWAITING_ADVANCE_PAYMENT' },
     { title: 'Receipt Uploaded', key: 'PAYMENT_RECEIPT_SUBMITTED' },
-    { title: 'Payment Acknowledged', key: 'PAYMENT_ACKNOWLEDGED' },
-    { title: 'Verified & Packing List', key: 'PACKING_LIST_GENERATED' },
+    { title: 'Verified / Packing List', key: 'PACKING_LIST_GENERATED' },
+    { title: 'Dispatched', key: 'DISPATCHED' },
+    { title: 'Invoiced', key: 'INVOICED' },
   ];
 
   const getStepIndex = (status: string) => {
@@ -154,9 +169,12 @@ export function CustomerPoDetailPage() {
       case 'SUBMITTED': return 0;
       case 'AWAITING_ADVANCE_PAYMENT': return 1;
       case 'PAYMENT_RECEIPT_SUBMITTED': return 2;
-      case 'PAYMENT_ACKNOWLEDGED': return 3;
+      case 'PAYMENT_ACKNOWLEDGED': return 2;
       case 'PAYMENT_VERIFIED':
-      case 'PACKING_LIST_GENERATED': return 4;
+      case 'PACKING_LIST_GENERATED': return 3;
+      case 'DISPATCHED':
+      case 'INVOICE_GENERATION_FAILED': return 4;
+      case 'INVOICED': return 5;
       default: return 0;
     }
   };
@@ -189,20 +207,31 @@ export function CustomerPoDetailPage() {
             </p>
           </div>
 
-          {hasPackingList && (
-            <button
-              onClick={handleDownloadPackingList}
-              className="bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-xl hover:bg-emerald-800 transition-all shadow-md flex items-center space-x-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Packing List PDF</span>
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {hasPackingList && (
+              <button
+                onClick={handleDownloadPackingList}
+                className="bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-800 transition-all shadow-md flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Packing List (PDF)</span>
+              </button>
+            )}
+            {isInvoiced && (
+              <button
+                onClick={handleDownloadInvoice}
+                className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md flex items-center space-x-2"
+              >
+                <Receipt className="w-4 h-4" />
+                <span>Download Tax Invoice</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Lifecycle Stepper */}
         <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm">
-          <div className="grid grid-cols-5 gap-2 relative">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 relative">
             {steps.map((step, idx) => {
               const isCompleted = idx <= currentStep;
               const isCurrent = idx === currentStep;
@@ -396,11 +425,84 @@ export function CustomerPoDetailPage() {
               )}
             </div>
 
-            {/* Line Items Snapshot Table */}
-            <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-4">
-              <h3 className="font-extrabold text-[#34150F] text-sm border-b border-[rgba(52,21,15,0.08)] pb-3">
-                Purchase Order Line Items Snapshot
-              </h3>
+            {/* Dispatch & Logistics Information Card */}
+            {po.dispatch && (
+                <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-3">
+                  <div className="flex items-center justify-between border-b border-[rgba(52,21,15,0.08)] pb-3">
+                    <div className="flex items-center space-x-2">
+                      <Truck className="w-5 h-5 text-emerald-800" />
+                      <h3 className="font-extrabold text-[#34150F] text-sm">Shipment Dispatched</h3>
+                    </div>
+                    <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md">
+                      IN TRANSIT
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-[#FAF5EE] p-4 rounded-xl border border-[rgba(52,21,15,0.08)]">
+                    <div>
+                      <span className="text-[10px] text-[#85431E] block">Carrier Name</span>
+                      <span className="font-bold text-[#34150F]">{po.dispatch.carrierName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#85431E] block">Tracking / AWB Number</span>
+                      <span className="font-mono font-bold text-amber-900">{po.dispatch.trackingNumber || 'Pending AWB Assignment'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#85431E] block">Dispatched Date</span>
+                      <span className="font-medium text-[#34150F]">{new Date(po.dispatch.dispatchedAt).toLocaleDateString('en-IN')}</span>
+                    </div>
+                    {po.dispatch.dispatchNotes && (
+                      <div className="sm:col-span-3 text-[11px] text-[#85431E] pt-1">
+                        <strong>Dispatch Notes:</strong> {po.dispatch.dispatchNotes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tax Invoice Details Card */}
+              {po.invoice && (
+                <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-3">
+                  <div className="flex items-center justify-between border-b border-[rgba(52,21,15,0.08)] pb-3">
+                    <div className="flex items-center space-x-2">
+                      <Receipt className="w-5 h-5 text-[#34150F]" />
+                      <h3 className="font-extrabold text-[#34150F] text-sm">Commercial Tax Invoice</h3>
+                    </div>
+                    <button
+                      onClick={handleDownloadInvoice}
+                      className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-3 py-1.5 rounded-lg hover:bg-[#D39858] hover:text-[#34150F] transition-all flex items-center space-x-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download PDF</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[#FAF5EE] p-4 rounded-xl border border-[rgba(52,21,15,0.08)]">
+                    <div>
+                      <span className="text-[10px] text-[#85431E] block">Invoice Number</span>
+                      <span className="font-bold text-[#34150F]">{po.invoice.invoiceNumber}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#85431E] block">Amount Invoiced</span>
+                      <span className="font-mono font-bold text-[#34150F]">₹{Number(po.invoice.amountInvoiced).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-emerald-800 block">Advance Credited</span>
+                      <span className="font-mono font-bold text-emerald-700">(-) ₹{Number(po.invoice.amountPaidAdvance).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-amber-900 block">Balance Payable</span>
+                      <span className="font-mono font-bold text-amber-900">₹{Number(po.invoice.balanceDue).toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Line Items Snapshot Table */}
+              <div className="bg-[#f5e8d4] p-6 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-sm space-y-4">
+                <h3 className="font-extrabold text-[#34150F] text-sm border-b border-[rgba(52,21,15,0.08)] pb-3">
+                  Purchase Order Line Items Snapshot
+                </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead>
