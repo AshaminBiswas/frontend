@@ -6,6 +6,7 @@ import {
   FileText, Send, RefreshCw, Copy, Check
 } from "lucide-react";
 import { quotationService, QuotationDetail } from "../services/quotationService";
+import { AsyncActionButton } from "../components/common/AsyncActionButton";
 
 export function CustomerQuoteApprovalPage() {
   const { token } = useParams<{ token: string }>();
@@ -153,19 +154,20 @@ export function CustomerQuoteApprovalPage() {
           </button>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={downloadingPdf}
-              className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
-            >
-              {downloadingPdf ? (
-                <RefreshCw size={14} className="animate-spin" />
-              ) : (
-                <Download size={14} />
-              )}
-              <span>{downloadingPdf ? "Generating PDF..." : "Download Official PDF"}</span>
-            </button>
+            <AsyncActionButton
+              mode="download"
+              onAction={async () => {
+                if (token && quote) {
+                  await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
+                }
+              }}
+              idleIcon={<Download size={14} />}
+              idleLabel="Download Official PDF"
+              loadingLabel="Generating PDF…"
+              successLabel="Downloaded!"
+              className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2"
+              variant="custom"
+            />
 
             <button
               type="button"
@@ -330,23 +332,31 @@ export function CustomerQuoteApprovalPage() {
                 <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-400">
                   <span className="truncate max-w-[180px]">SHA256: {quote.digitalSignature}</span>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleCopySignature}
-                      className="hover:text-white flex items-center gap-1 shrink-0"
+                    <AsyncActionButton
+                      mode="copy"
+                      onAction={() => {
+                        if (quote?.digitalSignature) navigator.clipboard.writeText(quote.digitalSignature);
+                      }}
+                      idleIcon={<Copy size={12} />}
+                      size="icon"
+                      className="hover:text-white flex items-center gap-1 shrink-0 text-slate-400"
+                      variant="custom"
                       title="Copy Signature Hash"
-                    >
-                      {copiedSignature ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadPdf}
-                      disabled={downloadingPdf}
+                    />
+                    <AsyncActionButton
+                      mode="download"
+                      onAction={async () => {
+                        if (token && quote) {
+                          await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
+                        }
+                      }}
+                      idleIcon={<Download size={11} />}
+                      idleLabel="PDF"
+                      loadingLabel="…"
+                      successLabel="✓"
                       className="text-emerald-400 hover:text-emerald-300 font-sans font-bold text-[10px] flex items-center gap-1 ml-1"
-                    >
-                      <Download size={11} />
-                      <span>PDF</span>
-                    </button>
+                      variant="custom"
+                    />
                   </div>
                 </div>
               )}

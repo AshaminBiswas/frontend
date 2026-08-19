@@ -10,6 +10,7 @@ import {
   deletePurchaseOrderApi,
   CustomerPurchaseOrder,
 } from '../services/poService';
+import { AsyncActionButton } from '../components/common/AsyncActionButton';
 import {
   FileText,
   Upload,
@@ -169,15 +170,78 @@ export function CustomerPoDetailPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#EACEAA] py-16 px-4 flex items-center justify-center">
-        <div className="bg-[#f5e8d4] p-8 rounded-3xl border border-[rgba(52,21,15,0.12)] shadow-xl flex items-center space-x-4">
-          <div className="w-8 h-8 border-4 border-[#34150F] border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-bold text-[#34150F]">Loading Purchase Order Details...</span>
+function CustomerPoDetailSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FAF5EE] py-10 px-4 sm:px-6 lg:px-8 animate-pulse" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Top Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(52,21,15,0.08)] pb-4">
+          <div className="space-y-2">
+            <div className="h-4 w-28 bg-[#EACEAA]/50 rounded"></div>
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-48 bg-[#EACEAA]/60 rounded-xl"></div>
+              <div className="h-5 w-24 bg-[#EACEAA]/40 rounded-full"></div>
+            </div>
+            <div className="h-3 w-56 bg-[#EACEAA]/40 rounded"></div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-48 bg-[#34150F]/20 rounded-xl"></div>
+            <div className="h-10 w-32 bg-[#EACEAA]/40 rounded-xl"></div>
+          </div>
+        </div>
+
+        {/* 6-Step Status Tracker Skeleton */}
+        <div className="bg-white p-6 rounded-3xl border border-[rgba(52,21,15,0.08)] shadow-sm space-y-4">
+          <div className="h-4 w-40 bg-[#EACEAA]/50 rounded"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 rounded-full bg-[#EACEAA]/40"></div>
+                <div className="h-3 w-16 bg-[#EACEAA]/40 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 4 Financial Metric Cards Skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white p-4 rounded-2xl border border-[rgba(52,21,15,0.08)] space-y-2 shadow-sm">
+              <div className="h-3 w-20 bg-[#EACEAA]/40 rounded"></div>
+              <div className="h-6 w-28 bg-[#EACEAA]/50 rounded"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Payment & Receipt Card Skeleton */}
+        <div className="bg-white p-6 rounded-3xl border border-[rgba(52,21,15,0.08)] space-y-3 shadow-sm">
+          <div className="h-5 w-44 bg-[#EACEAA]/50 rounded"></div>
+          <div className="h-3 w-72 bg-[#EACEAA]/40 rounded"></div>
+          <div className="h-24 w-full bg-[#FAF5EE] rounded-2xl border border-dashed border-[rgba(52,21,15,0.15)]"></div>
+        </div>
+
+        {/* Line Items Table Skeleton */}
+        <div className="bg-white p-6 rounded-3xl border border-[rgba(52,21,15,0.08)] space-y-4 shadow-sm">
+          <div className="h-5 w-48 bg-[#EACEAA]/50 rounded"></div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-3.5 bg-[#FAF5EE] rounded-xl flex justify-between items-center">
+                <div className="space-y-1.5">
+                  <div className="h-4 w-44 bg-[#EACEAA]/50 rounded"></div>
+                  <div className="h-2.5 w-24 bg-[#EACEAA]/40 rounded"></div>
+                </div>
+                <div className="h-4 w-20 bg-[#EACEAA]/50 rounded"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    );
+    </div>
+  );
+}
+
+  if (loading) {
+    return <CustomerPoDetailSkeleton />;
   }
 
   if (error || !po) {
@@ -258,31 +322,40 @@ export function CustomerPoDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleDownloadPo}
+            <AsyncActionButton
+              mode="download"
+              onAction={handleDownloadPo}
+              idleIcon={<Download className="w-4 h-4 text-[#D39858]" />}
+              idleLabel="Download Proforma Invoice (PI)"
+              loadingLabel="Preparing PI PDF…"
+              successLabel="Downloaded!"
               className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md flex items-center space-x-2"
-            >
-              <Download className="w-4 h-4 text-[#D39858]" />
-              <span>Download Purchase Order (PDF)</span>
-            </button>
+              variant="custom"
+            />
 
             {hasPackingList && (
-              <button
-                onClick={handleDownloadPackingList}
+              <AsyncActionButton
+                mode="download"
+                onAction={handleDownloadPackingList}
+                idleIcon={<Download className="w-4 h-4" />}
+                idleLabel="Packing List (PDF)"
+                loadingLabel="Preparing Packing List…"
+                successLabel="Downloaded!"
                 className="bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-800 transition-all shadow-md flex items-center space-x-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Packing List (PDF)</span>
-              </button>
+                variant="custom"
+              />
             )}
             {isInvoiced && (
-              <button
-                onClick={handleDownloadInvoice}
+              <AsyncActionButton
+                mode="download"
+                onAction={handleDownloadInvoice}
+                idleIcon={<Receipt className="w-4 h-4" />}
+                idleLabel="Download Tax Invoice"
+                loadingLabel="Preparing Tax Invoice…"
+                successLabel="Downloaded!"
                 className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md flex items-center space-x-2"
-              >
-                <Receipt className="w-4 h-4" />
-                <span>Download Tax Invoice</span>
-              </button>
+                variant="custom"
+              />
             )}
 
             {!isDispatched && (
@@ -493,22 +566,25 @@ export function CustomerPoDetailPage() {
 
                   {/* Customer Receipt View & Download Actions */}
                   <div className="flex items-center space-x-2 pt-2 border-t border-[rgba(52,21,15,0.08)]">
-                    <button
-                      type="button"
-                      onClick={handleViewReceipt}
+                    <AsyncActionButton
+                      mode="view"
+                      onAction={handleViewReceipt}
+                      idleIcon={<Eye className="w-3.5 h-3.5" />}
+                      idleLabel="View Receipt"
+                      loadingLabel="Opening…"
                       className="bg-[#34150F] hover:bg-[#D39858] hover:text-[#34150F] text-[#EACEAA] font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs transition-colors shadow-sm"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View Receipt</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDownloadReceipt}
+                      variant="custom"
+                    />
+                    <AsyncActionButton
+                      mode="download"
+                      onAction={handleDownloadReceipt}
+                      idleIcon={<Download className="w-3.5 h-3.5" />}
+                      idleLabel="Download File"
+                      loadingLabel="Downloading…"
+                      successLabel="Downloaded!"
                       className="bg-[#FAF5EE] hover:bg-[#EACEAA] text-[#34150F] border border-[rgba(52,21,15,0.2)] font-bold px-3 py-1.5 rounded-lg flex items-center space-x-1.5 text-xs transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download File</span>
-                    </button>
+                      variant="custom"
+                    />
                   </div>
                 </div>
               )}
@@ -557,13 +633,16 @@ export function CustomerPoDetailPage() {
                       <Receipt className="w-5 h-5 text-[#34150F]" />
                       <h3 className="font-extrabold text-[#34150F] text-sm">Commercial Tax Invoice</h3>
                     </div>
-                    <button
-                      onClick={handleDownloadInvoice}
+                    <AsyncActionButton
+                      mode="download"
+                      onAction={handleDownloadInvoice}
+                      idleIcon={<Download className="w-3.5 h-3.5" />}
+                      idleLabel="Download PDF"
+                      loadingLabel="Preparing PDF…"
+                      successLabel="Downloaded!"
                       className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-3 py-1.5 rounded-lg hover:bg-[#D39858] hover:text-[#34150F] transition-all flex items-center space-x-1.5"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download PDF</span>
-                    </button>
+                      variant="custom"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[#FAF5EE] p-4 rounded-xl border border-[rgba(52,21,15,0.08)]">

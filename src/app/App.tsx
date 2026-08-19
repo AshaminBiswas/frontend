@@ -18,6 +18,7 @@ const ProductsCatalogPage = lazy(() => import('../pages/ProductsCatalogPage').th
 const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
 const CategoriesPage = lazy(() => import('../pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
 const CategoryProductsPage = lazy(() => import('../pages/CategoryProductsPage').then((m) => ({ default: m.CategoryProductsPage })));
+const MaterialProductsPage = lazy(() => import('../pages/MaterialProductsPage').then((m) => ({ default: m.MaterialProductsPage })));
 const CartPage = lazy(() => import('../pages/CartPage').then((m) => ({ default: m.CartPage })));
 const CheckoutPage = lazy(() => import('../pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
 const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
@@ -138,6 +139,8 @@ function AppContent() {
               <Route path="/categories" element={<CategoriesPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/category/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/categories/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/material/:slug" element={<MaterialProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/materials/:slug" element={<MaterialProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/cart" element={<CartPage cart={cart} onRemoveFromCart={removeFromCart} onChangeQty={changeQty} />} />
               <Route path="/wishlist" element={<WishlistPage wishlist={wishlist} wishlistItems={wishlistItems} onToggleWishlist={toggleWishlist} onAddToCart={addToCart} />} />
               <Route path="/checkout" element={<CheckoutPage cart={cart} onClearCart={handleClearCart} />} />

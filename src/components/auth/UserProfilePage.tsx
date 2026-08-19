@@ -23,6 +23,7 @@ import {
   downloadPoInvoicePdf,
   deletePurchaseOrderApi,
 } from "../../services/poService";
+import { AsyncActionButton } from "../common/AsyncActionButton";
 
 const ALL_PRODUCTS: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
 
@@ -1031,24 +1032,28 @@ export function UserProfilePage({
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                           <div className="flex items-center gap-2">
                             {po.packingList && (
-                              <button
-                                type="button"
-                                onClick={() => downloadPackingListPdf(po.id, po.poNumber)}
+                              <AsyncActionButton
+                                mode="download"
+                                onAction={() => downloadPackingListPdf(po.id, po.poNumber)}
+                                idleIcon={<Download size={11} />}
+                                idleLabel="Packing List"
+                                loadingLabel="Preparing…"
+                                successLabel="Downloaded!"
                                 className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1.5 rounded-lg transition-colors"
-                              >
-                                <Download size={11} />
-                                <span>Packing List</span>
-                              </button>
+                                variant="custom"
+                              />
                             )}
                             {po.invoice && (
-                              <button
-                                type="button"
-                                onClick={() => downloadPoInvoicePdf(po.id, po.invoice?.invoiceNumber)}
+                              <AsyncActionButton
+                                mode="download"
+                                onAction={() => downloadPoInvoicePdf(po.id, po.invoice?.invoiceNumber)}
+                                idleIcon={<Receipt size={11} />}
+                                idleLabel="Tax Invoice"
+                                loadingLabel="Preparing…"
+                                successLabel="Downloaded!"
                                 className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1.5 rounded-lg transition-colors"
-                              >
-                                <Receipt size={11} />
-                                <span>Tax Invoice</span>
-                              </button>
+                                variant="custom"
+                              />
                             )}
                           </div>
 
@@ -1073,17 +1078,18 @@ export function UserProfilePage({
                               </button>
                             )}
 
-                            <button
-                              type="button"
-                              onClick={() => {
+                            <AsyncActionButton
+                              mode="view"
+                              onAction={() => {
                                 onClose();
                                 navigate(`/purchase-orders/${po.id}`);
                               }}
+                              idleLabel="View PO & Receipts"
+                              loadingLabel="Opening…"
+                              idleIcon={<ChevronRight size={13} />}
                               className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-1.5 rounded-xl transition-all shadow-sm"
-                            >
-                              <span>View PO & Receipts</span>
-                              <ChevronRight size={13} />
-                            </button>
+                              variant="custom"
+                            />
                           </div>
                         </div>
                       </div>

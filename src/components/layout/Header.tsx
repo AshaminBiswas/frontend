@@ -96,9 +96,9 @@ export function Header({
         <nav className="flex-1 overflow-y-auto py-3">
           <ul className="flex flex-col">
             {visibleNavLinks.map((link) => {
-              if (link === 'By Category') return <CategoryDropdown key={link} onSelectCategory={(cat) => { navigate(`/products?category=${encodeURIComponent(cat)}`); setMenuOpen(false); }} />;
+              if (link === 'By Category') return <CategoryDropdown key={link} onSelectCategory={(cat) => { navigate(`/category/${encodeURIComponent(cat.toLowerCase().replace(/\s+/g, '-'))}`); setMenuOpen(false); }} />;
               if (link === 'Products') return <ProductsDropdown key={link} onSelectProduct={(prod) => { navigate(`/products?search=${encodeURIComponent(prod)}`); setMenuOpen(false); }} />;
-              if (link === 'By Materials') return <MaterialsDropdown key={link} onSelectMaterial={(mat) => { navigate(`/products?material=${encodeURIComponent(mat)}`); setMenuOpen(false); }} />;
+              if (link === 'By Materials') return <MaterialsDropdown key={link} onSelectMaterial={(mat) => { navigate(`/material/${encodeURIComponent(mat.toLowerCase().replace(/\s+/g, '-'))}`); setMenuOpen(false); }} />;
               let route = `/products?search=${encodeURIComponent(link)}`;
               if (link === 'B2B / Bulk') route = '/request-quote';
               if (link === 'Best Sellers') route = '/bestsellers';
@@ -317,9 +317,9 @@ export function Header({
         <nav className="hidden md:block border-t border-[#EACEAA]/10">
           <ul className="flex flex-row items-center justify-between px-4 md:px-8 lg:px-16 py-0 overflow-visible relative">
             {visibleNavLinks.map((link) => {
-              if (link === 'By Category') return <CategoryDropdown key={link} onSelectCategory={(cat) => { navigate(`/products?category=${encodeURIComponent(cat)}`); setMenuOpen(false); }} />;
+              if (link === 'By Category') return <CategoryDropdown key={link} onSelectCategory={(cat) => { navigate(`/category/${encodeURIComponent(cat.toLowerCase().replace(/\s+/g, '-'))}`); setMenuOpen(false); }} />;
               if (link === 'Products') return <ProductsDropdown key={link} onSelectProduct={(prod) => { navigate(`/products?search=${encodeURIComponent(prod)}`); setMenuOpen(false); }} />;
-              if (link === 'By Materials') return <MaterialsDropdown key={link} onSelectMaterial={(mat) => { navigate(`/products?material=${encodeURIComponent(mat)}`); setMenuOpen(false); }} />;
+              if (link === 'By Materials') return <MaterialsDropdown key={link} onSelectMaterial={(mat) => { navigate(`/material/${encodeURIComponent(mat.toLowerCase().replace(/\s+/g, '-'))}`); setMenuOpen(false); }} />;
               let route = `/products?search=${encodeURIComponent(link)}`;
               if (link === 'B2B / Bulk') route = '/request-quote';
               if (link === 'Best Sellers') route = '/bestsellers';

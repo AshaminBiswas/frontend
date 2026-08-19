@@ -15,6 +15,7 @@ import {
 } from "../services/quotationService";
 import { Product } from "../types";
 import { useB2BPricing } from "../hooks/useB2BPricing";
+import { AsyncActionButton } from "../components/common/AsyncActionButton";
 
 interface SelectedLineItem {
   productId: string;
@@ -558,19 +559,16 @@ export function RequestQuotePage() {
                             <CheckCircle2 size={14} className="text-emerald-600" /> Approved & Digitally Signed
                           </span>
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadTrackingPdf(q.accessToken!, q.referenceNo)}
-                              disabled={downloadingPdfToken === q.accessToken}
-                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-emerald-300 disabled:opacity-50"
-                            >
-                              {downloadingPdfToken === q.accessToken ? (
-                                <RefreshCw size={13} className="animate-spin text-emerald-700" />
-                              ) : (
-                                <Download size={13} />
-                              )}
-                              <span>Download PDF</span>
-                            </button>
+                            <AsyncActionButton
+                              mode="download"
+                              onAction={() => quotationService.downloadQuotePdfByToken(q.accessToken!, q.referenceNo)}
+                              idleIcon={<Download size={13} />}
+                              idleLabel="Download PDF"
+                              loadingLabel="Preparing PDF…"
+                              successLabel="Downloaded!"
+                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors border border-emerald-300"
+                              variant="custom"
+                            />
                             <Link
                               to={`/quote/${q.accessToken}`}
                               className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"
@@ -786,19 +784,16 @@ export function RequestQuotePage() {
                           <CheckCircle2 size={14} className="text-emerald-600" /> Approved & Signed
                         </span>
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadTrackingPdf(q.accessToken!, q.referenceNo)}
-                            disabled={downloadingPdfToken === q.accessToken}
-                            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-emerald-300 disabled:opacity-50"
-                          >
-                            {downloadingPdfToken === q.accessToken ? (
-                              <RefreshCw size={13} className="animate-spin text-emerald-700" />
-                            ) : (
-                              <Download size={13} />
-                            )}
-                            <span>Download PDF</span>
-                          </button>
+                          <AsyncActionButton
+                            mode="download"
+                            onAction={() => quotationService.downloadQuotePdfByToken(q.accessToken!, q.referenceNo)}
+                            idleIcon={<Download size={13} />}
+                            idleLabel="Download PDF"
+                            loadingLabel="Preparing PDF…"
+                            successLabel="Downloaded!"
+                            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors border border-emerald-300"
+                            variant="custom"
+                          />
                           <Link
                             to={`/quote/${q.accessToken}`}
                             className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"

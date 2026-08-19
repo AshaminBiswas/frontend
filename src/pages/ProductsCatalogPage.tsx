@@ -14,6 +14,7 @@ import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
 import { fetchApi } from "../services/api";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
+import { isProductOfMaterial } from "../utils/materials";
 
 function safeCategoryString(category: any): string {
   if (!category) return "";
@@ -155,7 +156,7 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
           return false;
         }
       }
-      if (materialFilter && typeof p.material === "string" && p.material.toLowerCase() !== materialFilter.toLowerCase()) {
+      if (materialFilter && !isProductOfMaterial(p, materialFilter)) {
         return false;
       }
       if (inStockFilter && (p.inStock === false || (typeof p.stock === "number" && p.stock <= 0))) {
@@ -281,7 +282,7 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
 
         {/* ── Filter Controls Bar ── */}
         <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-4 sm:p-5 border border-[rgba(52,21,15,0.08)] shadow-sm mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Search Input Form */}
             <form onSubmit={handleSearchSubmit} className="relative">
               <input
@@ -302,6 +303,20 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
                 </button>
               )}
             </form>
+
+            {/* Material Filter Dropdown */}
+            <select
+              value={materialFilter}
+              onChange={(e) => updateParam("material", e.target.value)}
+              className="w-full max-w-full bg-[#EACEAA] text-[#34150F] px-3 py-2.5 rounded-tr-xl rounded-bl-xl text-xs border border-[rgba(52,21,15,0.15)] focus:outline-none focus:border-[#D39858] font-bold truncate"
+            >
+              <option value="">All Raw Materials</option>
+              <option value="304 Grade Steel">304 Grade Steel (SS 304)</option>
+              <option value="316 Grade Steel">316 Grade Steel (Marine)</option>
+              <option value="Aluminium">Aluminium Extrusions</option>
+              <option value="Brass & Zinc Fittings">Brass & Zinc Fittings</option>
+              <option value="Nylon Polyamide 6">Nylon Polyamide 6</option>
+            </select>
 
             {/* Sort Dropdown */}
             <select
@@ -327,7 +342,7 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
             </label>
 
             {/* Reset Filters */}
-            {(searchFilter || categoryFilter || materialFilter || inStockFilter || sortOption !== "featured") && (
+            {(searchFilter || categoryFilter || materialFilter || inStockFilter || sortOption !== "featured") ? (
               <button
                 type="button"
                 onClick={() => {
@@ -335,12 +350,36 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
                   setSearchParams(new URLSearchParams());
                   setPage(1);
                 }}
-                className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#85431E] hover:text-[#34150F] transition-colors py-2"
+                className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#85431E] hover:text-[#34150F] transition-colors py-2 bg-[#EACEAA]/50 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.15)]"
               >
-                <RefreshCw size={13} /> Reset All Filters
+                <RefreshCw size={13} /> Reset Filters
               </button>
+            ) : (
+              <div className="hidden lg:flex items-center justify-center text-[11px] font-bold text-[#85431E]/60">
+                <span>Showing {filteredProducts.length} Items</span>
+              </div>
             )}
           </div>
+
+          {/* Active Material Filter Badge */}
+          {materialFilter && (
+            <div className="mt-3 pt-2.5 border-t border-[rgba(52,21,15,0.08)] flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-[#85431E]">Active Material Filter:</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#34150F] text-[#EACEAA] text-xs font-extrabold shadow-xs">
+                <span>{materialFilter}</span>
+                <button
+                  type="button"
+                  onClick={() => updateParam("material", "")}
+                  className="hover:text-[#D39858] transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+              <span className="text-[11px] text-[#85431E]/70 font-semibold">
+                ({filteredProducts.length} items found)
+              </span>
+            </div>
+          )}
         </div>
 
 
