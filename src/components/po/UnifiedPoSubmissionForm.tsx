@@ -8,6 +8,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Plus,
+  Minus,
   Trash2,
   ArrowRight,
   ArrowLeft,
@@ -28,8 +29,11 @@ import {
   ShieldCheck,
   Truck,
   Eye,
+  Filter,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useB2BPricing } from '../../hooks/useB2BPricing';
+import { isB2BUser, getEffectivePrice } from '../../utils/pricing';
 import {
   getEligibleQuotationsApi,
   getQuotationForPoApi,
@@ -44,7 +48,6 @@ import {
 } from '../../services/poSubmissionsService';
 import { quotationService } from '../../services/quotationService';
 import { Product } from '../../types';
-import { AsyncActionButton } from '../common/AsyncActionButton';
 
 export type PoSubmissionMode = 'AGAINST_QUOTATION' | 'STANDARD_FORM' | 'PDF_UPLOAD';
 
@@ -53,6 +56,13 @@ export interface UnifiedPoSubmissionFormProps {
   initialQuoteId?: string;
   initialQuoteNumber?: string;
 }
+
+const CATEGORY_OPTIONS = [
+  { label: "All Hardware Categories", slug: "" },
+  { label: "Cubicle Hardware", slug: "cubicle-hardware" },
+  { label: "Locker Hardware", slug: "locker-hardware" },
+  { label: "Urinal Hardware", slug: "urinal-hardware" },
+];
 
 export function generateFallbackPoNumber(): string {
   const d = new Date();
@@ -69,6 +79,8 @@ export function UnifiedPoSubmissionForm({
   initialQuoteNumber,
 }: UnifiedPoSubmissionFormProps) {
   const { user, isAuthenticated, openAuthModal } = useAuth();
+  const isB2B = isB2BUser(user);
+  const b2bCache = useB2BPricing();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -151,10 +163,12 @@ export function UnifiedPoSubmissionForm({
       quantity: number;
       unitPrice: number;
       amount: number;
+      isB2BCustom?: boolean;
     }>
   >([]);
 
   const [productSearchQuery, setProductSearchQuery] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [productSearchResults, setProductSearchResults] = useState<Product[]>([]);
   const [isSearchingProducts, setIsSearchingProducts] = useState<boolean>(false);
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState<boolean>(false);
@@ -275,23 +289,19 @@ export function UnifiedPoSubmissionForm({
     }
   };
 
-  // ── Live DB Product Search for Mode B ──
+  // ── Live DB Product Search for Mode B (with Category Filter & B2B Custom Pricing) ──
   useEffect(() => {
-    if (!productSearchQuery.trim()) {
-      setProductSearchResults([]);
-      setIsSearchingProducts(false);
-      return;
-    }
-
     let active = true;
     setIsSearchingProducts(true);
 
     const timer = setTimeout(async () => {
       try {
-        const results = await quotationService.searchLiveProducts(productSearchQuery.trim());
+        const results = await quotationService.searchLiveProducts(productSearchQuery.trim(), selectedCategory);
         if (active) {
           setProductSearchResults(results);
-          setIsProductDropdownOpen(true);
+          if (productSearchQuery.trim() || selectedCategory) {
+            setIsProductDropdownOpen(true);
+          }
         }
       } catch (err) {
         console.error('Product search error:', err);
@@ -304,13 +314,14 @@ export function UnifiedPoSubmissionForm({
       active = false;
       clearTimeout(timer);
     };
-  }, [productSearchQuery]);
+  }, [productSearchQuery, selectedCategory]);
 
-  // Handle product selection from search
+  // Handle product selection from search with automatic B2B custom price application
   const handleSelectProduct = (prod: Product) => {
+    const eff = getEffectivePrice(prod, user, 1, b2bCache);
     setSelectedProduct(prod);
     setProductSearchQuery(prod.name);
-    setNewItemPrice(String(prod.salePrice || prod.price || 0));
+    setNewItemPrice(String(eff.unitPrice || 0));
     setNewItemQty(1);
     setIsProductDropdownOpen(false);
   };
@@ -327,20 +338,38 @@ export function UnifiedPoSubmissionForm({
     const name = selectedProduct?.name || productSearchQuery.trim();
     const sku = selectedProduct?.sku || `SKU-${Date.now().toString().slice(-4)}`;
     const thumbnail = selectedProduct?.thumbnail || (selectedProduct?.images && selectedProduct.images[0]);
+    const eff = selectedProduct ? getEffectivePrice(selectedProduct, user, qty, b2bCache) : null;
 
-    setCatalogLineItems((prev) => [
-      ...prev,
-      {
-        productId: selectedProduct?.id,
-        productName: name,
-        sku,
-        thumbnail,
-        unit: newItemUnit,
-        quantity: qty,
-        unitPrice: price,
-        amount: Math.round(qty * price * 100) / 100,
-      },
-    ]);
+    setCatalogLineItems((prev) => {
+      // If item already in list, increase quantity
+      const existingIdx = prev.findIndex((i) => (selectedProduct && i.productId === selectedProduct.id) || i.productName === name);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        const newTotalQty = updated[existingIdx].quantity + qty;
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          quantity: newTotalQty,
+          unitPrice: price,
+          amount: Math.round(newTotalQty * price * 100) / 100,
+        };
+        return updated;
+      }
+
+      return [
+        ...prev,
+        {
+          productId: selectedProduct?.id,
+          productName: name,
+          sku,
+          thumbnail,
+          unit: newItemUnit,
+          quantity: qty,
+          unitPrice: price,
+          amount: Math.round(qty * price * 100) / 100,
+          isB2BCustom: !!eff?.isCustomB2BPrice,
+        },
+      ];
+    });
 
     // Reset item picker
     setSelectedProduct(null);
@@ -348,6 +377,38 @@ export function UnifiedPoSubmissionForm({
     setNewItemPrice('');
     setNewItemQty(1);
     setError(null);
+  };
+
+  // Update item quantity in line items table
+  const handleUpdateItemQty = (idx: number, newQty: number) => {
+    if (newQty < 1) return;
+    setCatalogLineItems((prev) =>
+      prev.map((item, i) =>
+        i === idx
+          ? {
+              ...item,
+              quantity: newQty,
+              amount: Math.round(newQty * item.unitPrice * 100) / 100,
+            }
+          : item
+      )
+    );
+  };
+
+  // Update item unit price in line items table
+  const handleUpdateItemPrice = (idx: number, newPrice: number) => {
+    const validPrice = Math.max(0, newPrice);
+    setCatalogLineItems((prev) =>
+      prev.map((item, i) =>
+        i === idx
+          ? {
+              ...item,
+              unitPrice: validPrice,
+              amount: Math.round(item.quantity * validPrice * 100) / 100,
+            }
+          : item
+      )
+    );
   };
 
   const handleRemoveCatalogItem = (idx: number) => {
@@ -480,31 +541,30 @@ export function UnifiedPoSubmissionForm({
       try {
         const finalShipTo = sameAsBilling ? billToAddress : shipToAddress;
 
-        const res = await createFormPoSubmissionApi({
-          customerPoNumber: effectivePoNumber,
-          customerPoDate: customerPoDate || undefined,
-          currency,
-          expectedDeliveryDate: expectedDeliveryDate || undefined,
-          paymentTerms: paymentTerms.trim() || undefined,
-          customerNote: customerNote.trim() || undefined,
-          billToAddress,
-          shipToAddress: finalShipTo,
-          lineItems: catalogLineItems.map((item) => ({
-            description: item.productName,
+        const res = await createPurchaseOrderApi({
+          customerPoReferenceNumber: effectivePoNumber,
+          billingAddress: billToAddress,
+          deliveryAddress: finalShipTo,
+          deliveryInstructions: deliveryInstructions.trim() || undefined,
+          requestedDeliveryDate: expectedDeliveryDate || undefined,
+          advancePercentage: customerAdvancePercentage,
+          items: catalogLineItems.map((item) => ({
+            productId: item.productId,
+            productName: item.productName,
             sku: item.sku || undefined,
             unit: item.unit || 'PCS',
             quantity: item.quantity,
-            unitPrice: item.unitPrice,
+            rate: item.unitPrice,
           })),
         });
 
-        if (res.success && res.data) {
-          navigate(`/po-submissions/${res.data.submission.id}`);
+        if (res?.id) {
+          navigate(`/purchase-orders/${res.id}`);
         } else {
-          setError(res.error?.message || 'Failed to submit purchase order');
+          setError('Failed to create purchase order');
         }
       } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred. Please try again.');
+        setError(err?.message || 'An unexpected error occurred. Please try again.');
       } finally {
         setSubmitting(false);
       }
@@ -609,7 +669,7 @@ export function UnifiedPoSubmissionForm({
                 </span>
               </div>
               <p className="text-xs text-[#85431E] mt-1 leading-relaxed">
-                Submit your official Purchase Order against an approved quotation, build a line-item order directly from our catalog, or upload a company-signed PDF.
+                Submit your official Purchase Order against an approved quotation, build a line-item order directly from our catalog with B2B pricing, or upload a company-signed PDF.
               </p>
             </div>
           </div>
@@ -643,7 +703,7 @@ export function UnifiedPoSubmissionForm({
             </p>
           </button>
 
-          {/* Mode 2: Standard Form (DB Search) */}
+          {/* Mode 2: Standard Form (DB Search with B2B Pricing) */}
           <button
             type="button"
             onClick={() => setMode('STANDARD_FORM')}
@@ -658,7 +718,7 @@ export function UnifiedPoSubmissionForm({
               <span className="text-xs font-extrabold">Fill Standard PO Form</span>
             </div>
             <p className={`text-[11px] leading-relaxed ${mode === 'STANDARD_FORM' ? 'text-[#EACEAA]/80' : 'text-[#85431E]'}`}>
-              Build custom order. Search products directly from catalog with live pricing & advance calculation.
+              Search catalog items by category with live B2B client pricing, quantity controls & advance calculations.
             </p>
           </button>
 
@@ -856,80 +916,127 @@ export function UnifiedPoSubmissionForm({
         )}
 
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* MODE B: STANDARD PO FORM (SEARCH FROM DB CATALOG)                  */}
+        {/* MODE B: STANDARD PO FORM (SEARCH FROM DB CATALOG + B2B PRICING)    */}
         {/* ─────────────────────────────────────────────────────────────────── */}
         {mode === 'STANDARD_FORM' && (
           <div className="bg-[#FAF5EE] border border-[rgba(52,21,15,0.15)] rounded-tr-3xl rounded-bl-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-            <div className="border-b border-[rgba(52,21,15,0.1)] pb-3">
-              <h2 className="text-base font-bold text-[#34150F] flex items-center gap-2">
-                <Search className="w-4 h-4 text-[#D39858]" />
-                <span>1. Order Line Items (Search Catalog DB)</span>
-              </h2>
-              <p className="text-xs text-[#85431E] mt-0.5">
-                Search and select architectural hardware items from the database catalog, specify quantities, and build your Purchase Order item list.
-              </p>
+            <div className="border-b border-[rgba(52,21,15,0.1)] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-bold text-[#34150F] flex items-center gap-2">
+                  <Search className="w-4 h-4 text-[#D39858]" />
+                  <span>1. Order Line Items (Search Catalog DB with B2B Pricing)</span>
+                </h2>
+                <p className="text-xs text-[#85431E] mt-0.5">
+                  Filter by hardware category and search architectural products. Live B2B custom prices are automatically applied.
+                </p>
+              </div>
+              {isB2B && (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-[#34150F] text-[#EACEAA] flex items-center gap-1 shrink-0 self-start sm:self-auto">
+                  <Sparkles size={11} className="text-[#D39858]" />
+                  <span>B2B Contract Pricing Active</span>
+                </span>
+              )}
             </div>
 
-            {/* Product Search & Selection Bar */}
+            {/* Category Filter & Product Search Bar */}
             <div className="bg-white p-4 rounded-2xl border border-[rgba(52,21,15,0.12)] space-y-3">
-              <label className="text-xs font-bold text-[#34150F] block">Search Product from Database</label>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]" />
-                <input
-                  type="text"
-                  placeholder="Type product name, model number, or SKU (e.g. Cubicle Hinge, SS-304 Lock)..."
-                  value={productSearchQuery}
-                  onChange={(e) => {
-                    setProductSearchQuery(e.target.value);
-                    if (selectedProduct && e.target.value !== selectedProduct.name) {
-                      setSelectedProduct(null);
-                    }
-                  }}
-                  onFocus={() => {
-                    if (productSearchResults.length > 0) setIsProductDropdownOpen(true);
-                  }}
-                  className="w-full pl-9 pr-10 py-2.5 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
-                />
-                {isSearchingProducts && (
-                  <RefreshCw className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#34150F]" />
-                )}
-
-                {/* Dropdown Results */}
-                {isProductDropdownOpen && productSearchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[rgba(52,21,15,0.15)] rounded-2xl shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-[rgba(52,21,15,0.06)]">
-                    {productSearchResults.map((prod) => (
-                      <div
-                        key={prod.id}
-                        onClick={() => handleSelectProduct(prod)}
-                        className="p-3 hover:bg-[#FAF5EE] cursor-pointer flex items-center justify-between gap-3 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          {prod.thumbnail || (prod.images && prod.images[0]) ? (
-                            <img
-                              src={prod.thumbnail || prod.images[0]}
-                              alt={prod.name}
-                              className="w-8 h-8 object-cover rounded-lg border border-[rgba(52,21,15,0.1)]"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-[#EACEAA] rounded-lg flex items-center justify-center text-[#34150F] text-[10px] font-bold">
-                              PRC
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-xs font-bold text-[#34150F]">{prod.name}</p>
-                            <p className="text-[10px] text-[#85431E] font-mono">SKU: {prod.sku || 'N/A'}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-extrabold text-[#34150F]">
-                            ₹{Number(prod.salePrice || prod.price || 0).toLocaleString('en-IN')}
-                          </p>
-                          <span className="text-[10px] text-emerald-700 font-semibold">Select +</span>
-                        </div>
-                      </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Category Dropdown */}
+                <div>
+                  <label className="text-[11px] font-bold text-[#85431E] block mb-1">Hardware Category</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] font-semibold focus:outline-none focus:border-[#34150F]"
+                  >
+                    {CATEGORY_OPTIONS.map((cat) => (
+                      <option key={cat.slug} value={cat.slug}>
+                        {cat.label}
+                      </option>
                     ))}
+                  </select>
+                </div>
+
+                {/* Product Search Input */}
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-[#85431E] block mb-1">Search Hardware Products</label>
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]" />
+                    <input
+                      type="text"
+                      placeholder="Type product name, SKU (e.g. Cubicle Hinge, SS-304 Lock)..."
+                      value={productSearchQuery}
+                      onChange={(e) => {
+                        setProductSearchQuery(e.target.value);
+                        if (selectedProduct && e.target.value !== selectedProduct.name) {
+                          setSelectedProduct(null);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (productSearchResults.length > 0) setIsProductDropdownOpen(true);
+                      }}
+                      className="w-full pl-9 pr-10 py-2 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
+                    />
+                    {isSearchingProducts && (
+                      <RefreshCw className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#34150F]" />
+                    )}
+
+                    {/* Dropdown Results */}
+                    {isProductDropdownOpen && productSearchResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[rgba(52,21,15,0.15)] rounded-2xl shadow-xl z-30 max-h-64 overflow-y-auto divide-y divide-[rgba(52,21,15,0.06)]">
+                        {productSearchResults.map((prod) => {
+                          const eff = getEffectivePrice(prod, user, 1, b2bCache);
+                          return (
+                            <div
+                              key={prod.id}
+                              onClick={() => handleSelectProduct(prod)}
+                              className="p-3 hover:bg-[#FAF5EE] cursor-pointer flex items-center justify-between gap-3 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                {prod.thumbnail || (prod.images && prod.images[0]) ? (
+                                  <img
+                                    src={prod.thumbnail || prod.images[0]}
+                                    alt={prod.name}
+                                    className="w-9 h-9 object-cover rounded-lg border border-[rgba(52,21,15,0.1)]"
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 bg-[#EACEAA] rounded-lg flex items-center justify-center text-[#34150F] text-[10px] font-bold">
+                                    PRC
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-xs font-bold text-[#34150F]">{prod.name}</p>
+                                  <p className="text-[10px] text-[#85431E] font-mono">SKU: {prod.sku || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs font-extrabold text-[#34150F] font-mono">
+                                  ₹{eff.unitPrice.toLocaleString('en-IN')}
+                                </p>
+                                {eff.isB2B && eff.isCustomB2BPrice ? (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold block mt-0.5">
+                                    B2B Custom Rate
+                                  </span>
+                                ) : eff.isB2B && eff.b2bDiscountPercent > 0 ? (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold block mt-0.5">
+                                    B2B {eff.b2bDiscountPercent}% Off
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">Select +</span>
+                                )}
+                                {eff.originalPrice > eff.unitPrice && (
+                                  <span className="text-[10px] text-gray-400 line-through block">
+                                    ₹{eff.originalPrice.toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Quantity, Unit Price & Add Row */}
@@ -941,7 +1048,7 @@ export function UnifiedPoSubmissionForm({
                     min={1}
                     value={newItemQty}
                     onChange={(e) => setNewItemQty(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full px-3 py-2 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] font-mono focus:outline-none focus:border-[#34150F]"
+                    className="w-full px-3 py-2 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] font-mono font-bold focus:outline-none focus:border-[#34150F]"
                   />
                 </div>
                 <div>
@@ -959,7 +1066,7 @@ export function UnifiedPoSubmissionForm({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-[#85431E] block mb-1">Unit Price (₹)</label>
+                  <label className="text-[11px] font-bold text-[#85431E] block mb-1">Unit Rate (₹) *</label>
                   <input
                     type="number"
                     min={0}
@@ -967,7 +1074,7 @@ export function UnifiedPoSubmissionForm({
                     placeholder="0.00"
                     value={newItemPrice}
                     onChange={(e) => setNewItemPrice(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] font-mono focus:outline-none focus:border-[#34150F]"
+                    className="w-full px-3 py-2 bg-[#FAF5EE]/50 border border-[rgba(52,21,15,0.15)] rounded-xl text-xs text-[#34150F] font-mono font-bold focus:outline-none focus:border-[#34150F]"
                   />
                 </div>
                 <div className="flex items-end">
@@ -977,53 +1084,132 @@ export function UnifiedPoSubmissionForm({
                     className="w-full bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2 px-4 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Add to PO</span>
+                    <span>Add Item to PO</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Line Items Table */}
+            {/* Line Items Table with Quantity Controls */}
             {catalogLineItems.length > 0 ? (
-              <div className="bg-white rounded-2xl border border-[rgba(52,21,15,0.12)] overflow-hidden">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-[#FAF5EE] text-[#85431E] text-[10px] uppercase font-bold border-b border-[rgba(52,21,15,0.1)]">
-                    <tr>
-                      <th className="py-2.5 px-3">#</th>
-                      <th className="py-2.5 px-3">Item Description</th>
-                      <th className="py-2.5 px-2">SKU</th>
-                      <th className="py-2.5 px-2 text-right">Qty</th>
-                      <th className="py-2.5 px-2 text-right">Rate</th>
-                      <th className="py-2.5 px-3 text-right">Amount</th>
-                      <th className="py-2.5 px-2 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[rgba(52,21,15,0.06)] text-[#34150F]">
-                    {catalogLineItems.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-[#FAF5EE]/40">
-                        <td className="py-2.5 px-3 font-mono text-[#85431E]">{idx + 1}</td>
-                        <td className="py-2.5 px-3 font-semibold">{item.productName}</td>
-                        <td className="py-2.5 px-2 font-mono text-[#85431E] text-[11px]">{item.sku || '-'}</td>
-                        <td className="py-2.5 px-2 text-right font-mono">{item.quantity} {item.unit}</td>
-                        <td className="py-2.5 px-2 text-right font-mono">₹{item.unitPrice.toLocaleString('en-IN')}</td>
-                        <td className="py-2.5 px-3 text-right font-bold font-mono">₹{item.amount.toLocaleString('en-IN')}</td>
-                        <td className="py-2.5 px-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCatalogItem(idx)}
-                            className="text-rose-600 hover:text-rose-800 p-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
+              <div className="bg-white rounded-2xl border border-[rgba(52,21,15,0.12)] overflow-hidden shadow-sm">
+                <div className="p-3 bg-[#FAF5EE] border-b border-[rgba(52,21,15,0.1)] flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#34150F]">
+                    {catalogLineItems.length} Products in Purchase Order
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[#34150F]">
+                    Subtotal: ₹{standardBasicPrice.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-[#FAF5EE]/60 text-[#85431E] text-[10px] uppercase font-bold border-b border-[rgba(52,21,15,0.08)]">
+                      <tr>
+                        <th className="py-2.5 px-3">#</th>
+                        <th className="py-2.5 px-3">Product Description</th>
+                        <th className="py-2.5 px-2">SKU</th>
+                        <th className="py-2.5 px-3 text-center">Quantity</th>
+                        <th className="py-2.5 px-3 text-right">Unit Rate (₹)</th>
+                        <th className="py-2.5 px-3 text-right">Line Total (₹)</th>
+                        <th className="py-2.5 px-2 text-center">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-[rgba(52,21,15,0.06)] text-[#34150F]">
+                      {catalogLineItems.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-[#FAF5EE]/30">
+                          <td className="py-2.5 px-3 font-mono text-[#85431E] font-bold">{idx + 1}</td>
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-2">
+                              {item.thumbnail ? (
+                                <img src={item.thumbnail} alt={item.productName} className="w-7 h-7 object-cover rounded-md border border-[rgba(52,21,15,0.1)] shrink-0" />
+                              ) : (
+                                <div className="w-7 h-7 bg-[#EACEAA] rounded-md flex items-center justify-center text-[#34150F] text-[9px] font-bold shrink-0">
+                                  PRC
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-bold text-[#34150F]">{item.productName}</p>
+                                {item.isB2BCustom && (
+                                  <span className="text-[9px] text-purple-700 font-bold">B2B Custom Rate Applied</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-2 font-mono text-[#85431E] text-[11px]">{item.sku || '-'}</td>
+                          
+                          {/* Quantity Controls: Decrement, Input, Increment */}
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateItemQty(idx, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                                className="w-6 h-6 rounded-md bg-[#FAF5EE] border border-[rgba(52,21,15,0.15)] flex items-center justify-center text-[#34150F] hover:bg-[#EACEAA] disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-colors cursor-pointer"
+                                title="Decrease quantity"
+                              >
+                                <Minus size={11} />
+                              </button>
+                              <input
+                                type="number"
+                                min={1}
+                                value={item.quantity}
+                                onChange={(e) => handleUpdateItemQty(idx, Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-14 text-center py-1 px-1 bg-white border border-[rgba(52,21,15,0.15)] rounded-md text-xs font-mono font-bold text-[#34150F] focus:outline-none focus:border-[#34150F]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateItemQty(idx, item.quantity + 1)}
+                                className="w-6 h-6 rounded-md bg-[#FAF5EE] border border-[rgba(52,21,15,0.15)] flex items-center justify-center text-[#34150F] hover:bg-[#EACEAA] font-bold transition-colors cursor-pointer"
+                                title="Increase quantity"
+                              >
+                                <Plus size={11} />
+                              </button>
+                              <span className="text-[10px] text-[#85431E] font-mono ml-0.5">{item.unit}</span>
+                            </div>
+                          </td>
+
+                          {/* Editable Unit Price */}
+                          <td className="py-2.5 px-3 text-right">
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={item.unitPrice}
+                              onChange={(e) => handleUpdateItemPrice(idx, parseFloat(e.target.value) || 0)}
+                              className="w-20 text-right py-1 px-1.5 bg-white border border-[rgba(52,21,15,0.15)] rounded-md text-xs font-mono font-bold text-[#34150F] focus:outline-none focus:border-[#34150F]"
+                            />
+                          </td>
+
+                          {/* Amount */}
+                          <td className="py-2.5 px-3 text-right font-bold font-mono text-[#34150F]">
+                            ₹{item.amount.toLocaleString('en-IN')}
+                          </td>
+
+                          {/* Delete Item */}
+                          <td className="py-2.5 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCatalogItem(idx)}
+                              className="text-rose-600 hover:text-rose-800 p-1.5 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Remove item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
-              <div className="p-6 bg-white rounded-2xl border border-dashed border-[rgba(52,21,15,0.2)] text-center text-xs text-[#85431E]">
-                No items added yet. Use the product search bar above to select items from our architectural hardware database.
+              <div className="p-8 bg-white rounded-2xl border border-dashed border-[rgba(52,21,15,0.2)] text-center text-xs text-[#85431E] space-y-2">
+                <Layers className="w-8 h-8 text-[#D39858] mx-auto opacity-70" />
+                <p className="font-bold text-[#34150F]">No Hardware Products Added Yet</p>
+                <p className="text-[11px] max-w-sm mx-auto">
+                  Select a category or search by product name above to add items to your Purchase Order.
+                </p>
               </div>
             )}
           </div>
@@ -1152,7 +1338,7 @@ export function UnifiedPoSubmissionForm({
                   type="button"
                   onClick={fetchSequentialPoNumber}
                   disabled={fetchingPoNumber}
-                  className="text-[10px] text-[#85431E] hover:text-[#34150F] font-bold flex items-center gap-1"
+                  className="text-[10px] text-[#85431E] hover:text-[#34150F] font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <RefreshCw className={`w-3 h-3 ${fetchingPoNumber ? 'animate-spin' : ''}`} />
                   <span>Auto-Gen</span>
@@ -1520,7 +1706,7 @@ export function UnifiedPoSubmissionForm({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full sm:w-auto bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-8 py-3.5 rounded-tr-xl rounded-bl-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full sm:w-auto bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-8 py-3.5 rounded-tr-xl rounded-bl-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {submitting ? (
               <>

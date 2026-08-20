@@ -156,8 +156,19 @@ export interface CustomerPurchaseOrder {
   createdAt: string;
 }
 
+export interface CreatePoItemPayload {
+  productId?: string;
+  productName: string;
+  sku?: string;
+  variantId?: string;
+  unit?: string;
+  quantity: number;
+  rate: number;
+}
+
 export interface CreatePoPayload {
-  quotationId: string;
+  quotationId?: string;
+  items?: CreatePoItemPayload[];
   advancePercentage?: number;
   customerPoReferenceNumber?: string;
   billingAddress: PoAddress;
