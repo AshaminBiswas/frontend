@@ -29,6 +29,9 @@ const CustomerQuoteApprovalPage = lazy(() => import('../pages/CustomerQuoteAppro
 const CustomerPoListPage = lazy(() => import('../pages/CustomerPoListPage').then((m) => ({ default: m.CustomerPoListPage })));
 const CreatePurchaseOrderPage = lazy(() => import('../pages/CreatePurchaseOrderPage').then((m) => ({ default: m.CreatePurchaseOrderPage })));
 const CustomerPoDetailPage = lazy(() => import('../pages/CustomerPoDetailPage').then((m) => ({ default: m.CustomerPoDetailPage })));
+const PoSubmissionsListPage = lazy(() => import('../pages/PoSubmissionsListPage').then((m) => ({ default: m.PoSubmissionsListPage })));
+const CreatePoSubmissionPage = lazy(() => import('../pages/CreatePoSubmissionPage').then((m) => ({ default: m.CreatePoSubmissionPage })));
+const PoSubmissionDetailPage = lazy(() => import('../pages/PoSubmissionDetailPage').then((m) => ({ default: m.PoSubmissionDetailPage })));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const WishlistPage = lazy(() => import('../pages/WishlistPage').then((m) => ({ default: m.WishlistPage })));
 const BestSellersPage = lazy(() => import('../pages/BestSellersPage').then((m) => ({ default: m.BestSellersPage })));
@@ -153,6 +156,10 @@ function AppContent() {
               <Route path="/purchase-orders" element={<CustomerPoListPage />} />
               <Route path="/purchase-orders/create" element={<CreatePurchaseOrderPage />} />
               <Route path="/purchase-orders/:id" element={<CustomerPoDetailPage />} />
+              <Route path="/po-submissions" element={<PoSubmissionsListPage />} />
+              <Route path="/po-submissions/new" element={<CreatePoSubmissionPage />} />
+              <Route path="/po-submissions/create" element={<CreatePoSubmissionPage />} />
+              <Route path="/po-submissions/:id" element={<PoSubmissionDetailPage />} />
 
               {/* Navigation routes */}
               <Route path="/notifications" element={<NotificationsPage />} />

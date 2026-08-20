@@ -6,6 +6,7 @@ import {
   Heart, Bell, Star, CheckCircle2, AlertCircle,
   Lock, Eye, EyeOff, ArrowLeft, MapPin, Plus, Trash2,
   ShoppingCart, Minus, Truck, Download, Receipt, ExternalLink,
+  FileSpreadsheet, Upload,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
@@ -23,6 +24,11 @@ import {
   downloadPoInvoicePdf,
   deletePurchaseOrderApi,
 } from "../../services/poService";
+import {
+  CustomerPoSubmission,
+  getMyPoSubmissionsApi,
+  downloadAcknowledgementApi,
+} from "../../services/poSubmissionsService";
 import { AsyncActionButton } from "../common/AsyncActionButton";
 
 const ALL_PRODUCTS: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
@@ -37,7 +43,7 @@ interface UserProfilePageProps {
   onAddToCart: (product: Product) => void;
 }
 
-type ProfileTab = "overview" | "edit" | "quotes" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
+type ProfileTab = "overview" | "edit" | "quotes" | "po" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
 
 interface Address {
   id: string;
@@ -75,14 +81,14 @@ export function UserProfilePage({
 
   const tabParam = searchParams.get("tab") as ProfileTab | null;
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
-    if (tabParam && ["overview", "edit", "quotes", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+    if (tabParam && ["overview", "edit", "quotes", "po", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
       return tabParam;
     }
     return "overview";
   });
 
   useEffect(() => {
-    if (tabParam && ["overview", "edit", "quotes", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+    if (tabParam && ["overview", "edit", "quotes", "po", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -106,6 +112,12 @@ export function UserProfilePage({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+
+  /* ── PO Submissions (Intake) ── */
+  const [poSubmissions, setPoSubmissions] = useState<CustomerPoSubmission[]>([]);
+  const [poLoading, setPoLoading] = useState(false);
+  const [poFilter, setPoFilter] = useState<string>("ALL");
+  const [poSearch, setPoSearch] = useState<string>("");
 
   /* ── Orders & Purchase Orders ── */
   const [orders, setOrders] = useState<any[]>([]);
@@ -304,11 +316,28 @@ export function UserProfilePage({
       .finally(() => setReviewsLoading(false));
   }, [activeTab]);
 
+  // Fetch PO Submissions when tab selected or on overview (B2B only)
+  useEffect(() => {
+    if (!isB2B) return;
+    if (activeTab !== "po" && activeTab !== "overview") return;
+    setPoLoading(true);
+    getMyPoSubmissionsApi()
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) setPoSubmissions(res.data);
+        else setPoSubmissions([]);
+      })
+      .catch(() => setPoSubmissions([]))
+      .finally(() => setPoLoading(false));
+  }, [activeTab, isB2B]);
+
   const TABS: { key: ProfileTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { key: "overview", label: "Overview", icon: <User size={15} /> },
     { key: "edit", label: "Edit Profile", icon: <Edit3 size={15} /> },
     ...(isB2B
-      ? [{ key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> }]
+      ? [
+          { key: "po" as ProfileTab, label: "Purchase Orders (PO)", icon: <FileSpreadsheet size={15} />, badge: poSubmissions.length },
+          { key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> },
+        ]
       : []),
     { key: "orders", label: "My Orders", icon: <Package size={15} /> },
     { key: "cart", label: "My Cart", icon: <ShoppingCart size={15} />, badge: cart.reduce((s, i) => s + i.qty, 0) },
@@ -318,6 +347,19 @@ export function UserProfilePage({
     { key: "reviews", label: "My Reviews", icon: <Star size={15} /> },
     { key: "security", label: "Security", icon: <Shield size={15} /> },
   ];
+
+  /* ── PO Filtered List Helper ── */
+  const filteredPoSubmissions = poSubmissions.filter((po) => {
+    if (poFilter !== "ALL" && po.status !== poFilter) return false;
+    if (poSearch.trim()) {
+      const q = poSearch.toLowerCase();
+      return (
+        po.customerPoNumber.toLowerCase().includes(q) ||
+        po.submissionNumber.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
     <div
@@ -498,13 +540,22 @@ export function UserProfilePage({
                       </div>
                     ))}
                   </dl>
-                  <button
-                    type="button"
-                    onClick={() => switchTab("quotes")}
-                    className="w-full mt-3 flex items-center justify-center gap-2 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs"
-                  >
-                    <FileText size={13} /> Manage Project Quotations →
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => switchTab("po")}
+                      className="flex items-center justify-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs"
+                    >
+                      <FileSpreadsheet size={13} /> Purchase Orders (PO) →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchTab("quotes")}
+                      className="flex items-center justify-center gap-1.5 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold text-xs py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all shadow-xs"
+                    >
+                      <FileText size={13} /> Quotations →
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center py-8 text-center">
@@ -551,8 +602,8 @@ export function UserProfilePage({
                 {([
                   { icon: <Edit3 size={13} />, label: "Edit My Profile", action: () => switchTab("edit") },
                   ...(isB2B ? [
+                    { icon: <FileSpreadsheet size={13} />, label: "My Purchase Orders (PO)", action: () => switchTab("po") },
                     { icon: <FileText size={13} />, label: "My Project Quotations", action: () => switchTab("quotes") },
-                    { icon: <Package size={13} />, label: "My Purchase Orders (PO)", action: () => { onClose(); navigate("/purchase-orders"); } },
                   ] : []),
                   { icon: <MapPin size={13} />, label: "Manage Addresses", action: () => switchTab("addresses") },
                   { icon: <Lock size={13} />, label: "Change Password", action: () => switchTab("security") },
@@ -575,6 +626,251 @@ export function UserProfilePage({
             </div>
           </div>
         )}
+
+        {/* ═══════════════ PURCHASE ORDERS (PO INTAKE & STATUS - B2B ONLY) ═══════════════ */}
+        {activeTab === "po" && (
+          !isB2B ? (
+            <div className="bg-white rounded-3xl p-8 sm:p-12 border border-[#34150F]/10 shadow-sm text-center max-w-lg mx-auto space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-[#EACEAA]/60 flex items-center justify-center mx-auto text-[#34150F]">
+                <FileSpreadsheet size={32} className="text-[#D39858]" />
+              </div>
+              <h3 className="text-xl font-black text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
+                B2B Purchase Orders (Exclusive)
+              </h3>
+              <p className="text-xs text-[#85431E] leading-relaxed">
+                Purchase Order submission, catalog mapping, and official Order Acknowledgements are exclusive features for our B2B commercial & wholesale partners.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => switchTab("edit")}
+                  className="inline-flex items-center gap-2 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-6 py-3 rounded-tr-xl rounded-bl-xl transition-all shadow-md"
+                >
+                  <Building2 size={15} />
+                  <span>Add Business Details to Activate</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#34150F]/10 shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-[11px] font-bold text-[#D39858] uppercase tracking-wider">
+                  <FileSpreadsheet size={14} />
+                  <span>Purchase Order Intake & Acknowledgements</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
+                  Purchase Orders
+                </h2>
+                <p className="text-xs text-[#85431E] mt-0.5">
+                  Submit native ERP purchase order PDFs (SAP, Tally, Zoho) or structured forms, track engineering SKU mapping, and download formal Order Acknowledgements.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate("/po-submissions");
+                  }}
+                  className="bg-[#EACEAA]/40 hover:bg-[#D39858]/30 text-[#34150F] font-bold text-xs px-4 py-3 rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-2"
+                >
+                  <ExternalLink size={15} />
+                  <span>Full PO Dashboard</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate("/po-submissions/new");
+                  }}
+                  className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-md flex items-center gap-2"
+                >
+                  <Plus size={15} />
+                  <span>+ Submit Purchase Order</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-[#34150F]/10 shadow-xs">
+                <span className="text-[10px] uppercase font-bold text-[#85431E]">Total Submissions</span>
+                <p className="text-xl font-black text-[#34150F] mt-1">{poSubmissions.length}</p>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#34150F]/10 shadow-xs">
+                <span className="text-[10px] uppercase font-bold text-amber-700">Under Review</span>
+                <p className="text-xl font-black text-amber-700 mt-1">
+                  {poSubmissions.filter((p) => p.status === "SUBMITTED" || p.status === "UNDER_REVIEW").length}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#34150F]/10 shadow-xs">
+                <span className="text-[10px] uppercase font-bold text-emerald-700">Approved</span>
+                <p className="text-xl font-black text-emerald-700 mt-1">
+                  {poSubmissions.filter((p) => p.status === "APPROVED").length}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-[#34150F]/10 shadow-xs">
+                <span className="text-[10px] uppercase font-bold text-teal-700">Acknowledged</span>
+                <p className="text-xl font-black text-teal-700 mt-1">
+                  {poSubmissions.filter((p) => p.status === "ACKNOWLEDGED").length}
+                </p>
+              </div>
+            </div>
+
+            {/* Filter Tabs & Search */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+              <div className="relative flex-1 max-w-sm">
+                <input
+                  type="text"
+                  placeholder="Search by PO # or Ref..."
+                  value={poSearch}
+                  onChange={(e) => setPoSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] focus:outline-none focus:border-[#D39858]"
+                />
+                <FileSpreadsheet size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {[
+                  { key: "ALL", label: "All" },
+                  { key: "SUBMITTED", label: "Under Review" },
+                  { key: "CHANGES_REQUESTED", label: "Action Required" },
+                  { key: "APPROVED", label: "Approved" },
+                  { key: "ACKNOWLEDGED", label: "Acknowledged" },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setPoFilter(f.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                      poFilter === f.key
+                        ? "bg-[#34150F] text-[#EACEAA] shadow-sm"
+                        : "bg-white text-[#85431E] border border-[#34150F]/10 hover:border-[#D39858]"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submissions List */}
+            {poLoading ? (
+              <div className="bg-white rounded-2xl p-12 text-center border border-[#34150F]/10">
+                <div className="w-8 h-8 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-xs text-[#85431E]">Loading your purchase orders...</p>
+              </div>
+            ) : filteredPoSubmissions.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 text-center border border-[#34150F]/10 space-y-3">
+                <FileSpreadsheet size={40} className="text-[#D39858]/40 mx-auto" />
+                <h4 className="text-base font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
+                  No Purchase Orders Found
+                </h4>
+                <p className="text-xs text-[#85431E] max-w-sm mx-auto">
+                  {poFilter !== "ALL" || poSearch
+                    ? "No submissions match your search/filter criteria."
+                    : "Upload your existing ERP PO PDF or fill out our structured form."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate("/po-submissions/new");
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-2.5 rounded-tr-xl rounded-bl-xl transition-all shadow-sm"
+                >
+                  <Plus size={14} />
+                  <span>Submit Purchase Order</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {filteredPoSubmissions.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="bg-white rounded-tr-2xl rounded-bl-2xl p-5 border border-[#34150F]/10 hover:border-[#D39858] shadow-sm transition-all space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold text-[#34150F] bg-[#EACEAA]/70 px-2.5 py-0.5 rounded-lg">
+                          {sub.submissionNumber}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          sub.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                          sub.status === 'ACKNOWLEDGED' ? 'bg-teal-50 text-teal-800 border-teal-300' :
+                          sub.status === 'CHANGES_REQUESTED' ? 'bg-orange-50 text-orange-800 border-orange-300' :
+                          sub.status === 'REJECTED' ? 'bg-red-50 text-red-800 border-red-300' :
+                          'bg-amber-50 text-amber-800 border-amber-300'
+                        }`}>
+                          {sub.status.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-[#85431E] uppercase">PO Number</span>
+                        <h4 className="text-sm font-black text-[#34150F] truncate">{sub.customerPoNumber}</h4>
+                      </div>
+
+                      <div className="p-2.5 bg-[#FAF5EE] rounded-xl text-xs space-y-1 text-[#85431E]">
+                        <div className="flex justify-between">
+                          <span className="text-[11px]">Mode:</span>
+                          <span className="font-bold text-[#34150F]">{sub.sourceType === 'PDF_UPLOAD' ? 'PDF Upload' : 'Structured Form'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[11px]">Order Value:</span>
+                          <span className="font-mono font-bold text-[#34150F]">
+                            {sub.mappedTotal
+                              ? `₹${Number(sub.mappedTotal).toLocaleString('en-IN')}`
+                              : sub.statedTotal
+                              ? `₹${Number(sub.statedTotal).toLocaleString('en-IN')}`
+                              : 'Under Review'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[11px]">Submitted:</span>
+                          <span className="font-medium text-[#34150F]">
+                            {new Date(sub.submittedAt).toLocaleDateString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#34150F]/10 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          navigate(`/po-submissions/${sub.id}`);
+                        }}
+                        className="text-xs font-bold text-[#34150F] hover:text-[#D39858] inline-flex items-center gap-1"
+                      >
+                        <span>View Timeline</span>
+                        <ChevronRight size={14} />
+                      </button>
+
+                      {sub.acknowledgement && (
+                        <AsyncActionButton
+                          mode="download"
+                          idleLabel="Ack PDF"
+                          loadingLabel="..."
+                          successLabel="✓"
+                          variant="custom"
+                          size="sm"
+                          className="px-2.5 py-1 bg-[#34150F] hover:bg-[#D39858] hover:text-[#34150F] text-[#EACEAA] font-bold text-[11px] rounded-lg transition-colors"
+                          onAction={async () => {
+                            await downloadAcknowledgementApi(sub.id, sub.acknowledgement!.ackNumber);
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
 
         {/* ═══════════════ B2B QUOTATIONS (EXCLUSIVE) ═══════════════ */}
         {activeTab === "quotes" && (

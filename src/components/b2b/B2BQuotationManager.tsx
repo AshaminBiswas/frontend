@@ -113,11 +113,11 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
 
         <div className="flex items-center gap-3">
           <Link
-            to="/purchase-orders"
+            to="/po-submissions"
             className="bg-[#EACEAA]/40 hover:bg-[#D39858]/30 text-[#34150F] font-bold text-xs px-4 py-3 rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-2"
           >
             <FileText size={15} />
-            <span>My Purchase Orders (PO)</span>
+            <span>Submit / Track PO</span>
           </Link>
           <Link
             to="/request-quote"
