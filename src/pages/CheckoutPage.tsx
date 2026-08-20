@@ -85,12 +85,9 @@ export function CheckoutPage({ cart, onClearCart }: CheckoutPageProps) {
       onClearCart();
       setIsSubmitting(false);
       navigate(`/order-success/${orderId}`);
-    } catch {
-      // Fallback local order placement
-      const orderId = `ORD-${Date.now().toString().slice(-6)}`;
-      onClearCart();
+    } catch (err: any) {
       setIsSubmitting(false);
-      navigate(`/order-success/${orderId}`);
+      setErrorMsg(err?.message || "Failed to place order. Please try again or contact support.");
     }
   };
 

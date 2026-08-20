@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   FileSpreadsheet,
   ArrowLeft,
@@ -34,16 +34,20 @@ import {
   PoSubmissionStatus,
   downloadAcknowledgementApi,
 } from '../services/poSubmissionsService';
+import { getCustomerPurchaseOrderByIdApi } from '../services/poService';
 import { AsyncActionButton } from '../components/common/AsyncActionButton';
 
 export function PoSubmissionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
   const [po, setPo] = useState<CustomerPoSubmission | null>(null);
   const [tracking, setTracking] = useState<PoTrackingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTrackingTab, setActiveTrackingTab] = useState<'stepper' | 'items' | 'logs'>('stepper');
+  // When the ID belongs to a b2b_purchase_orders record (Standard PO form), we store the redirect target
+  const [b2bPoRedirectId, setB2bPoRedirectId] = useState<string | null>(null);
 
   const loadPoAndTracking = useCallback(async () => {
     if (!id || !isAuthenticated) return;
@@ -57,6 +61,21 @@ export function PoSubmissionDetailPage() {
       if (poRes.success && poRes.data) {
         setPo(poRes.data);
       } else {
+        // ── Graceful fallback ─────────────────────────────────────────────────
+        // The ID may belong to a b2b_purchase_orders record (submitted via
+        // Standard PO form) rather than a po_submissions record.
+        // Try the purchase-orders API; if it succeeds, redirect automatically.
+        try {
+          const b2bPo = await getCustomerPurchaseOrderByIdApi(id);
+          if (b2bPo && b2bPo.id) {
+            // Found a B2B PO — redirect to the full lifecycle page
+            setB2bPoRedirectId(b2bPo.id);
+            navigate(`/purchase-orders/${b2bPo.id}`, { replace: true });
+            return;
+          }
+        } catch {
+          // Not found in either table — fall through to the error state
+        }
         setError(poRes.error?.message || 'Failed to load purchase order');
       }
 
@@ -68,7 +87,7 @@ export function PoSubmissionDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, navigate]);
 
   useEffect(() => {
     loadPoAndTracking();
@@ -114,13 +133,25 @@ export function PoSubmissionDetailPage() {
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
         <h2 className="text-xl font-bold text-[#34150F]">Purchase Order Not Found</h2>
         <p className="text-xs text-[#85431E]">{error || 'Unable to locate submission details'}</p>
-        <Link
-          to="/profile?tab=po"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#34150F] bg-[#EACEAA] px-4 py-2 rounded-xl"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Purchase Orders</span>
-        </Link>
+        <div className="flex flex-col gap-2 items-center">
+          {/* If the ID may be a B2B PO, offer a direct link */}
+          {id && (
+            <Link
+              to={`/purchase-orders/${id}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#34150F] px-4 py-2 rounded-xl"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>View as Purchase Order</span>
+            </Link>
+          )}
+          <Link
+            to="/profile?tab=po"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#34150F] bg-[#EACEAA] px-4 py-2 rounded-xl"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Purchase Orders</span>
+          </Link>
+        </div>
       </div>
     );
   }
