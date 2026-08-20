@@ -112,13 +112,7 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            to="/po-submissions"
-            className="bg-[#EACEAA]/40 hover:bg-[#D39858]/30 text-[#34150F] font-bold text-xs px-4 py-3 rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-2"
-          >
-            <FileText size={15} />
-            <span>Submit / Track PO</span>
-          </Link>
+          
           <Link
             to="/request-quote"
             className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-md flex items-center gap-2"
@@ -285,15 +279,7 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {q.status === "APPROVED" && (
-                    <Link
-                      to={`/purchase-orders/create?quoteNumber=${encodeURIComponent(q.referenceNo)}&quoteId=${encodeURIComponent(q.id)}`}
-                      className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5"
-                    >
-                      <FileText size={13} />
-                      <span>Submit PO</span>
-                    </Link>
-                  )}
+                  
                   {q.status === "APPROVED" && q.accessToken ? (
                     <Link
                       to={`/quote/${q.accessToken}`}
@@ -320,3 +306,4 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
     </div>
   );
 }
+

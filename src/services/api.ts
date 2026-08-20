@@ -1,6 +1,8 @@
 import { ApiResponse } from "../types";
 
-export const API_BASE_URL = "https://prc-backend-6sw7.onrender.com/api/v1";
+export const API_BASE_URL = import.meta.env.PROD 
+  ? "https://prc-backend-6sw7.onrender.com/api/v1" 
+  : "/api/v1";
 
 const TOKEN_KEY = "prc_access_token";
 const REFRESH_TOKEN_KEY = "prc_refresh_token";
