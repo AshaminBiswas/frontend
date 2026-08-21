@@ -592,25 +592,30 @@ export function RequestQuotePage() {
   // ─── SUCCESS SCREEN: If RFQ submitted successfully ───
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-[#EACEAA]/20 py-12 px-4 md:px-8" style={{ fontFamily: "'Nunito', sans-serif" }}>
-        <div className="max-w-2xl mx-auto bg-white rounded-3xl p-8 md:p-12 border border-[#34150F]/10 shadow-xl text-center space-y-6">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-[#EACEAA]/20 py-12 px-4 md:px-8 flex items-center justify-center" style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <div className="max-w-xl w-full bg-white rounded-3xl p-8 md:p-10 border border-[#34150F]/10 shadow-2xl text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
             <CheckCircle2 size={36} />
           </div>
 
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
-              Quotation Request Submitted!
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D39858] bg-[#D39858]/10 px-3 py-1 rounded-full border border-[#D39858]/20">
+              Quotation Successfully Submitted
+            </span>
+            <h1 className="text-2xl md:text-3xl font-black text-[#34150F] mt-2" style={{ fontFamily: "'Gilda Display', serif" }}>
+              Quotation Request Received!
             </h1>
-            <p className="text-xs text-[#85431E] mt-2">
-              Your official B2B RFQ has been logged in PRC Hardware central registry.
+            <p className="text-xs text-[#85431E] mt-1.5 leading-relaxed">
+              Your official commercial B2B quotation request has been registered in the PRC Hardware central system.
             </p>
           </div>
 
-          <div className="p-5 bg-[#EACEAA]/20 rounded-2xl border border-[#34150F]/10 text-left space-y-3 text-xs">
+          <div className="p-5 bg-[#EACEAA]/20 rounded-2xl border border-[#34150F]/10 text-left space-y-2.5 text-xs">
             <div className="flex items-center justify-between border-b border-[#34150F]/10 pb-2">
-              <span className="text-[#85431E] font-semibold">Reference Number</span>
-              <span className="font-mono font-black text-sm text-[#34150F]">{submitSuccess.referenceNo}</span>
+              <span className="text-[#85431E] font-semibold">Quotation Number</span>
+              <span className="font-mono font-black text-sm text-[#34150F] bg-white px-2.5 py-0.5 rounded border border-[#34150F]/15">
+                {submitSuccess.referenceNo || submitSuccess.quoteNumber}
+              </span>
             </div>
             <div className="flex items-center justify-between border-b border-[#34150F]/10 pb-2">
               <span className="text-[#85431E] font-semibold">Project Name</span>
@@ -620,43 +625,65 @@ export function RequestQuotePage() {
               <span className="text-[#85431E] font-semibold">Client / Company</span>
               <span className="font-bold text-[#34150F]">{submitSuccess.companyName} ({submitSuccess.gstNo})</span>
             </div>
-            <div className="flex items-center justify-between border-b border-[#34150F]/10 pb-2">
-              <span className="text-[#85431E] font-semibold">Estimated Basic Price</span>
-              <span className="font-bold text-[#34150F]">₹{submitSuccess.basicPrice.toLocaleString("en-IN")}</span>
-            </div>
-            <div className="flex items-center justify-between border-b border-[#34150F]/10 pb-2">
-              <span className="text-[#85431E] font-semibold">GST (18%)</span>
-              <span className="font-bold text-[#34150F]">₹{submitSuccess.gstAmount.toLocaleString("en-IN")}</span>
-            </div>
             <div className="flex items-center justify-between pt-1">
               <span className="text-[#85431E] font-bold">Estimated Grand Total</span>
               <span className="font-extrabold text-sm text-[#85431E]">₹{submitSuccess.grandTotal.toLocaleString("en-IN")}</span>
             </div>
           </div>
 
-          <p className="text-xs text-[#85431E]/80">
-            A confirmation email has been dispatched to <strong>{submitSuccess.email}</strong>. Our estimating team will review and digitally sign the final quotation with transport details.
-          </p>
+          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 text-left flex items-start gap-2.5">
+            <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              A mandatory confirmation email containing Quotation Reference <strong>{submitSuccess.referenceNo}</strong> has been sent to <strong>{submitSuccess.email}</strong>.
+            </p>
+          </div>
 
+          {/* EXACTLY TWO ACTIONS: Track Quotation and View Quotation */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <button
               type="button"
               onClick={() => {
+                const ref = submitSuccess.referenceNo || submitSuccess.quoteNumber;
                 setSubmitSuccess(null);
-                setLineItems([]);
-                setProjectName("");
-                setNotes("");
+                setActiveTab("tracking");
+                setTrackingQuery(ref);
+                setTimeout(() => {
+                  quotationService.trackQuotes(ref).then((res) => {
+                    if (res.success && res.data) {
+                      setTrackedQuotes(res.data);
+                      setTrackingSearched(true);
+                    }
+                  });
+                }, 100);
               }}
-              className="bg-[#34150F] text-[#EACEAA] font-bold text-xs py-3 px-6 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
+              className="flex-1 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
             >
-              Submit Another Quote
+              <Clock size={16} />
+              <span>Track Quotation</span>
             </button>
+
             <button
               type="button"
-              onClick={() => navigate("/products")}
-              className="bg-[#EACEAA]/40 text-[#34150F] font-bold text-xs py-3 px-6 rounded-xl hover:bg-[#EACEAA] transition-all border border-[#34150F]/10"
+              onClick={() => {
+                if (submitSuccess.accessToken) {
+                  navigate(`/quote/${submitSuccess.accessToken}`);
+                } else {
+                  const ref = submitSuccess.referenceNo || submitSuccess.quoteNumber;
+                  setSubmitSuccess(null);
+                  setActiveTab("tracking");
+                  setTrackingQuery(ref);
+                  quotationService.trackQuotes(ref).then((res) => {
+                    if (res.success && res.data) {
+                      setTrackedQuotes(res.data);
+                      setTrackingSearched(true);
+                    }
+                  });
+                }
+              }}
+              className="flex-1 bg-[#D39858] hover:bg-[#34150F] text-[#34150F] hover:text-[#EACEAA] font-bold text-xs py-3.5 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
             >
-              Return to Catalog
+              <Eye size={16} />
+              <span>View Quotation</span>
             </button>
           </div>
         </div>

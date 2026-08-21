@@ -64,7 +64,11 @@ export interface QuotationDetail {
   basicPrice: number;
   gstAmount: number;
   shippingCost?: number | null;
-  grandTotal: number;
+  advancePercentage?: number | null;
+  customerProposedAdvancePercent?: number | null;
+  customerEditCount?: number;
+  customerEditRemark?: string | null;
+  canCustomerEdit?: boolean;
   notes?: string | null;
   adminNotes?: string | null;
   termsAccepted: boolean;
@@ -87,6 +91,16 @@ export interface QuotationDetail {
     createdAt: string;
     adminUser?: { firstName?: string; lastName?: string; email?: string };
   }>;
+  revisions?: Array<{
+    id: string;
+    quoteId?: string;
+    changedBy: string;
+    changedById?: string | null;
+    previousValues: any;
+    newValues: any;
+    remark: string;
+    createdAt: string;
+  }>;
 }
 
 export interface TrackedQuotationSummary {
@@ -105,6 +119,9 @@ export interface TrackedQuotationSummary {
   gstAmount: number;
   shippingCost?: number | null;
   grandTotal: number;
+  advancePercentage?: number | null;
+  customerProposedAdvancePercent?: number | null;
+  customerEditCount?: number;
   customerResponse: string;
   hasDigitalSignature: boolean;
   accessToken?: string;
@@ -170,6 +187,23 @@ export const quotationService = {
     return fetchApi<QuotationDetail>(`/quotes/public/${token}/respond`, {
       method: 'POST',
       body: JSON.stringify({ response, notes }),
+    });
+  },
+
+  /**
+   * Customer One-Time Edit (Negotiate Advance % & Submit Reason)
+   */
+  async customerEditQuote(
+    token: string,
+    payload: {
+      advancePercentage: number;
+      remark: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<QuotationDetail>> {
+    return fetchApi<QuotationDetail>(`/quotes/public/${token}/edit`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 

@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Building2, CheckCircle2, XCircle, Printer, Download,
   Clock, AlertCircle, ArrowLeft, ShieldCheck, QrCode,
-  FileText, Send, RefreshCw, Copy, Check
+  FileText, Send, RefreshCw, Copy, Check, Edit3, Percent,
+  History, X, HelpCircle, Sparkles
 } from "lucide-react";
 import { quotationService, QuotationDetail } from "../services/quotationService";
 import { AsyncActionButton } from "../components/common/AsyncActionButton";
@@ -21,6 +22,15 @@ export function CustomerQuoteApprovalPage() {
   const [submittingDecision, setSubmittingDecision] = useState(false);
   const [decisionSuccess, setDecisionSuccess] = useState("");
   const [decisionError, setDecisionError] = useState("");
+
+  // Customer Advance % Negotiation / Edit States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editAdvancePercent, setEditAdvancePercent] = useState<number>(30);
+  const [editRemark, setEditRemark] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+  const [editSuccess, setEditSuccess] = useState("");
+  const [editError, setEditError] = useState("");
 
   // Copy signature hash state
   const [copiedSignature, setCopiedSignature] = useState(false);
@@ -43,6 +53,11 @@ export function CustomerQuoteApprovalPage() {
       const res = await quotationService.getQuoteByToken(token);
       if (res.success && res.data) {
         setQuote(res.data);
+        if (res.data.advancePercentage !== undefined && res.data.advancePercentage !== null) {
+          setEditAdvancePercent(res.data.advancePercentage);
+        } else if (res.data.customerProposedAdvancePercent !== undefined && res.data.customerProposedAdvancePercent !== null) {
+          setEditAdvancePercent(res.data.customerProposedAdvancePercent);
+        }
       } else {
         setErrorMsg(res.error?.message || "Quotation not found or link has expired.");
       }
@@ -56,6 +71,45 @@ export function CustomerQuoteApprovalPage() {
   useEffect(() => {
     fetchQuote();
   }, [token]);
+
+  // Handle Customer One-Time Edit Submit
+  const handleCustomerEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !quote) return;
+
+    if (editAdvancePercent < 0 || editAdvancePercent > 100 || isNaN(editAdvancePercent)) {
+      setEditError("Please enter a valid advance payment percentage between 0% and 100%.");
+      return;
+    }
+
+    if (!editRemark.trim() || editRemark.trim().length < 10) {
+      setEditError("Please provide a mandatory reason/remark of at least 10 characters explaining your requested terms.");
+      return;
+    }
+
+    setSubmittingEdit(true);
+    setEditError("");
+    try {
+      const res = await quotationService.customerEditQuote(token, {
+        advancePercentage: Number(editAdvancePercent),
+        remark: editRemark.trim(),
+        notes: editNotes.trim() || undefined,
+      });
+
+      if (res.success && res.data) {
+        setQuote(res.data);
+        setIsEditModalOpen(false);
+        setEditSuccess("Your quotation revision request has been submitted to PRC Hardware estimating team.");
+        setDecisionSuccess("");
+      } else {
+        setEditError(res.error?.message || "Failed to submit quotation revision.");
+      }
+    } catch (err: any) {
+      setEditError(err?.message || "Network error while submitting revision. Please try again.");
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
 
   // Handle Accept or Decline
   const handleDecision = async (response: "accepted" | "declined") => {
@@ -363,6 +417,7 @@ export function CustomerQuoteApprovalPage() {
             </div>
 
             {/* Price Calculations Card */}
+            {/* Price Calculations Card */}
             <div className="p-5 bg-[#EACEAA]/25 rounded-2xl border border-[#34150F]/15 space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[#85431E] font-semibold">Basic Amount (Excl. GST)</span>
@@ -387,6 +442,38 @@ export function CustomerQuoteApprovalPage() {
                 <span>Grand Total (INR)</span>
                 <span className="font-mono text-lg text-[#85431E]">₹{quote.grandTotal.toLocaleString("en-IN")}</span>
               </div>
+
+              {/* Advance Payment Requirement Display */}
+              <div className="pt-2 border-t border-[#34150F]/15 bg-[#EACEAA]/30 p-3 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-[#34150F] font-bold block flex items-center gap-1.5">
+                    <Percent size={13} className="text-[#D39858]" />
+                    <span>Advance Payment Terms</span>
+                  </span>
+                  <span className="text-[10px] text-[#85431E]">
+                    {quote.advancePercentage !== null && quote.advancePercentage !== undefined
+                      ? "Configured by PRC Estimating Team"
+                      : "Standard B2B Commercial Terms"}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono font-black text-xs text-[#85431E] bg-white px-2 py-0.5 rounded border border-[#34150F]/15 inline-block">
+                    {quote.advancePercentage !== null && quote.advancePercentage !== undefined
+                      ? `${quote.advancePercentage}%`
+                      : "30%"}
+                  </span>
+                  <span className="block font-mono font-bold text-[11px] text-[#34150F] mt-0.5">
+                    ₹{Math.round(
+                      quote.grandTotal *
+                        ((quote.advancePercentage !== null && quote.advancePercentage !== undefined
+                          ? quote.advancePercentage
+                          : 30) /
+                          100)
+                    ).toLocaleString("en-IN")}{" "}
+                    Deposit
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -394,17 +481,69 @@ export function CustomerQuoteApprovalPage() {
           <div className="text-[10px] text-[#85431E]/70 space-y-1 pt-4 border-t border-[#34150F]/10 leading-relaxed">
             <p className="font-bold text-[#34150F] uppercase">Commercial Terms & Conditions:</p>
             <p>1. Prices are valid for 30 days from date of issue.</p>
-            <p>2. Payment terms: 100% advance against proforma invoice for manufactured finishes.</p>
+            <p>
+              2. Payment terms:{" "}
+              <strong>
+                {quote.advancePercentage !== null && quote.advancePercentage !== undefined
+                  ? `${quote.advancePercentage}%`
+                  : "30%"}{" "}
+                advance
+              </strong>{" "}
+              against proforma invoice before dispatch.
+            </p>
             <p>3. Dispatch timelines commence after technical approval of dimensions.</p>
           </div>
         </div>
 
-        {/* Customer Approval / Decision Box - Hidden in Print */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#34150F]/10 shadow-lg space-y-4 print:hidden">
-          <h3 className="text-base font-bold text-[#34150F] flex items-center gap-2">
-            <Send size={18} className="text-[#D39858]" />
-            <span>Customer Response & Acceptance</span>
-          </h3>
+        {/* Customer Under Review Banner for Revisions */}
+        {quote.status === "UNDER_REVIEW" && quote.customerProposedAdvancePercent !== null && quote.customerProposedAdvancePercent !== undefined && (
+          <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm space-y-2 text-xs text-blue-950 print:hidden">
+            <div className="flex items-center gap-2 font-bold text-blue-900 text-sm">
+              <Clock size={18} className="text-blue-600 shrink-0" />
+              <span>Quotation Revision Under Estimating Review</span>
+            </div>
+            <p className="text-blue-800 leading-relaxed">
+              Your requested terms revision (Proposed Advance: <strong>{quote.customerProposedAdvancePercent}%</strong>) has been submitted for quotation <strong>{quote.referenceNo}</strong>. Our commercial hardware team is reviewing your requested terms. Quotation number remains unchanged.
+            </p>
+            {quote.customerEditRemark && (
+              <div className="bg-white/80 p-3 rounded-xl border border-blue-100 text-blue-900 mt-2">
+                <span className="font-bold text-[10px] uppercase text-blue-600 block">Your Stated Reason:</span>
+                <p className="italic text-xs pt-0.5">"{quote.customerEditRemark}"</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Customer Approval / Negotiation Box - Hidden in Print */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#34150F]/10 shadow-lg space-y-5 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#34150F]/10 pb-4">
+            <h3 className="text-base font-bold text-[#34150F] flex items-center gap-2">
+              <Send size={18} className="text-[#D39858]" />
+              <span>Customer Response & Acceptance</span>
+            </h3>
+
+            {/* Advance % Negotiation Action Button */}
+            {quote.status === "APPROVED" && (quote.canCustomerEdit || (!quote.customerEditCount && quote.customerResponse === "pending")) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditError("");
+                  setIsEditModalOpen(true);
+                }}
+                className="bg-[#EACEAA]/40 hover:bg-[#D39858] text-[#34150F] font-bold text-xs px-4 py-2 rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-1.5 shadow-sm"
+              >
+                <Edit3 size={14} className="text-[#85431E]" />
+                <span>Change Advance % / Propose Terms</span>
+              </button>
+            )}
+          </div>
+
+          {editSuccess && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-900 flex items-center gap-2">
+              <CheckCircle2 size={18} className="text-blue-600 shrink-0" />
+              <span>{editSuccess}</span>
+            </div>
+          )}
 
           {decisionSuccess && (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex items-center gap-2">
@@ -464,11 +603,42 @@ export function CustomerQuoteApprovalPage() {
               )}
 
               <p className="text-[11px] text-[#85431E]/80 pt-1">
-                Your response is locked in our central order processing pipeline. For further scope revisions, contact support@pacifichardware.com.
+                Your response is locked in our central order processing pipeline. For further scope revisions, you can adjust line items during PO submission or contact support@pacifichardware.com.
               </p>
             </div>
           ) : quote.status === "APPROVED" ? (
             <div className="space-y-4">
+              {/* Advance Payment Notice Box */}
+              <div className="p-4 bg-[#EACEAA]/20 rounded-2xl border border-[#34150F]/15 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div>
+                  <span className="font-bold text-[#34150F] block">
+                    Advance Payment Required:{" "}
+                    <span className="text-[#85431E] font-extrabold text-sm">
+                      {quote.advancePercentage !== null && quote.advancePercentage !== undefined
+                        ? `${quote.advancePercentage}%`
+                        : "30%"}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-[#85431E]">
+                    An advance deposit of ₹
+                    {Math.round(
+                      quote.grandTotal *
+                        ((quote.advancePercentage !== null && quote.advancePercentage !== undefined
+                          ? quote.advancePercentage
+                          : 30) /
+                          100)
+                    ).toLocaleString("en-IN")}{" "}
+                    is required against proforma invoice upon PO submission.
+                  </span>
+                </div>
+
+                {quote.customerEditCount !== undefined && quote.customerEditCount > 0 && (
+                  <span className="text-[10px] font-bold text-[#85431E] bg-[#EACEAA]/50 px-2.5 py-1 rounded-lg border border-[#34150F]/10">
+                    One-time revision limit reached
+                  </span>
+                )}
+              </div>
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#34150F]">Optional Remarks / PO Number</label>
                 <textarea
@@ -506,12 +676,197 @@ export function CustomerQuoteApprovalPage() {
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-center gap-2">
               <Clock size={16} className="text-amber-600 shrink-0" />
               <span>
-                This quotation is currently in <strong>{quote.status}</strong> status. Once finalized and digitally signed by our estimation department, you will be able to record your acceptance here.
+                This quotation is currently in <strong>{quote.status}</strong> status. Once finalized and digitally signed by our estimation department, you will be able to record your acceptance or negotiate terms here.
               </span>
             </div>
           )}
         </div>
+
+        {/* ─── REVISION HISTORY & AUDIT TRAIL ─── */}
+        {quote.revisions && quote.revisions.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#34150F]/10 shadow-lg space-y-4 print:hidden">
+            <h3 className="text-base font-bold text-[#34150F] flex items-center gap-2">
+              <History size={18} className="text-[#D39858]" />
+              <span>Quotation Revision History</span>
+            </h3>
+
+            <div className="space-y-3">
+              {quote.revisions.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="p-4 rounded-2xl bg-[#EACEAA]/15 border border-[#34150F]/10 text-xs space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#34150F]">
+                      {rev.changedBy === "CUSTOMER" ? "Client Proposed Terms Revision" : "Admin Approved Terms"}
+                    </span>
+                    <span className="text-[11px] text-[#85431E]">
+                      {new Date(rev.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+
+                  {rev.remark && (
+                    <p className="text-xs text-[#34150F] bg-white p-2.5 rounded-xl border border-[#34150F]/10 italic">
+                      "{rev.remark}"
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#85431E]">
+                    {rev.previousValues?.advancePercentage !== undefined && (
+                      <span>
+                        Previous Advance: <strong>{rev.previousValues.advancePercentage}%</strong>
+                      </span>
+                    )}
+                    {rev.newValues?.customerProposedAdvancePercent !== undefined && (
+                      <span>
+                        Proposed Advance:{" "}
+                        <strong className="text-amber-800">
+                          {rev.newValues.customerProposedAdvancePercent}%
+                        </strong>
+                      </span>
+                    )}
+                    {rev.newValues?.advancePercentage !== undefined && (
+                      <span>
+                        Final Advance:{" "}
+                        <strong className="text-emerald-800">
+                          {rev.newValues.advancePercentage}%
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ─── MODAL: CUSTOMER ONE-TIME ADVANCE % NEGOTIATION ─── */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-3xl border border-[#34150F]/15 p-6 sm:p-8 space-y-5 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-[#34150F]/10 pb-3">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D39858] bg-[#D39858]/10 px-2 py-0.5 rounded border border-[#D39858]/20">
+                  One-Time Revision Request
+                </span>
+                <h3 className="text-lg font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
+                  Propose Advance % Terms
+                </h3>
+                <p className="text-xs text-[#85431E] font-mono">Ref: {quote.referenceNo}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1.5 text-[#85431E] hover:text-[#34150F] hover:bg-[#EACEAA]/30 rounded-xl transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5">
+              <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                You are allowed <strong>exactly one revision</strong> for this quotation after admin approval. Your quotation number (<strong>{quote.referenceNo}</strong>) will remain unchanged.
+              </p>
+            </div>
+
+            {editError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 flex items-center gap-2">
+                <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCustomerEditSubmit} className="space-y-4 text-xs">
+              {/* Advance Percentage Input */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#34150F] block">
+                  Proposed Advance Payment Percentage (0% – 100%) <span className="text-rose-600">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      required
+                      value={editAdvancePercent}
+                      onChange={(e) => setEditAdvancePercent(parseFloat(e.target.value) || 0)}
+                      placeholder="e.g. 20"
+                      className="w-full px-4 py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl font-mono font-bold text-sm text-[#34150F] focus:outline-none focus:border-[#34150F]"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-[#85431E]">%</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-[#EACEAA]/20 rounded-xl border border-[#34150F]/10 flex items-center justify-between text-[11px]">
+                  <span className="text-[#85431E]">Estimated Initial Deposit:</span>
+                  <span className="font-mono font-extrabold text-[#34150F]">
+                    ₹{Math.round(quote.grandTotal * (editAdvancePercent / 100)).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mandatory Reason / Remark */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#34150F] block">
+                  Mandatory Reason / Remark <span className="text-rose-600">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editRemark}
+                  onChange={(e) => setEditRemark(e.target.value)}
+                  placeholder="Explain why you are requesting this advance percentage (min 10 characters)..."
+                  className="w-full px-4 py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F] resize-none"
+                />
+                <span className="text-[10px] text-[#85431E]/70 block text-right">
+                  {editRemark.length}/10 chars minimum
+                </span>
+              </div>
+
+              {/* Optional Notes */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#34150F] block">Additional Notes (Optional)</label>
+                <input
+                  type="text"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="e.g. Preferred delivery site contact or project timeline..."
+                  className="w-full px-4 py-2 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F]"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#34150F]/10">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-5 py-2.5 bg-[#EACEAA]/30 text-[#34150F] font-bold rounded-xl hover:bg-[#EACEAA]/60 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEdit || editRemark.trim().length < 10}
+                  className="px-6 py-2.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Send size={14} />
+                  <span>{submittingEdit ? "Submitting Revision..." : "Submit Revision"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
