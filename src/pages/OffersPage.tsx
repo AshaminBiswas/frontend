@@ -4,7 +4,7 @@ import {
   Tag, Percent, Flame, Clock, Search, Filter,
   Star, ShoppingCart, Heart, ChevronLeft, ChevronRight,
   Package, Check, ShieldCheck, Truck, Copy, Sparkles,
-  ArrowRight, RefreshCw, Gift, Zap, Building2
+  ArrowRight, RefreshCw, Gift, Zap, Building2, SlidersHorizontal, CheckCircle2, Ticket
 } from "lucide-react";
 import { Product } from "../types";
 import { couponService, Coupon } from "../services/couponService";
@@ -43,6 +43,12 @@ function normalizeRawProduct(item: any): Product {
     ? item.category.name
     : (typeof item.category === "string" ? item.category : "Hardware");
 
+  const calculatedDiscount = item.discount
+    ? Number(item.discount)
+    : effectiveRegular > effectiveSale
+    ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100)
+    : 0;
+
   return {
     ...item,
     id: finalId,
@@ -54,43 +60,12 @@ function normalizeRawProduct(item: any): Product {
     offerPrice: effectiveSale,
     regularPrice: effectiveRegular,
     originalPrice: effectiveRegular,
-    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
+    discount: calculatedDiscount,
     image,
     material: item.material || item.specifications?.material || "Stainless Steel / Brass",
     b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
   };
 }
-
-// Fallback coupons if backend is offline
-const FALLBACK_COUPONS: Coupon[] = [
-  {
-    id: "1",
-    code: "WELCOME10",
-    description: "Flat 10% discount for all retail customers",
-    discountType: "PERCENTAGE",
-    discountValue: 10,
-    minOrderAmount: 499,
-    isActive: true,
-  },
-  {
-    id: "2",
-    code: "PRCBULK15",
-    description: "Flat 15% discount for B2B bulk & contractor orders",
-    discountType: "PERCENTAGE",
-    discountValue: 15,
-    minOrderAmount: 5000,
-    isActive: true,
-  },
-  {
-    id: "3",
-    code: "FREESHIP2K",
-    description: "Free Express Shipping on orders over ₹2,000",
-    discountType: "FIXED_AMOUNT",
-    discountValue: 100,
-    minOrderAmount: 2000,
-    isActive: true,
-  },
-];
 
 /* ── Safe Image Thumbnail ── */
 function ProductThumb({ src, name }: { src?: string; name: string }) {
@@ -126,14 +101,15 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
   const [products, setProducts] = useState<Product[]>([]);
-  const [coupons, setCoupons] = useState<Coupon[]>(FALLBACK_COUPONS);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
 
   const [search, setSearch] = useState("");
-  const [discountTier, setDiscountTier] = useState("ALL");
+  const [selectedTier, setSelectedTier] = useState<string>("ALL");
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null);
   const [category, setCategory] = useState("ALL");
   const [inStockOnly, setInStockOnly] = useState(false);
 
@@ -146,17 +122,20 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
   const loadData = () => {
     setLoading(true);
 
-    // 1. Fetch Dynamic Coupons from API
+    // 1. Fetch Dynamic Real Coupons from Backend API
     couponService
       .getPublicCoupons()
       .then((res) => {
-        if (res.success && res.data && res.data.length > 0) {
+        if (res && res.success && Array.isArray(res.data)) {
           setCoupons(res.data);
         } else {
-          setCoupons(FALLBACK_COUPONS);
+          setCoupons([]);
         }
       })
-      .catch(() => setCoupons(FALLBACK_COUPONS));
+      .catch((err) => {
+        console.warn("[OffersPage Coupons Load Error]:", err);
+        setCoupons([]);
+      });
 
     // 2. Fetch Dynamic Products from Database API
     fetchApi<any>("/products?limit=100")
@@ -204,11 +183,58 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
     return subscribeToProductSync(loadData);
   }, []);
 
-  // Filter products for offers: prefer items marked isInOffer or return all catalog
-  const offerProductList = useMemo(() => {
-    const marked = products.filter((p) => p.isInOffer === true || (Array.isArray(p.tags) && p.tags.includes("offer")));
-    return marked.length > 0 ? marked : products;
-  }, [products]);
+  // ── Dynamic Target Product Map for Coupons ──────────────────────────────────
+  const couponProductMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    coupons.forEach((c) => {
+      const pids = new Set<string>();
+      if (Array.isArray(c.applicableProductIds)) {
+        c.applicableProductIds.forEach((id) => pids.add(String(id)));
+      }
+      map.set(c.code, pids);
+    });
+    return map;
+  }, [coupons]);
+
+  // ── Compute Dynamic Filter Tiers from Actual Product Catalog ────────────────
+  const dynamicTiers = useMemo(() => {
+    let totalOfferCount = 0;
+    let count50Plus = 0;
+    let count30Plus = 0;
+    let count20Plus = 0;
+    let count10Plus = 0;
+    let countPriceDrop = 0;
+
+    products.forEach((p) => {
+      const effective = getEffectivePrice(p, user, 1, b2bCache);
+      const discount = effective.isB2B
+        ? effective.b2bDiscountPercent
+        : effective.originalPrice > effective.unitPrice
+        ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
+        : p.discount || 0;
+
+      const isMarked = p.isInOffer === true || (Array.isArray(p.tags) && p.tags.some((t: string) => String(t).toLowerCase().includes("offer")));
+
+      if (discount > 0 || isMarked) totalOfferCount++;
+      if (discount >= 50) count50Plus++;
+      if (discount >= 30) count30Plus++;
+      if (discount >= 20) count20Plus++;
+      if (discount >= 10) count10Plus++;
+      if (effective.unitPrice < effective.originalPrice) countPriceDrop++;
+    });
+
+    const tiers = [
+      { id: "ALL", label: `All Active Offers (${totalOfferCount || products.length})` },
+    ];
+
+    if (count50Plus > 0) tiers.push({ id: "50_PLUS", label: `50%+ OFF Steals (${count50Plus})` });
+    if (count30Plus > 0) tiers.push({ id: "30_PLUS", label: `30%+ OFF Deals (${count30Plus})` });
+    if (count20Plus > 0) tiers.push({ id: "20_PLUS", label: `20%+ OFF (${count20Plus})` });
+    if (count10Plus > 0 && count30Plus === 0) tiers.push({ id: "10_PLUS", label: `10%+ OFF (${count10Plus})` });
+    if (countPriceDrop > 0) tiers.push({ id: "PRICE_DROPS", label: `Factory Price Drops (${countPriceDrop})` });
+
+    return tiers;
+  }, [products, user, b2bCache]);
 
   // Extract unique categories
   const categoryOptions = useMemo(() => {
@@ -219,12 +245,21 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
     return Array.from(set);
   }, [products]);
 
-  // Filter products by discount percentage & criteria
+  // Filter products by discount tier, selected coupon, category, and search
   const filteredProducts = useMemo(() => {
-    return offerProductList.filter((p) => {
+    return products.filter((p) => {
       if (search.trim() && !p.name.toLowerCase().includes(search.toLowerCase().trim())) return false;
       if (category !== "ALL" && String(p.category).toUpperCase() !== category.toUpperCase()) return false;
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) return false;
+
+      // If a specific coupon code is selected, check eligibility
+      if (selectedCouponCode) {
+        const targetIds = couponProductMap.get(selectedCouponCode);
+        if (targetIds && targetIds.size > 0) {
+          const isEligible = targetIds.has(String(p.id)) || (p.apiId ? targetIds.has(String(p.apiId)) : false);
+          if (!isEligible) return false;
+        }
+      }
 
       const effective = getEffectivePrice(p, user, 1, b2bCache);
       const discount = effective.isB2B
@@ -233,20 +268,22 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
         ? Math.round(((effective.originalPrice - effective.unitPrice) / effective.originalPrice) * 100)
         : p.discount || 0;
 
-      if (discountTier === "50_PLUS" && discount < 50) return false;
-      if (discountTier === "40_PLUS" && discount < 40) return false;
-      if (discountTier === "UNDER_200" && effective.unitPrice >= 200) return false;
+      if (selectedTier === "50_PLUS" && discount < 50) return false;
+      if (selectedTier === "30_PLUS" && discount < 30) return false;
+      if (selectedTier === "20_PLUS" && discount < 20) return false;
+      if (selectedTier === "10_PLUS" && discount < 10) return false;
+      if (selectedTier === "PRICE_DROPS" && effective.unitPrice >= effective.originalPrice) return false;
 
       return true;
     });
-  }, [offerProductList, search, category, discountTier, inStockOnly, user, b2bCache]);
+  }, [products, search, category, selectedTier, selectedCouponCode, inStockOnly, user, b2bCache, couponProductMap]);
 
   const displayedProducts = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
     return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredProducts, page]);
 
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -303,24 +340,34 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
               "Premium architectural hardware, cubicle fittings, and handles at direct manufacturer rates with pan-India delivery."}
           </p>
 
-          {/* Dynamic Copyable Promo Codes Bar */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {coupons.map((c) => (
-              <button
-                key={c.code}
-                type="button"
-                onClick={() => handleCopyCode(c.code)}
-                className="bg-[#EACEAA]/15 border border-[#D39858]/40 hover:bg-[#D39858] hover:text-[#34150F] text-[#EACEAA] px-4 py-2 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all flex items-center gap-2 shadow"
-              >
-                <span>{c.code}</span>
-                {copiedCode === c.code ? (
-                  <Check size={14} className="text-emerald-400" />
-                ) : (
-                  <Copy size={13} />
-                )}
-              </button>
-            ))}
-          </div>
+          {/* Dynamic Real Copyable Promo Codes Bar from Database */}
+          {coupons.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {coupons.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => handleCopyCode(c.code)}
+                  className="bg-[#EACEAA]/15 border border-[#D39858]/40 hover:bg-[#D39858] hover:text-[#34150F] text-[#EACEAA] px-4 py-2 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all flex items-center gap-2 shadow backdrop-blur-sm"
+                >
+                  <span className="font-mono">{c.code}</span>
+                  <span className="text-[10px] opacity-80">
+                    ({c.discountType === "PERCENTAGE" ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`})
+                  </span>
+                  {copiedCode === c.code ? (
+                    <Check size={14} className="text-emerald-400" />
+                  ) : (
+                    <Copy size={13} />
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#34150F]/60 text-[#EACEAA] border border-[#D39858]/30 text-xs font-bold">
+              <Sparkles size={14} className="text-[#D39858]" />
+              <span>Direct factory discounts automatically applied on all eligible items below</span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -328,7 +375,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
       <section className="bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.1)] py-5 px-4 md:px-8 lg:px-16 shadow-xs">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            { icon: Percent, label: "Direct Factory Pricing", sub: "Super saver items" },
+            { icon: Percent, label: "Direct Factory Pricing", sub: "Super saver catalog" },
             { icon: Zap, label: "B2B Contract Deals", sub: "Wholesale quantity rates" },
             { icon: Truck, label: "Free Shipping @ ₹2,000", sub: "Pan-India express delivery" },
             { icon: ShieldCheck, label: "GST Input Tax Credit", sub: "100% genuine tax invoice" },
@@ -349,22 +396,17 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
         </div>
       </section>
 
-      {/* ═══════════════ MAIN OFFERS & DEALS CONTENT (DYNAMIC) ═══════════════ */}
+      {/* ═══════════════ MAIN OFFERS & DEALS CONTENT (100% DYNAMIC) ═══════════════ */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 py-12">
 
-        {/* ── Deal Filter Tabs ── */}
+        {/* ── Dynamic Deal Filter Tabs (Computed from Real Products) ── */}
         <div className="w-full max-w-full flex items-center gap-2 overflow-x-auto touch-pan-x pb-3 mb-6 scrollbar-none">
-          {[
-            { id: "ALL", label: "All Active Offers" },
-            { id: "50_PLUS", label: "50%+ OFF Steals" },
-            { id: "40_PLUS", label: "40%+ OFF Deals" },
-            { id: "UNDER_200", label: "Deals Under ₹200" },
-          ].map((tier) => (
+          {dynamicTiers.map((tier) => (
             <button
               key={tier.id}
-              onClick={() => { setDiscountTier(tier.id); setPage(1); }}
+              onClick={() => { setSelectedTier(tier.id); setSelectedCouponCode(null); setPage(1); }}
               className={`shrink-0 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border ${
-                discountTier === tier.id
+                selectedTier === tier.id && !selectedCouponCode
                   ? "bg-[#34150F] text-[#D39858] border-transparent shadow-md"
                   : "bg-[#f5e8d4] text-[#85431E] border-[rgba(52,21,15,0.1)] hover:border-[#D39858] hover:text-[#34150F]"
               }`}
@@ -372,6 +414,36 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
               {tier.label}
             </button>
           ))}
+
+          {/* Dynamic Tabs for Active Coupon Codes */}
+          {coupons.map((c) => {
+            const isSelective = Array.isArray(c.applicableProductIds) && c.applicableProductIds.length > 0;
+            const isSelected = selectedCouponCode === c.code;
+            return (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => {
+                  setSelectedCouponCode(isSelected ? null : c.code);
+                  setSelectedTier("ALL");
+                  setPage(1);
+                }}
+                className={`shrink-0 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-[#85431E] text-white border-transparent shadow-md"
+                    : "bg-[#f5e8d4] text-[#85431E] border-[rgba(52,21,15,0.1)] hover:border-[#D39858]"
+                }`}
+              >
+                <Tag size={13} />
+                <span>Code: {c.code}</span>
+                {isSelective && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#D39858] text-[#34150F] font-extrabold">
+                    Targeted
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* ── Filter Controls ── */}
@@ -413,13 +485,20 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
             </label>
 
             {/* Reset */}
-            {(search || discountTier !== "ALL" || category !== "ALL" || inStockOnly) && (
+            {(search || selectedTier !== "ALL" || selectedCouponCode || category !== "ALL" || inStockOnly) && (
               <button
                 type="button"
-                onClick={() => { setSearch(""); setDiscountTier("ALL"); setCategory("ALL"); setInStockOnly(false); setPage(1); }}
+                onClick={() => {
+                  setSearch("");
+                  setSelectedTier("ALL");
+                  setSelectedCouponCode(null);
+                  setCategory("ALL");
+                  setInStockOnly(false);
+                  setPage(1);
+                }}
                 className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#85431E] hover:text-[#34150F] transition-colors py-2"
               >
-                <RefreshCw size={13} /> Reset Filters
+                <RefreshCw size={13} /> Reset All Filters
               </button>
             )}
           </div>
@@ -432,7 +511,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
               className="text-2xl sm:text-3xl font-bold text-[#34150F]"
               style={{ fontFamily: "'Gilda Display', serif" }}
             >
-              Active Special Offers
+              {selectedCouponCode ? `Items Eligible for Coupon "${selectedCouponCode}"` : "Active Special Offers"}
             </h2>
             <p className="text-xs text-[#85431E] mt-0.5">
               Showing {displayedProducts.length} of {filteredProducts.length} deal items
@@ -446,7 +525,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
         ) : displayedProducts.length === 0 ? (
           <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-12 text-center border border-[rgba(52,21,15,0.08)] shadow-sm">
             <Package size={42} className="text-[#85431E]/40 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-[#34150F] mb-1">No offer products match criteria</h3>
+            <h3 className="text-base font-bold text-[#34150F] mb-1">No offer products match selected criteria</h3>
             <p className="text-xs text-[#85431E]">Try selecting another discount tier or search term.</p>
           </div>
         ) : (
@@ -498,79 +577,49 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
                     {/* Content */}
                     <div className="p-4 sm:p-5">
-                      <Link to={`/product/${(product as any).apiId || product.id}`}>
-                        <h3 className="text-sm font-bold text-[#34150F] leading-snug line-clamp-2 hover:text-[#D39858] transition-colors mb-1">
+                      <span className="text-[10px] font-bold text-[#85431E] uppercase tracking-wider block mb-1">
+                        {product.category}
+                      </span>
+                      <Link to={`/product/${product.id}`}>
+                        <h3 className="text-xs sm:text-sm font-bold text-[#34150F] hover:text-[#85431E] transition-colors line-clamp-2 mb-2">
                           {product.name}
                         </h3>
                       </Link>
 
-                      {((product as any).shortDesc || product.description) && (
-                        <p className="text-[10px] text-[#85431E]/65 leading-relaxed line-clamp-2 mb-2">
-                          {(product as any).shortDesc || product.description}
-                        </p>
-                      )}
-
-                      {/* Stars */}
-                      <div className="flex items-center gap-1 mb-3">
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              size={12}
-                              fill={s <= Math.round(Number(product.rating || 5)) ? "#D39858" : "none"}
-                              stroke="#D39858"
-                              strokeWidth={1.5}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[10px] text-[#85431E]/60 font-bold">
-                          ({Number(product.rating || 5.0).toFixed(1)})
+                      {/* Price Section */}
+                      <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-base sm:text-lg font-black text-[#34150F]">
+                          ₹{effective.unitPrice.toLocaleString("en-IN")}
                         </span>
-                      </div>
-
-                      {/* Price & Savings Pill */}
-                      <div className="space-y-1">
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <span
-                            className="text-lg font-black text-[#34150F]"
-                            style={{ fontFamily: "'DM Mono', monospace" }}
-                          >
-                            ₹{effective.unitPrice.toLocaleString("en-IN")}
+                        {effective.originalPrice > effective.unitPrice && (
+                          <span className="text-xs text-[#85431E]/60 line-through">
+                            ₹{effective.originalPrice.toLocaleString("en-IN")}
                           </span>
-                          {effective.originalPrice > effective.unitPrice && (
-                            <span className="text-xs text-[#85431E]/50 line-through font-semibold">
-                              ₹{effective.originalPrice.toLocaleString("en-IN")}
-                            </span>
-                          )}
-                          {effective.isB2B && (
-                            <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider flex items-center gap-0.5">
-                              <Building2 size={10} /> B2B Rate
-                            </span>
-                          )}
-                        </div>
-                        {savingsRupees > 0 && !effective.isB2B && (
-                          <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded w-fit border border-emerald-200">
-                            You save ₹{savingsRupees.toLocaleString("en-IN")}
-                          </p>
                         )}
                       </div>
+
+                      {savingsRupees > 0 && (
+                        <p className="text-[10px] text-emerald-700 font-bold mb-3">
+                          Save ₹{savingsRupees.toLocaleString("en-IN")} direct
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Add to Cart CTA */}
+                  {/* Add to Cart Button */}
                   <div className="p-4 sm:p-5 pt-0">
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
-                      className={`w-full py-2.5 px-4 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-95 ${
+                      className={`w-full py-2.5 px-4 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow ${
                         isAdded
-                          ? "bg-emerald-600 text-white"
-                          : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
+                          ? "bg-emerald-700 text-white"
+                          : "bg-[#34150F] hover:bg-[#85431E] text-[#EACEAA]"
                       }`}
                     >
                       {isAdded ? (
                         <>
-                          <Check size={14} /> Added to Cart!
+                          <Check size={14} /> Added to Cart
                         </>
                       ) : (
                         <>
@@ -587,7 +636,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
         {/* ── Pagination ── */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 my-8">
+          <div className="flex items-center justify-center gap-2 mb-12">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
@@ -622,7 +671,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
       </div>
 
-      {/* ═══════════════ DYNAMIC PROMO CODES GRID (FROM BACKEND API) ═══════════════ */}
+      {/* ═══════════════ DYNAMIC PROMO CODES & COUPONS GRID (LIVE FROM BACKEND DATABASE) ═══════════════ */}
       <section className="py-14 bg-[#FAF4ED] border-y border-[rgba(52,21,15,0.08)] px-4 md:px-8 lg:px-16">
         <div className="max-w-6xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-10">
@@ -631,55 +680,98 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
               className="text-3xl font-bold text-[#34150F]"
               style={{ fontFamily: "'Gilda Display', serif" }}
             >
-              DYNAMIC PROMO CODES & COUPONS
+              ACTIVE PROMOTIONS & VOUCHERS
             </h2>
-            <p className="text-xs sm:text-sm text-[#85431E]">
-              Tap any coupon code below to copy it for immediate use at checkout.
+            <p className="text-xs sm:text-sm text-[#85431E] mt-1">
+              Tap any coupon code below to copy it for instant application at checkout.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {coupons.map((c) => (
-              <div
-                key={c.code}
-                className="bg-[#f5e8d4] p-6 rounded-tr-2xl rounded-bl-2xl border-2 border-dashed border-[#D39858]/60 relative flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black text-[#34150F] bg-[#D39858]/30 px-2.5 py-1 rounded">
-                      {c.discountType === "PERCENTAGE"
-                        ? `${c.discountValue}% OFF`
-                        : `₹${c.discountValue} OFF`}
-                    </span>
-                    {c.minOrderAmount && (
-                      <span className="text-[10px] text-[#85431E]/70 font-bold">
-                        Min Order: ₹{c.minOrderAmount}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#85431E] leading-relaxed mb-4">
-                    {c.description || `Use promo code ${c.code} to save at checkout.`}
-                  </p>
-                </div>
+          {coupons.length === 0 ? (
+            <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-10 text-center border border-[rgba(52,21,15,0.1)] max-w-lg mx-auto shadow-sm">
+              <Ticket size={36} className="text-[#85431E]/40 mx-auto mb-2" />
+              <h4 className="text-sm font-bold text-[#34150F]">No voucher codes active at the moment</h4>
+              <p className="text-xs text-[#85431E] mt-1">
+                Direct factory discounts are already applied to all promotional items in the catalog above.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {coupons.map((c) => {
+                const isSelective = Array.isArray(c.applicableProductIds) && c.applicableProductIds.length > 0;
+                return (
+                  <div
+                    key={c.code}
+                    className="bg-[#f5e8d4] p-6 rounded-tr-2xl rounded-bl-2xl border-2 border-dashed border-[#D39858]/60 relative flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-black text-[#34150F] bg-[#D39858]/30 px-2.5 py-1 rounded flex items-center gap-1">
+                          <Percent size={12} />
+                          {c.discountType === "PERCENTAGE"
+                            ? `${c.discountValue}% OFF`
+                            : `₹${c.discountValue} FLAT OFF`}
+                        </span>
+                        {c.minOrderAmount ? (
+                          <span className="text-[10px] text-[#85431E]/80 font-bold">
+                            Min Order: ₹{Number(c.minOrderAmount).toLocaleString("en-IN")}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-emerald-700 font-bold">No Min Order</span>
+                        )}
+                      </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleCopyCode(c.code)}
-                  className="w-full bg-[#34150F] text-[#EACEAA] font-bold py-2.5 px-4 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all text-xs flex items-center justify-center gap-2"
-                >
-                  {copiedCode === c.code ? (
-                    <>
-                      <Check size={14} className="text-emerald-400" /> Code Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} /> Copy Code: {c.code}
-                    </>
-                  )}
-                </button>
-              </div>
-            ))}
-          </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-mono font-black text-sm text-[#34150F] bg-[#EACEAA] px-2 py-0.5 rounded border border-[#34150F]/20">
+                          {c.code}
+                        </span>
+                        {isSelective && (
+                          <span className="text-[9px] bg-amber-600 text-white font-extrabold px-1.5 py-0.5 rounded uppercase">
+                            Selective Products
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-[#85431E] leading-relaxed mb-4">
+                        {c.description || `Use promo code ${c.code} to save on your architectural hardware order.`}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#34150F]/10">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(c.code)}
+                        className="w-full bg-[#34150F] text-[#EACEAA] font-bold py-2.5 px-4 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all text-xs flex items-center justify-center gap-2 shadow"
+                      >
+                        {copiedCode === c.code ? (
+                          <>
+                            <Check size={14} className="text-emerald-400" /> Code Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} /> Copy Code: {c.code}
+                          </>
+                        )}
+                      </button>
+
+                      {isSelective && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCouponCode(selectedCouponCode === c.code ? null : c.code);
+                            window.scrollTo({ top: 600, behavior: "smooth" });
+                          }}
+                          className="w-full text-center text-[11px] font-bold text-[#85431E] hover:text-[#34150F] transition-colors py-1"
+                        >
+                          {selectedCouponCode === c.code ? "Show All Items" : "View Eligible Items Above ↑"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

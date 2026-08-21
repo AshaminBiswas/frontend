@@ -1,9 +1,10 @@
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Percent } from "lucide-react";
 import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
+import { couponService, Coupon } from "../../services/couponService";
 import { subscribeToProductSync } from "../../services/productSyncService";
 
 interface SuperSaverSectionProps {
@@ -40,6 +41,12 @@ function normalizeRawProduct(item: any): Product {
     ? item.category.name
     : (typeof item.category === "string" ? item.category : "Hardware");
 
+  const calculatedDiscount = item.discount
+    ? Number(item.discount)
+    : effectiveRegular > effectiveSale
+    ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100)
+    : 0;
+
   return {
     ...item,
     id: finalId,
@@ -51,7 +58,7 @@ function normalizeRawProduct(item: any): Product {
     offerPrice: effectiveSale,
     regularPrice: effectiveRegular,
     originalPrice: effectiveRegular,
-    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
+    discount: calculatedDiscount,
     image,
     material: item.material || item.specifications?.material || "Stainless Steel / Brass",
     b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
@@ -63,30 +70,62 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
   const [offerProducts, setOfferProducts] = useState<Product[]>([]);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
-  const loadOffers = () => {
-    fetchApi<any>("/products?limit=100")
-      .then((res) => {
-        if (res && res.success && res.data) {
-          const rawList = Array.isArray(res.data.products)
-            ? res.data.products
-            : Array.isArray(res.data)
-            ? res.data
-            : Array.isArray(res.data.items)
-            ? res.data.items
-            : [];
+  const loadOffers = async () => {
+    try {
+      const [pRes, cRes] = await Promise.allSettled([
+        fetchApi<any>("/products?limit=100"),
+        couponService.getPublicCoupons(),
+      ]);
 
-          if (rawList.length > 0) {
-            const normalized = rawList.map(normalizeRawProduct);
-            const marked = normalized.filter((p) => p.isInOffer === true || (Array.isArray(p.tags) && p.tags.includes("offer")));
-            setOfferProducts(marked.length > 0 ? marked : normalized.slice(0, 8));
-          } else {
-            setOfferProducts([]);
+      let rawProducts: any[] = [];
+      if (pRes.status === "fulfilled" && pRes.value && pRes.value.success && pRes.value.data) {
+        const d = pRes.value.data;
+        rawProducts = Array.isArray(d.products)
+          ? d.products
+          : Array.isArray(d)
+          ? d
+          : Array.isArray(d.items)
+          ? d.items
+          : [];
+      }
+
+      // Collect target product IDs from active public coupons
+      const targetCouponProductIds = new Set<string>();
+      if (cRes.status === "fulfilled" && cRes.value && cRes.value.success && Array.isArray(cRes.value.data)) {
+        cRes.value.data.forEach((coupon: any) => {
+          if (Array.isArray(coupon.applicableProductIds)) {
+            coupon.applicableProductIds.forEach((pid: string) => targetCouponProductIds.add(String(pid)));
           }
-        } else {
-          setOfferProducts([]);
-        }
-      })
-      .catch(() => setOfferProducts([]));
+        });
+      }
+
+      if (rawProducts.length > 0) {
+        const normalized = rawProducts.map(normalizeRawProduct);
+
+        // Filter products with active offers, selective coupon links, or discounted rates
+        const markedOffers = normalized.filter((p) => {
+          const isMarked = p.isInOffer === true;
+          const hasOfferTag = Array.isArray(p.tags) && p.tags.some((t: string) => {
+            const s = String(t).toLowerCase();
+            return s.includes("offer") || s.includes("sale") || s.includes("deal") || s.includes("saver");
+          });
+          const hasDiscount = (p.discount && p.discount > 0) || (p.regularPrice && p.price && p.regularPrice > p.price);
+          const isCouponTarget = targetCouponProductIds.has(String(p.id)) || (p.apiId ? targetCouponProductIds.has(String(p.apiId)) : false);
+          return isMarked || hasOfferTag || hasDiscount || isCouponTarget;
+        });
+
+        // Sort by highest discount rate
+        markedOffers.sort((a, b) => (b.discount || 0) - (a.discount || 0));
+
+        // If marked offers exist, display them; otherwise display top products with best value
+        setOfferProducts(markedOffers.length > 0 ? markedOffers : normalized.slice(0, 10));
+      } else {
+        setOfferProducts([]);
+      }
+    } catch (err) {
+      console.warn("[SuperSaverSection Load Error]:", err);
+      setOfferProducts([]);
+    }
   };
 
   useEffect(() => {
@@ -111,10 +150,15 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
     <section className="py-12 px-4 md:px-8 lg:px-16">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
-            Super Saver Offers
-          </h2>
-          <p className="text-xs text-[#85431E] mt-0.5">Commercial-grade architectural hardware at direct factory rates</p>
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded-md bg-[#85431E]/10 text-[#85431E] flex items-center justify-center">
+              <Sparkles size={16} />
+            </span>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
+              Super Saver Offers
+            </h2>
+          </div>
+          <p className="text-xs text-[#85431E] mt-1">Direct factory promotional deals, volume bundles & limited-time price drops</p>
         </div>
 
         {/* Clicking View All navigates directly to /offers */}

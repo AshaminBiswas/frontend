@@ -138,6 +138,7 @@ function AppContent() {
               <Route path="/bestsellers" element={<BestSellersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/new-arrivals" element={<NewArrivalsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/offers" element={<OffersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
+              <Route path="/offer" element={<OffersPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/product/:id" element={<ProductDetailPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/categories" element={<CategoriesPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
               <Route path="/category/:slug" element={<CategoryProductsPage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} />} />
