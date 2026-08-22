@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
+import { SUPER_SAVER_PRODUCTS } from "../data/products";
 
 function normalizeRawProduct(item: any): Product {
   const rawId = item._id || item.id || item.apiId;
@@ -100,9 +101,9 @@ interface OffersPageProps {
 export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(SUPER_SAVER_PRODUCTS);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -120,8 +121,6 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
   const ITEMS_PER_PAGE = 12;
 
   const loadData = () => {
-    setLoading(true);
-
     // 1. Fetch Dynamic Real Coupons from Backend API
     couponService
       .getPublicCoupons()
@@ -152,14 +151,16 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setProducts(normalized);
-          } else {
-            setProducts([]);
+          } else if (products.length === 0) {
+            setProducts(SUPER_SAVER_PRODUCTS);
           }
-        } else {
-          setProducts([]);
+        } else if (products.length === 0) {
+          setProducts(SUPER_SAVER_PRODUCTS);
         }
       })
-      .catch(() => setProducts([]))
+      .catch(() => {
+        if (products.length === 0) setProducts(SUPER_SAVER_PRODUCTS);
+      })
       .finally(() => setLoading(false));
 
     // 3. Fetch Banners

@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize user state from persistent local storage
   const [user, setUser] = useState<User | null>(() => getStoredUser());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authModalView, setAuthModalView] = useState<AuthModalView>("login");
   const [pendingEmail, setPendingEmail] = useState<string>("");
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Keep saved user session active immediately
       if (savedUser) {
         setUser(savedUser);
+        setIsLoading(false);
         if (savedUser.mustChangePassword) {
           setPendingEmail(savedUser.email);
           setAuthModalView("force-change-password");

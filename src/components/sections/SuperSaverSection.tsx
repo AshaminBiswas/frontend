@@ -6,6 +6,7 @@ import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
 import { couponService, Coupon } from "../../services/couponService";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { SUPER_SAVER_PRODUCTS } from "../../data/products";
 
 interface SuperSaverSectionProps {
   onAddToCart: (p: Product) => void;
@@ -67,7 +68,7 @@ function normalizeRawProduct(item: any): Product {
 
 export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSaverSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [offerProducts, setOfferProducts] = useState<Product[]>([]);
+  const [offerProducts, setOfferProducts] = useState<Product[]>(SUPER_SAVER_PRODUCTS);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadOffers = async () => {
@@ -119,12 +120,13 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
 
         // If marked offers exist, display them; otherwise display top products with best value
         setOfferProducts(markedOffers.length > 0 ? markedOffers : normalized.slice(0, 10));
-      } else {
-        setOfferProducts([]);
+      } else if (offerProducts.length === 0) {
+        setOfferProducts(SUPER_SAVER_PRODUCTS);
       }
     } catch (err) {
-      console.warn("[SuperSaverSection Load Error]:", err);
-      setOfferProducts([]);
+      if (offerProducts.length === 0) {
+        setOfferProducts(SUPER_SAVER_PRODUCTS);
+      }
     }
   };
 

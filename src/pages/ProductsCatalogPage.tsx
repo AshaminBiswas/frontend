@@ -50,6 +50,8 @@ function ProductThumb({ src, name }: { src?: string; name: string }) {
   );
 }
 
+import { LOCAL_CATALOG_PRODUCTS } from "../services/productService";
+
 interface ProductsCatalogPageProps {
   onAddToCart: (p: Product) => void;
   onWishlist: (productOrId: Product | number | string) => void;
@@ -60,12 +62,11 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const b2bCache = useB2BPricing();
 
   const loadCatalog = () => {
-    setLoading(true);
     fetchApi<any>("/products?limit=100")
       .then((res) => {
         if (res && res.success && res.data) {
@@ -87,14 +88,16 @@ export function ProductsCatalogPage({ onAddToCart, onWishlist, wishlist }: Produ
               b2bPrice: p.b2bPrice !== undefined ? Number(p.b2bPrice) : (p.b2b_price !== undefined ? Number(p.b2b_price) : undefined),
             }));
             setProducts(normalized);
-          } else {
-            setProducts([]);
+          } else if (products.length === 0) {
+            setProducts(LOCAL_CATALOG_PRODUCTS);
           }
-        } else {
-          setProducts([]);
+        } else if (products.length === 0) {
+          setProducts(LOCAL_CATALOG_PRODUCTS);
         }
       })
-      .catch(() => setProducts([]))
+      .catch(() => {
+        if (products.length === 0) setProducts(LOCAL_CATALOG_PRODUCTS);
+      })
       .finally(() => setLoading(false));
   };
 

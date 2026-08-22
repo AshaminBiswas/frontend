@@ -59,6 +59,9 @@ function normalizeRawProduct(item: any): Product {
   };
 }
 
+import { DEFAULT_PUBLIC_CATEGORIES } from "../services/categoryService";
+import { LOCAL_CATALOG_PRODUCTS } from "../services/productService";
+
 interface CategoriesPageProps {
   onAddToCart?: (p: Product) => void;
   onWishlist?: (p: Product | number | string) => void;
@@ -70,13 +73,12 @@ export function CategoriesPage({
   onWishlist = () => {},
   wishlist = new Set(),
 }: CategoriesPageProps) {
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<ApiCategory[]>(DEFAULT_PUBLIC_CATEGORIES);
+  const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const [selectedLine, setSelectedLine] = useState<string>("ALL");
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const [catData, prodRes] = await Promise.allSettled([
         getCategoriesApi(1, 50),
@@ -85,6 +87,8 @@ export function CategoriesPage({
 
       if (catData.status === "fulfilled" && Array.isArray(catData.value) && catData.value.length > 0) {
         setCategories(catData.value);
+      } else if (categories.length === 0) {
+        setCategories(DEFAULT_PUBLIC_CATEGORIES);
       }
 
       if (prodRes.status === "fulfilled" && prodRes.value && prodRes.value.success && prodRes.value.data) {
@@ -100,14 +104,15 @@ export function CategoriesPage({
         if (rawList.length > 0) {
           const normalized = rawList.map(normalizeRawProduct);
           setProducts(normalized);
-        } else {
-          setProducts([]);
+        } else if (products.length === 0) {
+          setProducts(LOCAL_CATALOG_PRODUCTS);
         }
-      } else {
-        setProducts([]);
+      } else if (products.length === 0) {
+        setProducts(LOCAL_CATALOG_PRODUCTS);
       }
     } catch {
-      setProducts([]);
+      if (products.length === 0) setProducts(LOCAL_CATALOG_PRODUCTS);
+      if (categories.length === 0) setCategories(DEFAULT_PUBLIC_CATEGORIES);
     } finally {
       setLoading(false);
     }

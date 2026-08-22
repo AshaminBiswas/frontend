@@ -5,6 +5,7 @@ import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { VALUE_MONEY_PRODUCTS } from "../../data/products";
 
 interface ValueMoneySectionProps {
   onAddToCart: (p: Product) => void;
@@ -60,7 +61,7 @@ function normalizeRawProduct(item: any): Product {
 
 export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMoneySectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [valueProducts, setValueProducts] = useState<Product[]>([]);
+  const [valueProducts, setValueProducts] = useState<Product[]>(VALUE_MONEY_PRODUCTS);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadProducts = () => {
@@ -78,14 +79,16 @@ export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMo
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setValueProducts(normalized.slice(0, 8));
-          } else {
-            setValueProducts([]);
+          } else if (valueProducts.length === 0) {
+            setValueProducts(VALUE_MONEY_PRODUCTS);
           }
-        } else {
-          setValueProducts([]);
+        } else if (valueProducts.length === 0) {
+          setValueProducts(VALUE_MONEY_PRODUCTS);
         }
       })
-      .catch(() => setValueProducts([]));
+      .catch(() => {
+        if (valueProducts.length === 0) setValueProducts(VALUE_MONEY_PRODUCTS);
+      });
   };
 
   useEffect(() => {

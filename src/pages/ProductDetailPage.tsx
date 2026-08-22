@@ -59,8 +59,16 @@ export function ProductDetailPage({
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(() => {
+    if (!id) return null;
+    const liveCatalog = getLiveCatalog(LOCAL_CATALOG);
+    return (
+      liveCatalog.find(
+        (p) => String(p.id) === String(id) || String((p as any).apiId) === String(id) || String(p.slug) === String(id)
+      ) || null
+    );
+  });
+  const [loading, setLoading] = useState<boolean>(() => !product);
 
   const [qty, setQty] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string>("");

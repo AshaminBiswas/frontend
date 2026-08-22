@@ -58,11 +58,17 @@ export async function fetchApi<T = any>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  // 3.5s timeout controller to fail fast if remote Render backend is sleeping/unreachable
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+
   try {
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: options.signal || controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const data: ApiResponse<T> = await response.json();
 
@@ -75,8 +81,16 @@ export async function fetchApi<T = any>(
           setStoredTokens(refreshed.data.accessToken, refreshed.data.refreshToken || refreshToken);
           // Retry original request with new token
           headers["Authorization"] = `Bearer ${refreshed.data.accessToken}`;
-          const retryResponse = await fetch(url, { ...options, headers });
-          return await retryResponse.json();
+          const retryCtrl = new AbortController();
+          const retryTimeout = setTimeout(() => retryCtrl.abort(), 3500);
+          try {
+            const retryResponse = await fetch(url, { ...options, headers, signal: retryCtrl.signal });
+            clearTimeout(retryTimeout);
+            return await retryResponse.json();
+          } catch {
+            clearTimeout(retryTimeout);
+            return { success: false, error: { code: "TIMEOUT", message: "Request timed out" } };
+          }
         } else {
           clearStoredTokens();
         }
@@ -103,11 +117,15 @@ export async function fetchApi<T = any>(
 
     return data;
   } catch (error: any) {
+    clearTimeout(timeoutId);
+    const isTimeout = error.name === "AbortError" || error.name === "TimeoutError";
     return {
       success: false,
       error: {
-        code: "NETWORK_ERROR",
-        message: error.message || "Failed to connect to PRC server. Please check your connection.",
+        code: isTimeout ? "TIMEOUT" : "NETWORK_ERROR",
+        message: isTimeout
+          ? "PRC API connection timed out (3.5s)."
+          : error.message || "Failed to connect to PRC server. Please check your connection.",
       },
     };
   }

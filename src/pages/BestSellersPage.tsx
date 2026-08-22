@@ -91,6 +91,8 @@ const REVIEWS = [
   { id: 5, name: "Manish Sharma", role: "Builder, Pune", rating: 5, comment: "Exceptional quality and reliable dimensions. Customer support gave great guidance." },
 ];
 
+import { BEST_SELLER_PRODUCTS } from "../data/products";
+
 interface BestSellersPageProps {
   onAddToCart: (product: Product) => void;
   onWishlist: (productOrId: Product | number | string) => void;
@@ -105,9 +107,9 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
 
-  // Products state from live API
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Products state from live API or fallback
+  const [products, setProducts] = useState<Product[]>(BEST_SELLER_PRODUCTS);
+  const [loading, setLoading] = useState(false);
 
   // Filters state
   const [search, setSearch] = useState("");
@@ -128,16 +130,15 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
 
   useEffect(() => {
     bannerService.getPublicBanners("BESTSELLERS_TOP").then((res) => {
-      if (res.success && res.data && res.data.length > 0) setTopBanner(res.data[0]);
+      if (res && res.data && res.data.length > 0) setTopBanner(res.data[0]);
     }).catch(() => {});
 
     bannerService.getPublicBanners("BESTSELLERS_MID").then((res) => {
-      if (res.success && res.data && res.data.length > 0) setMidBanner(res.data[0]);
+      if (res && res.data && res.data.length > 0) setMidBanner(res.data[0]);
     }).catch(() => {});
   }, []);
 
   const loadData = () => {
-    setLoading(true);
     fetchApi<any>("/products?limit=100")
       .then((res) => {
         if (res && res.success && res.data) {
@@ -152,14 +153,16 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setProducts(normalized);
-          } else {
-            setProducts([]);
+          } else if (products.length === 0) {
+            setProducts(BEST_SELLER_PRODUCTS);
           }
-        } else {
-          setProducts([]);
+        } else if (products.length === 0) {
+          setProducts(BEST_SELLER_PRODUCTS);
         }
       })
-      .catch(() => setProducts([]))
+      .catch(() => {
+        if (products.length === 0) setProducts(BEST_SELLER_PRODUCTS);
+      })
       .finally(() => setLoading(false));
   };
 

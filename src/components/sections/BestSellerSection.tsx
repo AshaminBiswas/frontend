@@ -5,6 +5,7 @@ import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { BEST_SELLER_PRODUCTS } from "../../data/products";
 
 interface BestSellerSectionProps {
   onAddToCart: (p: Product) => void;
@@ -60,7 +61,7 @@ function normalizeRawProduct(item: any): Product {
 
 export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSellerSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>(BEST_SELLER_PRODUCTS);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadBestSellers = () => {
@@ -79,14 +80,16 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
             const normalized = rawList.map(normalizeRawProduct);
             const marked = normalized.filter((p) => p.isBestseller === true || (Array.isArray(p.tags) && p.tags.includes("bestseller")));
             setBestSellers(marked.length > 0 ? marked : normalized.slice(0, 8));
-          } else {
-            setBestSellers([]);
+          } else if (bestSellers.length === 0) {
+            setBestSellers(BEST_SELLER_PRODUCTS);
           }
-        } else {
-          setBestSellers([]);
+        } else if (bestSellers.length === 0) {
+          setBestSellers(BEST_SELLER_PRODUCTS);
         }
       })
-      .catch(() => setBestSellers([]));
+      .catch(() => {
+        if (bestSellers.length === 0) setBestSellers(BEST_SELLER_PRODUCTS);
+      });
   };
 
   useEffect(() => {

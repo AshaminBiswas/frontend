@@ -103,8 +103,8 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG_PRODUCTS);
+  const [loading, setLoading] = useState(false);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -121,7 +121,6 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
   const [addedIds, setAddedIds] = useState<Set<number | string>>(new Set());
 
   const loadProducts = () => {
-    setLoading(true);
     fetchApi<any>("/products?limit=100")
       .then((res) => {
         if (res && res.success && res.data) {
@@ -136,14 +135,16 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setProducts(normalized);
-          } else {
-            setProducts([]);
+          } else if (products.length === 0) {
+            setProducts(LOCAL_CATALOG_PRODUCTS);
           }
-        } else {
-          setProducts([]);
+        } else if (products.length === 0) {
+          setProducts(LOCAL_CATALOG_PRODUCTS);
         }
       })
-      .catch(() => setProducts([]))
+      .catch(() => {
+        if (products.length === 0) setProducts(LOCAL_CATALOG_PRODUCTS);
+      })
       .finally(() => setLoading(false));
   };
 

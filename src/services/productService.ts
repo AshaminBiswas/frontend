@@ -1,5 +1,20 @@
 import { fetchApi } from "./api";
 import { Product } from "../types";
+import {
+  SUPER_SAVER_PRODUCTS,
+  VALUE_MONEY_PRODUCTS,
+  BEST_SELLER_PRODUCTS,
+  CUBICLE_HARDWARE_PRODUCTS,
+  LOCKER_HARDWARE_PRODUCTS,
+} from "../data/products";
+
+export const LOCAL_CATALOG_PRODUCTS: Product[] = [
+  ...SUPER_SAVER_PRODUCTS,
+  ...VALUE_MONEY_PRODUCTS,
+  ...BEST_SELLER_PRODUCTS,
+  ...CUBICLE_HARDWARE_PRODUCTS,
+  ...LOCKER_HARDWARE_PRODUCTS,
+];
 
 export interface ApiProductsByCategoryResponse {
   category?: {
@@ -145,7 +160,24 @@ export async function getProductsByCategorySlugApi(slug: string): Promise<{ prod
     }
   }
 
-  return cached?.data || { products: [] };
+  // Fallback to local catalog by category filter
+  const localMatches = LOCAL_CATALOG_PRODUCTS.filter((p) => {
+    const pCat = String(p.category || "").toLowerCase();
+    const cleanSlug = slug.toLowerCase().replace(/-/g, " ");
+    return pCat.includes(cleanSlug) || cleanSlug.includes(pCat);
+  });
+
+  const fallbackList = localMatches.length > 0 ? localMatches : LOCAL_CATALOG_PRODUCTS.slice(0, 8);
+  const formattedCategoryName = slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+  return {
+    products: fallbackList,
+    categoryName: formattedCategoryName,
+    description: `Browse premium ${formattedCategoryName} architectural hardware collection.`
+  };
 }
 
 /**
@@ -181,7 +213,7 @@ export async function getAllProductsApi(limit = 100): Promise<Product[]> {
       return normalized;
     }
   } catch (err) {
-    console.error("Failed to fetch products:", err);
+    console.warn("Failed to fetch products:", err);
   }
 
   try {
@@ -195,5 +227,6 @@ export async function getAllProductsApi(limit = 100): Promise<Product[]> {
     }
   } catch {}
 
-  return [];
+  // Fallback to built-in full local catalog
+  return LOCAL_CATALOG_PRODUCTS;
 }
