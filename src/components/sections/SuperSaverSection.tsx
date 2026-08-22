@@ -6,69 +6,9 @@ import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
 import { couponService, Coupon } from "../../services/couponService";
 import { subscribeToProductSync } from "../../services/productSyncService";
-import { SUPER_SAVER_PRODUCTS } from "../../data/products";
-
-interface SuperSaverSectionProps {
-  onAddToCart: (p: Product) => void;
-  onWishlist: (p: Product | number | string) => void;
-  wishlist: Set<number | string>;
-  onViewAll?: (title: string) => void;
-}
-
-function normalizeRawProduct(item: any): Product {
-  const rawId = item._id || item.id || item.apiId;
-  const apiIdStr = rawId ? String(rawId) : undefined;
-  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
-
-  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
-  const backendSale = item.offerPrice ?? item.salePrice;
-
-  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
-    ? Number(backendSale)
-    : Number(item.price || 0);
-
-  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
-
-  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
-  if (typeof item.image === "string" && item.image.trim()) {
-    image = item.image;
-  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
-    image = item.thumbnail;
-  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
-    image = item.images[0];
-  }
-
-  const categoryName = typeof item.category === "object" && item.category?.name
-    ? item.category.name
-    : (typeof item.category === "string" ? item.category : "Hardware");
-
-  const calculatedDiscount = item.discount
-    ? Number(item.discount)
-    : effectiveRegular > effectiveSale
-    ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100)
-    : 0;
-
-  return {
-    ...item,
-    id: finalId,
-    apiId: apiIdStr,
-    name: item.name || item.title || "Architectural Hardware",
-    category: categoryName,
-    price: effectiveSale,
-    salePrice: effectiveSale,
-    offerPrice: effectiveSale,
-    regularPrice: effectiveRegular,
-    originalPrice: effectiveRegular,
-    discount: calculatedDiscount,
-    image,
-    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
-    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
-  };
-}
-
 export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSaverSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [offerProducts, setOfferProducts] = useState<Product[]>(SUPER_SAVER_PRODUCTS);
+  const [offerProducts, setOfferProducts] = useState<Product[]>([]);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadOffers = async () => {
@@ -120,13 +60,11 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
 
         // If marked offers exist, display them; otherwise display top products with best value
         setOfferProducts(markedOffers.length > 0 ? markedOffers : normalized.slice(0, 10));
-      } else if (offerProducts.length === 0) {
-        setOfferProducts(SUPER_SAVER_PRODUCTS);
+      } else {
+        setOfferProducts([]);
       }
     } catch (err) {
-      if (offerProducts.length === 0) {
-        setOfferProducts(SUPER_SAVER_PRODUCTS);
-      }
+      setOfferProducts([]);
     }
   };
 

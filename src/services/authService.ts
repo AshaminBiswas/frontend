@@ -28,7 +28,7 @@ export interface VerifyOtpResultData {
 export const authService = {
   // 1. User Registration
   async register(payload: RegisterPayload): Promise<ApiResponse<{ userId: string; email: string; requiresVerification: boolean }>> {
-    return fetchApi("/auth/register", {
+    return fetchApi<any>("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -36,7 +36,7 @@ export const authService = {
 
   // 2. User Login
   async login(payload: LoginPayload): Promise<ApiResponse<LoginResultData>> {
-    return fetchApi("/auth/login", {
+    return fetchApi<LoginResultData>("/auth/login", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -44,7 +44,7 @@ export const authService = {
 
   // 3. Verify OTP
   async verifyOtp(payload: VerifyOtpPayload): Promise<ApiResponse<VerifyOtpResultData>> {
-    return fetchApi("/auth/verify-otp", {
+    return fetchApi<VerifyOtpResultData>("/auth/verify-otp", {
       method: "POST",
       body: JSON.stringify(payload),
     });

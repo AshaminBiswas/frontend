@@ -4,17 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useSlider } from "../../hooks/useSlider";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { bannerService, Banner } from "../../services/bannerService";
-import { UPCOMING_SLIDES } from "../../data/products";
-
-const DEFAULT_UPCOMING_SLIDES = UPCOMING_SLIDES.map((s) => ({
-  id: String(s.id),
-  title: s.title,
-  sub: s.sub,
-  image: s.image,
-  desktopImage: s.image,
-  mobileImage: s.image,
-  linkUrl: "/products",
-}));
 
 export function UpcomingSlider() {
   const [slides, setSlides] = useState<Array<{
@@ -25,8 +14,8 @@ export function UpcomingSlider() {
     desktopImage?: string;
     mobileImage?: string;
     linkUrl?: string;
-  }>>(DEFAULT_UPCOMING_SLIDES);
-  const [loading, setLoading] = useState(false);
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -45,14 +34,14 @@ export function UpcomingSlider() {
             linkUrl: b.linkUrl || b.link || "/products"
           }));
           setSlides(formatted);
-        } else if (slides.length === 0) {
-          setSlides(DEFAULT_UPCOMING_SLIDES);
+        } else {
+          setSlides([]);
         }
         setLoading(false);
       }
     }).catch(() => {
       if (mounted) {
-        if (slides.length === 0) setSlides(DEFAULT_UPCOMING_SLIDES);
+        setSlides([]);
         setLoading(false);
       }
     });

@@ -15,95 +15,12 @@ import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
-import { SUPER_SAVER_PRODUCTS } from "../data/products";
-
-function normalizeRawProduct(item: any): Product {
-  const rawId = item._id || item.id || item.apiId;
-  const apiIdStr = rawId ? String(rawId) : undefined;
-  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
-
-  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
-  const backendSale = item.offerPrice ?? item.salePrice;
-
-  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
-    ? Number(backendSale)
-    : Number(item.price || 0);
-
-  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
-
-  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
-  if (typeof item.image === "string" && item.image.trim()) {
-    image = item.image;
-  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
-    image = item.thumbnail;
-  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
-    image = item.images[0];
-  }
-
-  const categoryName = typeof item.category === "object" && item.category?.name
-    ? item.category.name
-    : (typeof item.category === "string" ? item.category : "Hardware");
-
-  const calculatedDiscount = item.discount
-    ? Number(item.discount)
-    : effectiveRegular > effectiveSale
-    ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100)
-    : 0;
-
-  return {
-    ...item,
-    id: finalId,
-    apiId: apiIdStr,
-    name: item.name || item.title || "Architectural Hardware",
-    category: categoryName,
-    price: effectiveSale,
-    salePrice: effectiveSale,
-    offerPrice: effectiveSale,
-    regularPrice: effectiveRegular,
-    originalPrice: effectiveRegular,
-    discount: calculatedDiscount,
-    image,
-    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
-    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
-  };
-}
-
-/* ── Safe Image Thumbnail ── */
-function ProductThumb({ src, name }: { src?: string; name: string }) {
-  const [errored, setErrored] = useState(false);
-  if (!src || errored) {
-    return (
-      <div className="w-full h-48 bg-gradient-to-br from-[#34150F]/20 via-[#D39858]/10 to-[#85431E]/20 flex items-center justify-center border-b border-[#34150F]/8">
-        <Package size={36} className="text-[#85431E]/40" />
-      </div>
-    );
-  }
-  return (
-    <div className="w-full h-48 overflow-hidden bg-[#EACEAA]/20 border-b border-[#34150F]/8 relative group">
-      <img
-        src={src}
-        alt={name}
-        onError={() => setErrored(true)}
-        loading="lazy"
-        decoding="async"
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-      />
-    </div>
-  );
-}
-
-interface OffersPageProps {
-  onAddToCart: (product: Product) => void;
-  onWishlist: (productOrId: Product | number | string) => void;
-  wishlist: Set<number | string>;
-}
-
 export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
-  const [products, setProducts] = useState<Product[]>(SUPER_SAVER_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -151,15 +68,15 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setProducts(normalized);
-          } else if (products.length === 0) {
-            setProducts(SUPER_SAVER_PRODUCTS);
+          } else {
+            setProducts([]);
           }
-        } else if (products.length === 0) {
-          setProducts(SUPER_SAVER_PRODUCTS);
+        } else {
+          setProducts([]);
         }
       })
       .catch(() => {
-        if (products.length === 0) setProducts(SUPER_SAVER_PRODUCTS);
+        setProducts([]);
       })
       .finally(() => setLoading(false));
 

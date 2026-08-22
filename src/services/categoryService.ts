@@ -36,15 +36,7 @@ export interface ApiCategoryDetail {
 const CATEGORY_CACHE = new Map<string, { data: any; expiresAt: number }>();
 const CATEGORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes fresh cache
 
-export const DEFAULT_PUBLIC_CATEGORIES: ApiCategory[] = [
-  { id: "cat-1", name: "Cubicles Hardware", slug: "cubicles-hardware", position: 1, status: "ACTIVE", isVisible: true, productCount: 12 },
-  { id: "cat-2", name: "Locker Hardware", slug: "locker-hardware", position: 2, status: "ACTIVE", isVisible: true, productCount: 8 },
-  { id: "cat-3", name: "Urinal Hardware", slug: "urinal-hardware", position: 3, status: "ACTIVE", isVisible: true, productCount: 6 },
-  { id: "cat-4", name: "Shower Room Hardware", slug: "shower-room-hardware", position: 4, status: "ACTIVE", isVisible: true, productCount: 10 },
-  { id: "cat-5", name: "Exchange Room Hardware", slug: "exchange-room-hardware", position: 5, status: "ACTIVE", isVisible: true, productCount: 5 },
-  { id: "cat-6", name: "Door Hardware", slug: "door-hardware", position: 6, status: "ACTIVE", isVisible: true, productCount: 15 },
-  { id: "cat-7", name: "Glass Fittings", slug: "glass-fittings", position: 7, status: "ACTIVE", isVisible: true, productCount: 9 },
-];
+export const DEFAULT_PUBLIC_CATEGORIES: ApiCategory[] = [];
 
 export async function getCategoriesApi(page = 1, limit = 20): Promise<ApiCategory[]> {
   const cacheKey = `categories_${page}_${limit}`;
@@ -76,7 +68,7 @@ export async function getCategoriesApi(page = 1, limit = 20): Promise<ApiCategor
   } catch (err) {
     console.warn("Failed to fetch categories:", err);
   }
-  return cached?.data || DEFAULT_PUBLIC_CATEGORIES;
+  return cached?.data || [];
 }
 
 export async function getCategoryBySlugApi(slug: string): Promise<ApiCategoryDetail | null> {
@@ -106,25 +98,5 @@ export async function getCategoryBySlugApi(slug: string): Promise<ApiCategoryDet
     }
   }
 
-  // Generate fallback category detail from default categories list
-  const matched = DEFAULT_PUBLIC_CATEGORIES.find(
-    (c) => c.slug.toLowerCase() === slug.toLowerCase() || c.name.toLowerCase() === slug.replace(/-/g, " ").toLowerCase()
-  );
-
-  const formattedName = matched ? matched.name : slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  const fallbackDetail: ApiCategoryDetail = {
-    id: matched?.id || `cat-${slug}`,
-    name: formattedName,
-    slug: slug,
-    description: `Discover architectural-grade ${formattedName} engineered for modern spaces.`,
-    productCount: matched?.productCount || 8,
-    status: "ACTIVE",
-    breadcrumbs: [
-      { name: "Home", slug: "/" },
-      { name: "Categories", slug: "/categories" },
-      { name: formattedName, slug: `/categories/${slug}` },
-    ]
-  };
-
-  return cached?.data || fallbackDetail;
+  return cached?.data || null;
 }

@@ -1,20 +1,7 @@
 import { fetchApi } from "./api";
 import { Product } from "../types";
-import {
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS,
-  CUBICLE_HARDWARE_PRODUCTS,
-  LOCKER_HARDWARE_PRODUCTS,
-} from "../data/products";
 
-export const LOCAL_CATALOG_PRODUCTS: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-];
+export const LOCAL_CATALOG_PRODUCTS: Product[] = [];
 
 export interface ApiProductsByCategoryResponse {
   category?: {

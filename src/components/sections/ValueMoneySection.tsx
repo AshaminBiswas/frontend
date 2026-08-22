@@ -5,63 +5,9 @@ import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
 import { subscribeToProductSync } from "../../services/productSyncService";
-import { VALUE_MONEY_PRODUCTS } from "../../data/products";
-
-interface ValueMoneySectionProps {
-  onAddToCart: (p: Product) => void;
-  onWishlist: (p: Product | number | string) => void;
-  wishlist: Set<number | string>;
-  onViewAll?: (title: string) => void;
-}
-
-function normalizeRawProduct(item: any): Product {
-  const rawId = item._id || item.id || item.apiId;
-  const apiIdStr = rawId ? String(rawId) : undefined;
-  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
-
-  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
-  const backendSale = item.offerPrice ?? item.salePrice;
-
-  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
-    ? Number(backendSale)
-    : Number(item.price || 0);
-
-  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
-
-  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
-  if (typeof item.image === "string" && item.image.trim()) {
-    image = item.image;
-  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
-    image = item.thumbnail;
-  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
-    image = item.images[0];
-  }
-
-  const categoryName = typeof item.category === "object" && item.category?.name
-    ? item.category.name
-    : (typeof item.category === "string" ? item.category : "Hardware");
-
-  return {
-    ...item,
-    id: finalId,
-    apiId: apiIdStr,
-    name: item.name || item.title || "Architectural Hardware",
-    category: categoryName,
-    price: effectiveSale,
-    salePrice: effectiveSale,
-    offerPrice: effectiveSale,
-    regularPrice: effectiveRegular,
-    originalPrice: effectiveRegular,
-    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
-    image,
-    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
-    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
-  };
-}
-
 export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMoneySectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [valueProducts, setValueProducts] = useState<Product[]>(VALUE_MONEY_PRODUCTS);
+  const [valueProducts, setValueProducts] = useState<Product[]>([]);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadProducts = () => {
@@ -79,15 +25,15 @@ export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMo
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setValueProducts(normalized.slice(0, 8));
-          } else if (valueProducts.length === 0) {
-            setValueProducts(VALUE_MONEY_PRODUCTS);
+          } else {
+            setValueProducts([]);
           }
-        } else if (valueProducts.length === 0) {
-          setValueProducts(VALUE_MONEY_PRODUCTS);
+        } else {
+          setValueProducts([]);
         }
       })
       .catch(() => {
-        if (valueProducts.length === 0) setValueProducts(VALUE_MONEY_PRODUCTS);
+        setValueProducts([]);
       });
   };
 

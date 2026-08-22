@@ -3,20 +3,6 @@ import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSlider } from "../../hooks/useSlider";
 import { bannerService, Banner } from "../../services/bannerService";
-import { HERO_SLIDES } from "../../data/products";
-
-const DEFAULT_HERO_SLIDES = HERO_SLIDES.map((s) => ({
-  id: String(s.id),
-  title: s.title,
-  subtitle: s.subtitle,
-  badgeText: "PREMIUM FINISH",
-  image: s.image,
-  desktopImage: s.image,
-  tabletImage: s.image,
-  mobileImage: s.image,
-  linkUrl: "/products",
-  ctaText: "Explore Collection",
-}));
 
 export function HeroSlider() {
   const [slides, setSlides] = useState<Array<{
@@ -30,8 +16,8 @@ export function HeroSlider() {
     mobileImage?: string;
     linkUrl?: string;
     ctaText?: string;
-  }>>(DEFAULT_HERO_SLIDES);
-  const [loading, setLoading] = useState(false);
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -72,14 +58,14 @@ export function HeroSlider() {
             ctaText: b.ctaText || "Explore Collection"
           }));
           setSlides(formatted);
-        } else if (slides.length === 0) {
-          setSlides(DEFAULT_HERO_SLIDES);
+        } else {
+          setSlides([]);
         }
         setLoading(false);
       }
     }).catch(() => {
       if (mounted) {
-        if (slides.length === 0) setSlides(DEFAULT_HERO_SLIDES);
+        setSlides([]);
         setLoading(false);
       }
     });

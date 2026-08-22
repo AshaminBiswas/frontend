@@ -103,8 +103,8 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
 
-  const [products, setProducts] = useState<Product[]>(LOCAL_CATALOG_PRODUCTS);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [topBanner, setTopBanner] = useState<Banner | null>(null);
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
@@ -135,15 +135,15 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setProducts(normalized);
-          } else if (products.length === 0) {
-            setProducts(LOCAL_CATALOG_PRODUCTS);
+          } else {
+            setProducts([]);
           }
-        } else if (products.length === 0) {
-          setProducts(LOCAL_CATALOG_PRODUCTS);
+        } else {
+          setProducts([]);
         }
       })
       .catch(() => {
-        if (products.length === 0) setProducts(LOCAL_CATALOG_PRODUCTS);
+        setProducts([]);
       })
       .finally(() => setLoading(false));
   };

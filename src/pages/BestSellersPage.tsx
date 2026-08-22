@@ -91,14 +91,6 @@ const REVIEWS = [
   { id: 5, name: "Manish Sharma", role: "Builder, Pune", rating: 5, comment: "Exceptional quality and reliable dimensions. Customer support gave great guidance." },
 ];
 
-import { BEST_SELLER_PRODUCTS } from "../data/products";
-
-interface BestSellersPageProps {
-  onAddToCart: (product: Product) => void;
-  onWishlist: (productOrId: Product | number | string) => void;
-  wishlist: Set<number | string>;
-}
-
 export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSellersPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
@@ -108,8 +100,8 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
   const [midBanner, setMidBanner] = useState<Banner | null>(null);
 
   // Products state from live API or fallback
-  const [products, setProducts] = useState<Product[]>(BEST_SELLER_PRODUCTS);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Filters state
   const [search, setSearch] = useState("");
@@ -153,15 +145,15 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
             setProducts(normalized);
-          } else if (products.length === 0) {
-            setProducts(BEST_SELLER_PRODUCTS);
+          } else {
+            setProducts([]);
           }
-        } else if (products.length === 0) {
-          setProducts(BEST_SELLER_PRODUCTS);
+        } else {
+          setProducts([]);
         }
       })
       .catch(() => {
-        if (products.length === 0) setProducts(BEST_SELLER_PRODUCTS);
+        setProducts([]);
       })
       .finally(() => setLoading(false));
   };

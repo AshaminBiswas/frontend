@@ -7,7 +7,6 @@ import {
   ChevronLeft, ChevronRight, MessageSquare, Info
 } from "lucide-react";
 import { Product } from "../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../data/products";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { getProductStockStatus } from "../utils/stock";
@@ -15,16 +14,11 @@ import { fetchApi } from "../services/api";
 import { ProductCard } from "../components/product/ProductCard";
 import { ProductDetailSkeleton } from "../components/common/Skeletons";
 import { ProductReviewSection } from "../components/review/ProductReviewSection";
-
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 
-// Fallback master catalog
-const LOCAL_CATALOG: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
+// Empty catalog fallback
+const LOCAL_CATALOG: Product[] = [];
 
 /* ── Safe Image Thumbnail ── */
 function MainProductImage({ src, name }: { src?: string; name: string }) {

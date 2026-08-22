@@ -5,63 +5,9 @@ import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
 import { subscribeToProductSync } from "../../services/productSyncService";
-import { BEST_SELLER_PRODUCTS } from "../../data/products";
-
-interface BestSellerSectionProps {
-  onAddToCart: (p: Product) => void;
-  onWishlist: (p: Product | number | string) => void;
-  wishlist: Set<number | string>;
-  onViewAll?: (title: string) => void;
-}
-
-function normalizeRawProduct(item: any): Product {
-  const rawId = item._id || item.id || item.apiId;
-  const apiIdStr = rawId ? String(rawId) : undefined;
-  const finalId = item.id !== undefined && item.id !== null ? item.id : (rawId || apiIdStr || "1");
-
-  const backendRegular = Number(item.price || item.regularPrice || item.mrp || item.originalPrice || 0);
-  const backendSale = item.offerPrice ?? item.salePrice;
-
-  const effectiveSale = backendSale !== null && backendSale !== undefined && Number(backendSale) > 0
-    ? Number(backendSale)
-    : Number(item.price || 0);
-
-  const effectiveRegular = backendRegular > 0 ? backendRegular : effectiveSale;
-
-  let image = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop";
-  if (typeof item.image === "string" && item.image.trim()) {
-    image = item.image;
-  } else if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
-    image = item.thumbnail;
-  } else if (Array.isArray(item.images) && item.images.length > 0 && typeof item.images[0] === "string") {
-    image = item.images[0];
-  }
-
-  const categoryName = typeof item.category === "object" && item.category?.name
-    ? item.category.name
-    : (typeof item.category === "string" ? item.category : "Hardware");
-
-  return {
-    ...item,
-    id: finalId,
-    apiId: apiIdStr,
-    name: item.name || item.title || "Architectural Hardware",
-    category: categoryName,
-    price: effectiveSale,
-    salePrice: effectiveSale,
-    offerPrice: effectiveSale,
-    regularPrice: effectiveRegular,
-    originalPrice: effectiveRegular,
-    discount: item.discount ? Number(item.discount) : (effectiveRegular > effectiveSale ? Math.round(((effectiveRegular - effectiveSale) / effectiveRegular) * 100) : 0),
-    image,
-    material: item.material || item.specifications?.material || "Stainless Steel / Brass",
-    b2bPrice: item.b2bPrice !== undefined ? Number(item.b2bPrice) : (item.b2b_price !== undefined ? Number(item.b2b_price) : undefined),
-  };
-}
-
 export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSellerSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [bestSellers, setBestSellers] = useState<Product[]>(BEST_SELLER_PRODUCTS);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadBestSellers = () => {
@@ -80,15 +26,15 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
             const normalized = rawList.map(normalizeRawProduct);
             const marked = normalized.filter((p) => p.isBestseller === true || (Array.isArray(p.tags) && p.tags.includes("bestseller")));
             setBestSellers(marked.length > 0 ? marked : normalized.slice(0, 8));
-          } else if (bestSellers.length === 0) {
-            setBestSellers(BEST_SELLER_PRODUCTS);
+          } else {
+            setBestSellers([]);
           }
-        } else if (bestSellers.length === 0) {
-          setBestSellers(BEST_SELLER_PRODUCTS);
+        } else {
+          setBestSellers([]);
         }
       })
       .catch(() => {
-        if (bestSellers.length === 0) setBestSellers(BEST_SELLER_PRODUCTS);
+        setBestSellers([]);
       });
   };
 
