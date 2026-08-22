@@ -3,11 +3,24 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
+import { ProductSliderSkeleton } from "../common/Skeletons";
 import { fetchApi } from "../../services/api";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { normalizeRawProduct } from "../../utils/productUtils";
+
+import { DEFAULT_SHOWCASE_PRODUCTS } from "../../data/products";
+
+interface ValueMoneySectionProps {
+  onAddToCart: (p: Product) => void;
+  onWishlist: (productOrId: Product | number | string) => void;
+  wishlist: Set<number | string>;
+  onViewAll?: (cat: string) => void;
+}
+
 export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMoneySectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [valueProducts, setValueProducts] = useState<Product[]>([]);
+  const [valueProducts, setValueProducts] = useState<Product[]>(DEFAULT_SHOWCASE_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadProducts = () => {
@@ -26,14 +39,17 @@ export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMo
             const normalized = rawList.map(normalizeRawProduct);
             setValueProducts(normalized.slice(0, 8));
           } else {
-            setValueProducts([]);
+            setValueProducts(DEFAULT_SHOWCASE_PRODUCTS);
           }
         } else {
-          setValueProducts([]);
+          setValueProducts(DEFAULT_SHOWCASE_PRODUCTS);
         }
       })
       .catch(() => {
-        setValueProducts([]);
+        setValueProducts(DEFAULT_SHOWCASE_PRODUCTS);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -42,8 +58,8 @@ export function ValueMoneySection({ onAddToCart, onWishlist, wishlist }: ValueMo
     return subscribeToProductSync(loadProducts);
   }, []);
 
-  if (valueProducts.length === 0) {
-    return null;
+  if (loading) {
+    return <ProductSliderSkeleton title="Value For Money" />;
   }
 
   // Native GPU-accelerated smooth 1-card scroll

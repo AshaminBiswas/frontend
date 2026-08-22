@@ -3,12 +3,25 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Percent } from "lucide-react";
 import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
+import { ProductSliderSkeleton } from "../common/Skeletons";
 import { fetchApi } from "../../services/api";
 import { couponService, Coupon } from "../../services/couponService";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { normalizeRawProduct } from "../../utils/productUtils";
+
+import { DEFAULT_SHOWCASE_PRODUCTS } from "../../data/products";
+
+interface SuperSaverSectionProps {
+  onAddToCart: (p: Product) => void;
+  onWishlist: (productOrId: Product | number | string) => void;
+  wishlist: Set<number | string>;
+  onViewAll?: (cat: string) => void;
+}
+
 export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSaverSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [offerProducts, setOfferProducts] = useState<Product[]>([]);
+  const [offerProducts, setOfferProducts] = useState<Product[]>(DEFAULT_SHOWCASE_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadOffers = async () => {
@@ -58,13 +71,15 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
         // Sort by highest discount rate
         markedOffers.sort((a, b) => (b.discount || 0) - (a.discount || 0));
 
-        // If marked offers exist, display them; otherwise display top products with best value
+        // If marked offers exist, display them; otherwise display top products
         setOfferProducts(markedOffers.length > 0 ? markedOffers : normalized.slice(0, 10));
       } else {
-        setOfferProducts([]);
+        setOfferProducts(DEFAULT_SHOWCASE_PRODUCTS);
       }
     } catch (err) {
-      setOfferProducts([]);
+      setOfferProducts(DEFAULT_SHOWCASE_PRODUCTS);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,8 +88,8 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
     return subscribeToProductSync(loadOffers);
   }, []);
 
-  if (offerProducts.length === 0) {
-    return null;
+  if (loading) {
+    return <ProductSliderSkeleton title="Super Saver Offers" />;
   }
 
   // Native GPU-accelerated smooth 1-card scroll

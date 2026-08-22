@@ -3,11 +3,24 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
+import { ProductSliderSkeleton } from "../common/Skeletons";
 import { fetchApi } from "../../services/api";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { normalizeRawProduct } from "../../utils/productUtils";
+
+import { DEFAULT_SHOWCASE_PRODUCTS } from "../../data/products";
+
+interface BestSellerSectionProps {
+  onAddToCart: (p: Product) => void;
+  onWishlist: (productOrId: Product | number | string) => void;
+  wishlist: Set<number | string>;
+  onViewAll?: (cat: string) => void;
+}
+
 export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSellerSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>(DEFAULT_SHOWCASE_PRODUCTS);
+  const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadBestSellers = () => {
@@ -27,14 +40,17 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
             const marked = normalized.filter((p) => p.isBestseller === true || (Array.isArray(p.tags) && p.tags.includes("bestseller")));
             setBestSellers(marked.length > 0 ? marked : normalized.slice(0, 8));
           } else {
-            setBestSellers([]);
+            setBestSellers(DEFAULT_SHOWCASE_PRODUCTS);
           }
         } else {
-          setBestSellers([]);
+          setBestSellers(DEFAULT_SHOWCASE_PRODUCTS);
         }
       })
       .catch(() => {
-        setBestSellers([]);
+        setBestSellers(DEFAULT_SHOWCASE_PRODUCTS);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -43,8 +59,8 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
     return subscribeToProductSync(loadBestSellers);
   }, []);
 
-  if (bestSellers.length === 0) {
-    return null;
+  if (loading) {
+    return <ProductSliderSkeleton title="Best Sellers" />;
   }
 
   // Native GPU-accelerated smooth 1-card scroll

@@ -74,29 +74,36 @@ export async function getCategoriesApi(page = 1, limit = 20): Promise<ApiCategor
 export async function getCategoryBySlugApi(slug: string): Promise<ApiCategoryDetail | null> {
   if (!slug) return null;
 
-  const cacheKey = `cat_slug_${slug.toLowerCase()}`;
+  const cleanSlug = slug.toLowerCase().trim();
+  const cacheKey = `cat_slug_${cleanSlug}`;
   const cached = CATEGORY_CACHE.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.data;
   }
 
-  const endpointsToTry = [
-    `/categories/${encodeURIComponent(slug)}`,
-    `/categories/slug/${encodeURIComponent(slug)}`,
-    `/categories/by-slug/${encodeURIComponent(slug)}`,
-  ];
-
-  for (const endpoint of endpointsToTry) {
-    try {
-      const res = await fetchApi<ApiCategoryDetail>(endpoint);
-      if (res && res.success && res.data) {
-        CATEGORY_CACHE.set(cacheKey, { data: res.data, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
-        return res.data;
-      }
-    } catch {
-      // try next silently
+  try {
+    const res = await fetchApi<ApiCategoryDetail>(`/categories/${encodeURIComponent(cleanSlug)}`);
+    if (res && res.success && res.data) {
+      CATEGORY_CACHE.set(cacheKey, { data: res.data, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
+      return res.data;
     }
+  } catch {
+    // ignore
   }
 
-  return cached?.data || null;
+  const formattedName = cleanSlug
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+
+  const fallback: ApiCategoryDetail = {
+    id: cleanSlug,
+    name: formattedName,
+    slug: cleanSlug,
+    description: `Explore premium architectural hardware solutions for ${formattedName}.`,
+    status: "ACTIVE",
+    isVisible: true,
+  };
+
+  CATEGORY_CACHE.set(cacheKey, { data: fallback, expiresAt: Date.now() + 60000 });
+  return fallback;
 }

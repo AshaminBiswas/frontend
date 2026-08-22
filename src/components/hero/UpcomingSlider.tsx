@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSlider } from "../../hooks/useSlider";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { bannerService, Banner } from "../../services/bannerService";
+import { DEFAULT_UPCOMING_SLIDES } from "../../data/products";
 
 export function UpcomingSlider() {
   const [slides, setSlides] = useState<Array<{
@@ -14,8 +15,8 @@ export function UpcomingSlider() {
     desktopImage?: string;
     mobileImage?: string;
     linkUrl?: string;
-  }>>([]);
-  const [loading, setLoading] = useState(true);
+  }>>(DEFAULT_UPCOMING_SLIDES);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -35,13 +36,13 @@ export function UpcomingSlider() {
           }));
           setSlides(formatted);
         } else {
-          setSlides([]);
+          setSlides(DEFAULT_UPCOMING_SLIDES);
         }
         setLoading(false);
       }
     }).catch(() => {
       if (mounted) {
-        setSlides([]);
+        setSlides(DEFAULT_UPCOMING_SLIDES);
         setLoading(false);
       }
     });

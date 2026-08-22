@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useSlider } from "../../hooks/useSlider";
 import { bannerService, Banner } from "../../services/bannerService";
 
+import { DEFAULT_HERO_SLIDES } from "../../data/products";
+
 export function HeroSlider() {
   const [slides, setSlides] = useState<Array<{
     id: string;
@@ -16,8 +18,8 @@ export function HeroSlider() {
     mobileImage?: string;
     linkUrl?: string;
     ctaText?: string;
-  }>>([]);
-  const [loading, setLoading] = useState(true);
+  }>>(DEFAULT_HERO_SLIDES);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -59,13 +61,13 @@ export function HeroSlider() {
           }));
           setSlides(formatted);
         } else {
-          setSlides([]);
+          setSlides(DEFAULT_HERO_SLIDES);
         }
         setLoading(false);
       }
     }).catch(() => {
       if (mounted) {
-        setSlides([]);
+        setSlides(DEFAULT_HERO_SLIDES);
         setLoading(false);
       }
     });

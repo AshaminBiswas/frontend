@@ -20,8 +20,16 @@ export interface Coupon {
 }
 
 export const couponService = {
-  getPublicCoupons: () => {
-    return fetchApi<Coupon[]>('/coupons/public');
+  getPublicCoupons: async () => {
+    try {
+      const res = await fetchApi<Coupon[]>('/coupons/public');
+      if (res && res.success && Array.isArray(res.data)) {
+        return res;
+      }
+      return { success: true, data: [] as Coupon[] };
+    } catch {
+      return { success: true, data: [] as Coupon[] };
+    }
   },
   validateCoupon: (
     code: string,
