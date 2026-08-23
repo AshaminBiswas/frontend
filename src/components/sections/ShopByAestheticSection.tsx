@@ -62,7 +62,7 @@ function AestheticGridCard({
     >
       <div
         className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl group cursor-pointer shadow-md hover:shadow-xl h-[280px] md:h-[320px] w-full"
-        onClick={() => onSelectCategory && onSelectCategory(item.title)}
+        onClick={() => onSelectCategory && onSelectCategory((item as any).slug || item.title)}
       >
         {/* Image without any border */}
         <ImageWithFallback

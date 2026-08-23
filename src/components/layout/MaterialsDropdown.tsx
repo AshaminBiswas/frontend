@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ChevronRight, Package, Shield, Anchor, Layers, Box, ArrowRight } from "lucide-react";
 import { Product } from "../../types";
 import { getAllProductsApi } from "../../services/productService";
-import { getLiveCatalog, subscribeToProductSync } from "../../services/productSyncService";
+import { subscribeToProductSync } from "../../services/productSyncService";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
@@ -11,23 +11,7 @@ import {
   MATERIAL_REGISTRY,
   isProductOfMaterial,
   resolveMaterialBySlug,
-  MaterialMeta,
 } from "../../utils/materials";
-import {
-  CUBICLE_HARDWARE_PRODUCTS,
-  LOCKER_HARDWARE_PRODUCTS,
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS,
-} from "../../data/products";
-
-const BASELINE_PRODUCTS: Product[] = [
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
 
 export { isProductOfMaterial };
 
@@ -40,17 +24,8 @@ export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) 
   const b2bCache = useB2BPricing();
   const [open, setOpen] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string>("304-grade-steel");
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const cached = localStorage.getItem("prc_cached_products_list");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return getLiveCatalog(parsed);
-      }
-    } catch {}
-    return getLiveCatalog(BASELINE_PRODUCTS);
-  });
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLLIElement>(null);
   const navigate = useNavigate();
 
@@ -66,8 +41,8 @@ export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) 
       setLoading(true);
       try {
         const live = await getAllProductsApi(100);
-        if (isMounted && live && live.length > 0) {
-          setProducts(getLiveCatalog(live));
+        if (isMounted && live) {
+          setProducts(live);
         }
       } catch {
         // keep fallback
@@ -80,8 +55,8 @@ export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) 
 
     const unsubscribe = subscribeToProductSync(async () => {
       const fresh = await getAllProductsApi(100);
-      if (isMounted && fresh && fresh.length > 0) {
-        setProducts(getLiveCatalog(fresh));
+      if (isMounted && fresh) {
+        setProducts(fresh);
       }
     });
 
@@ -124,7 +99,7 @@ export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) 
   const handleProductClick = (product: Product) => {
     if (onSelectMaterial) onSelectMaterial(activeMaterial.name);
     setOpen(false);
-    navigate(`/product/${product.id || product.apiId || product.slug}`);
+    navigate(`/product/${product.slug || product.id || product.apiId}`);
   };
 
   const handleMaterialNavigate = (slug: string) => {
@@ -289,7 +264,7 @@ export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) 
                   {/* Products Grid */}
                   {loading && displayProducts.length === 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                      {[1, 2, 3].map((i) => (
                         <div key={i} className="flex items-center gap-2.5 p-2 bg-[#34150F]/40 rounded-tr-lg rounded-bl-lg border border-[#EACEAA]/8 animate-pulse">
                           <div className="w-12 h-12 rounded-tr-md rounded-bl-md bg-[#EACEAA]/10 flex-shrink-0" />
                           <div className="flex-1 space-y-1.5 min-w-0">

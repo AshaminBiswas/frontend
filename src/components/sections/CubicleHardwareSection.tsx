@@ -57,7 +57,7 @@ function CubicleCard({
     >
       <div
         className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl group cursor-pointer shadow-lg hover:shadow-2xl h-[280px] md:h-[320px] w-full bg-[#34150F]"
-        onClick={() => onSelectCategory && onSelectCategory(item.title)}
+        onClick={() => onSelectCategory && onSelectCategory((item as any).slug || item.title)}
       >
         <ImageWithFallback
           src={item.image}

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { Search, X, Plus, Check } from "lucide-react";
 import { Product } from "../../types";
-import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../../data/products";
+import { getAllProductsApi } from "../../services/productService";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
@@ -14,21 +14,13 @@ interface SearchDropdownProps {
   onAddToCart: (p: Product) => void;
 }
 
-const ALL_PRODUCTS: Product[] = [
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
-
 const POPULAR_SUGGESTIONS = [
-  "Cabinet Handles",
-  "Door Hinges",
-  "Drawer Knobs",
-  "Smart Locks",
-  "304 Grade Steel",
-  "316 Grade Steel",
-  "Aluminium",
-  "Nylon Polyamide 6",
+  "Cubicle Hardware",
+  "Locker Locks",
+  "SS 304",
+  "Partition Fittings",
+  "Urinal Hardware",
+  "Shower Hardware",
 ];
 
 export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCart }: SearchDropdownProps) {
@@ -36,7 +28,16 @@ export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCa
   const b2bCache = useB2BPricing();
   const ref = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
-  const [addedId, setAddedId] = useState<number | null>(null);
+  const [addedId, setAddedId] = useState<number | string | null>(null);
+  const [liveProducts, setLiveProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    getAllProductsApi(100).then((prods) => {
+      if (prods && prods.length > 0) {
+        setLiveProducts(prods);
+      }
+    });
+  }, []);
 
   // Click outside to close
   useEffect(() => {
@@ -53,13 +54,14 @@ export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCa
   const results = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return [];
-    return ALL_PRODUCTS.filter(
+    return liveProducts.filter(
       (p) =>
         (typeof p.name === "string" && p.name.toLowerCase().includes(q)) ||
         (typeof p.category === "string" ? p.category : (p.category?.name || "")).toLowerCase().includes(q) ||
-        (typeof p.material === "string" && p.material.toLowerCase().includes(q))
+        (typeof p.material === "string" && p.material.toLowerCase().includes(q)) ||
+        (typeof p.sku === "string" && p.sku.toLowerCase().includes(q))
     ).slice(0, 5); // Display top 5 matches
-  }, [searchQuery]);
+  }, [searchQuery, liveProducts]);
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
@@ -134,7 +136,7 @@ export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCa
 
             return (
               <div
-                key={p.id}
+                key={p.apiId || p.id}
                 onClick={() => handleAdd(p)}
                 onMouseEnter={() => setSelectedIndex(i)}
                 className={`flex items-center gap-3 p-2.5 rounded-tr-2xl rounded-bl-2xl cursor-pointer transition-all duration-150 ${
@@ -209,7 +211,7 @@ export function SearchDropdown({ searchQuery, setSearchQuery, onClose, onAddToCa
           {results.length === 0 && (
             <div className="text-center py-8 px-4">
               <p className="text-[#EACEAA]/80 text-sm font-medium">No hardware matching "{searchQuery}"</p>
-              <p className="text-[#EACEAA]/40 text-xs mt-1">Try searching for Handles, Hinges, Locks, or Steel grades.</p>
+              <p className="text-[#EACEAA]/40 text-xs mt-1">Try searching for Stainless Steel, Cubicle, Locker, or Hardware.</p>
             </div>
           )}
         </div>

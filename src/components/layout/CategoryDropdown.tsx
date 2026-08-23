@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { CATEGORY_OPTIONS } from "../../data/products";
 import { getCategoriesApi, ApiCategory } from "../../services/categoryService";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export function CategoryDropdown({ onSelectCategory }: { onSelectCategory?: (cat: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +45,7 @@ export function CategoryDropdown({ onSelectCategory }: { onSelectCategory?: (cat
   // Display items: preference to active API categories with slugs, fallback to static defaults
   const displayItems = categories.length > 0
     ? categories.map((cat) => ({ label: cat.name, slug: cat.slug }))
-    : CATEGORY_OPTIONS.map((cat) => ({ label: cat.label, slug: cat.label.toLowerCase().replace(/\s+/g, "-") }));
+    : CATEGORY_OPTIONS.map((cat) => ({ label: cat.label, slug: cat.slug || cat.label.toLowerCase().replace(/\s+/g, "-") }));
 
   const handleCategoryClick = (cat: { label: string; slug: string }) => {
     setOpen(false);
@@ -97,19 +97,29 @@ export function CategoryDropdown({ onSelectCategory }: { onSelectCategory?: (cat
                 Loading categories...
               </li>
             ) : (
-              displayItems.map((cat, i) => (
-                <li key={cat.slug || cat.label}>
-                  <button
-                    type="button"
-                    onClick={() => handleCategoryClick(cat)}
-                    className={`w-full text-left px-5 py-2.5 text-sm text-[#EACEAA]/85 hover:text-[#D39858] hover:bg-[#EACEAA]/10 transition-all duration-200 flex items-center justify-between group/cat ${
-                      i !== displayItems.length - 1 ? "border-b border-[#EACEAA]/8" : ""
-                    }`}
+              <>
+                {displayItems.map((cat) => (
+                  <li key={cat.slug || cat.label}>
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryClick(cat)}
+                      className="w-full text-left px-5 py-2.5 text-sm text-[#EACEAA]/85 hover:text-[#D39858] hover:bg-[#EACEAA]/10 transition-all duration-200 flex items-center justify-between group/cat border-b border-[#EACEAA]/8"
+                    >
+                      <span>{cat.label}</span>
+                    </button>
+                  </li>
+                ))}
+                <li>
+                  <Link
+                    to="/categories"
+                    onClick={() => setOpen(false)}
+                    className="w-full text-left px-5 py-2.5 text-xs font-bold text-[#D39858] hover:text-[#EACEAA] hover:bg-[#EACEAA]/10 transition-all duration-200 flex items-center justify-between"
                   >
-                    <span>{cat.label}</span>
-                  </button>
+                    <span>View All Categories</span>
+                    <ArrowRight size={13} />
+                  </Link>
                 </li>
-              ))
+              </>
             )}
           </ul>
         </div>

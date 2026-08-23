@@ -21,29 +21,6 @@ import { ProductCard } from "../components/product/ProductCard";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
-import {
-  CUBICLE_HARDWARE_PRODUCTS,
-  LOCKER_HARDWARE_PRODUCTS,
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS,
-} from "../data/products";
-
-const BASELINE_PRODUCTS: Product[] = [
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
-
-import {
-  MATERIAL_REGISTRY,
-  isProductOfMaterial,
-  resolveMaterialBySlug,
-  MaterialMeta,
-} from "../utils/materials";
-
 export { MATERIAL_REGISTRY, isProductOfMaterial, resolveMaterialBySlug };
 export type { MaterialMeta };
 
@@ -59,18 +36,10 @@ export function MaterialProductsPage({ onAddToCart, onWishlist, wishlist }: Mate
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const cached = localStorage.getItem("prc_cached_products_list");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return getLiveCatalog(parsed);
-      }
-    } catch {}
-    return getLiveCatalog(BASELINE_PRODUCTS);
-  });
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [sortOption, setSortOption] = useState<string>("featured");
+
 
   const currentMaterial = useMemo(() => {
     return resolveMaterialBySlug(slug);

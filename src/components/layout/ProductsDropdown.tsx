@@ -3,25 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Package } from "lucide-react";
 import { Product } from "../../types";
 import { getAllProductsApi } from "../../services/productService";
-import { getLiveCatalog, subscribeToProductSync } from "../../services/productSyncService";
+import { subscribeToProductSync } from "../../services/productSyncService";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
-import {
-  CUBICLE_HARDWARE_PRODUCTS,
-  LOCKER_HARDWARE_PRODUCTS,
-  SUPER_SAVER_PRODUCTS,
-  VALUE_MONEY_PRODUCTS,
-  BEST_SELLER_PRODUCTS,
-} from "../../data/products";
-
-const BASELINE_PRODUCTS: Product[] = [
-  ...CUBICLE_HARDWARE_PRODUCTS,
-  ...LOCKER_HARDWARE_PRODUCTS,
-  ...SUPER_SAVER_PRODUCTS,
-  ...VALUE_MONEY_PRODUCTS,
-  ...BEST_SELLER_PRODUCTS,
-];
 
 interface ProductsDropdownProps {
   onSelectProduct?: (prod: string) => void;
@@ -31,17 +16,8 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
   const [open, setOpen] = useState(false);
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const cached = localStorage.getItem("prc_cached_products_list");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return getLiveCatalog(parsed);
-      }
-    } catch {}
-    return getLiveCatalog(BASELINE_PRODUCTS);
-  });
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLLIElement>(null);
   const navigate = useNavigate();
 
@@ -52,8 +28,8 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
       setLoading(true);
       try {
         const live = await getAllProductsApi(100);
-        if (isMounted && live && live.length > 0) {
-          setProducts(getLiveCatalog(live));
+        if (isMounted && live) {
+          setProducts(live);
         }
       } catch {
         // keep fallback
@@ -66,8 +42,8 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
 
     const unsubscribe = subscribeToProductSync(async () => {
       const fresh = await getAllProductsApi(100);
-      if (isMounted && fresh && fresh.length > 0) {
-        setProducts(getLiveCatalog(fresh));
+      if (isMounted && fresh) {
+        setProducts(fresh);
       }
     });
 
@@ -88,7 +64,6 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 100% Dynamic: Select up to 8 products maximum displayed in 2 columns
   const displayProducts = useMemo(() => {
     return products.slice(0, 8);
   }, [products]);
@@ -96,7 +71,7 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
   const handleProductClick = (product: Product) => {
     if (onSelectProduct) onSelectProduct(product.name);
     setOpen(false);
-    navigate(`/product/${product.id || product.apiId || product.slug}`);
+    navigate(`/product/${product.slug || product.id || product.apiId}`);
   };
 
   return (
@@ -132,16 +107,14 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
         />
       </button>
 
-      {/* ── Dynamic Dropdown Menu (Full Width on Desktop/Tablet, Full Width of Mobile Drawer on Small Devices) ── */}
+      {/* ── Dynamic Dropdown Menu ── */}
       {open && (
         <div className="w-full md:absolute md:top-full md:left-0 md:right-0 md:w-full z-50 md:pt-0 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="bg-[#240c07] md:border-t md:border-b border-[#EACEAA]/20 shadow-2xl backdrop-blur-md w-full">
-            
             <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3">
-              {/* Products Grid: 1-col on mobile taking 100% full width, 2-col on tablet (md), 4-col on desktop (lg) */}
               {loading && displayProducts.length === 0 ? (
                 <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 max-h-[340px] md:max-h-none overflow-y-auto">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="w-full flex items-center gap-2.5 p-2 bg-[#34150F]/40 rounded-tr-lg rounded-bl-lg border border-[#EACEAA]/8 animate-pulse">
                       <div className="w-11 h-11 rounded-tr-md rounded-bl-md bg-[#EACEAA]/10 flex-shrink-0" />
                       <div className="flex-1 space-y-1 min-w-0">
@@ -241,9 +214,7 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
                   <ChevronRight size={12} />
                 </Link>
               </div>
-
             </div>
-
           </div>
         </div>
       )}
