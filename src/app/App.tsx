@@ -89,6 +89,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 }
 
+import { GlobalNotificationListener } from '../components/common/GlobalNotificationListener';
+
 function AppContent() {
   const { cart, cartOpen, setCartOpen, addToCart, removeFromCart, changeQty, cartCount } = useCart();
   const { wishlist, wishlistItems, toggleWishlist, wishlistCount } = useWishlist();
@@ -115,6 +117,10 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#EACEAA] flex flex-col justify-between overflow-x-hidden" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <ScrollToTop />
+      
+      {/* Real-time Push Notifications */}
+      <GlobalNotificationListener />
+
       <div>
         <Header
           cartCount={cartCount}
