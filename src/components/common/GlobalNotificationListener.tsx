@@ -21,14 +21,27 @@ export function GlobalNotificationListener() {
     // Only connect to SSE if the user is logged in
     if (!isAuthenticated) return;
     
-    const token = getStoredToken();
-    if (!token) return;
-
     let eventSource: EventSource | null = null;
     let retryTimeout: any;
 
     const connect = () => {
-      eventSource = new EventSource(`${API_BASE_URL}/events/stream?token=${token}`);
+      const token = getStoredToken();
+      if (!token) return;
+
+      // Guard: do not attempt connection with expired JWT
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            return;
+          }
+        }
+      } catch (e) {
+        return;
+      }
+
+      eventSource = new EventSource(`${API_BASE_URL}/events/stream?token=${encodeURIComponent(token)}`);
 
       const handleEvent = (e: MessageEvent) => {
         try {
@@ -60,8 +73,23 @@ export function GlobalNotificationListener() {
 
       eventSource.onerror = () => {
         eventSource?.close();
-        // Reconnect after 10 seconds if connection drops
-        retryTimeout = setTimeout(connect, 10000); 
+        
+        // Reconnect after 30s only if user still has a valid, non-expired token
+        const currentToken = getStoredToken();
+        if (!currentToken) return;
+        try {
+          const parts = currentToken.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+              return; // Token expired, abort retry loop
+            }
+          }
+        } catch (e) {
+          return;
+        }
+
+        retryTimeout = setTimeout(connect, 30000); 
       };
     };
 
