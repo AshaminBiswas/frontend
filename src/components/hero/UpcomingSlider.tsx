@@ -15,8 +15,8 @@ export function UpcomingSlider() {
     desktopImage?: string;
     mobileImage?: string;
     linkUrl?: string;
-  }>>(DEFAULT_UPCOMING_SLIDES);
-  const [loading, setLoading] = useState(false);
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -36,13 +36,13 @@ export function UpcomingSlider() {
           }));
           setSlides(formatted);
         } else {
-          setSlides(DEFAULT_UPCOMING_SLIDES);
+          setSlides([]);
         }
         setLoading(false);
       }
     }).catch(() => {
       if (mounted) {
-        setSlides(DEFAULT_UPCOMING_SLIDES);
+        setSlides([]);
         setLoading(false);
       }
     });

@@ -18,8 +18,8 @@ export function HeroSlider() {
     mobileImage?: string;
     linkUrl?: string;
     ctaText?: string;
-  }>>(DEFAULT_HERO_SLIDES);
-  const [loading, setLoading] = useState(false);
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -61,13 +61,13 @@ export function HeroSlider() {
           }));
           setSlides(formatted);
         } else {
-          setSlides(DEFAULT_HERO_SLIDES);
+          setSlides([]);
         }
         setLoading(false);
       }
     }).catch(() => {
       if (mounted) {
-        setSlides(DEFAULT_HERO_SLIDES);
+        setSlides([]);
         setLoading(false);
       }
     });

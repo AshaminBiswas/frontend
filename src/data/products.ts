@@ -1,6 +1,31 @@
 import { Product } from '../types';
 
-export const DEFAULT_HERO_SLIDES = [
+export interface HeroSlideItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  badgeText?: string;
+  image: string;
+  desktopImage?: string;
+  tabletImage?: string;
+  mobileImage?: string;
+  linkUrl?: string;
+  ctaText?: string;
+}
+
+export interface UpcomingSlideItem {
+  id: string;
+  title: string;
+  sub: string;
+  image: string;
+  desktopImage?: string;
+  mobileImage?: string;
+  linkUrl?: string;
+}
+
+// Hardcoded sample hero images commented out — live banners are dynamically loaded from DB
+export const DEFAULT_HERO_SLIDES: HeroSlideItem[] = [
+  /*
   {
     id: 'hero-1',
     title: 'Architectural Hardware Excellence',
@@ -25,9 +50,12 @@ export const DEFAULT_HERO_SLIDES = [
     linkUrl: '/products',
     ctaText: 'View Hardware'
   }
+  */
 ];
 
-export const DEFAULT_UPCOMING_SLIDES = [
+// Hardcoded upcoming images commented out — live banners are dynamically loaded from DB
+export const DEFAULT_UPCOMING_SLIDES: UpcomingSlideItem[] = [
+  /*
   {
     id: 'up-1',
     title: 'Next-Gen Smart Locker Series',
@@ -37,6 +65,7 @@ export const DEFAULT_UPCOMING_SLIDES = [
     mobileImage: 'https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=800&q=80',
     linkUrl: '/products'
   }
+  */
 ];
 
 export const DEFAULT_SHOWCASE_PRODUCTS: Product[] = [];

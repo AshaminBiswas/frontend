@@ -58,7 +58,7 @@ D:\
   - **Warranty & Claims (`WarrantyClaimPage.tsx`)**: Touch upload file zone, mobile certificate verification and generator modal.
   - **Order Tracking & Notifications (`TrackOrderPage.tsx` & `NotificationsPage.tsx`)**: Mobile vertical order milestone stepper and compact notification cards.
   - **Policies & Information Suite (`AboutPage.tsx`, `ContactPage.tsx`, `FaqPage.tsx`, `PolicyPage.tsx`, `TermsOfServicePage.tsx`, `PrivacyPolicyPage.tsx`, `RefundPolicyPage.tsx`, `ShippingPolicyPage.tsx`)**: Mobile horizontal pill bars for quick policy switching, compact FAQ accordions, and responsive inquiry submission forms.
-  - **Auth Modal (`AuthModal.tsx`)**: Screen-height constrained (`max-h-[90vh] overflow-y-auto no-scrollbar`) for flawless mobile keyboard and viewport handling.
+  - **Dynamic Banner Loading (`HeroSlider.tsx` & `UpcomingSlider.tsx`)**: Zero hardcoded image flashing on refresh; skeleton shimmer placeholders during live database banner retrieval.
 - **State & Services**: Custom React contexts (`AuthContext`, `CartContext`, etc.), modular API services in `src/services/`.
 - **Features**: Product catalog with dynamic filters, category browsing, instant search, persistent cart, multi-step checkout, B2B quotation request, installation appointment booking, customer order tracking, reviews & ratings, wishlist.
 
