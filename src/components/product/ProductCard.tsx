@@ -118,16 +118,16 @@ export const ProductCard = memo(function ProductCard({
     <>
       <div
         onClick={handleCardClick}
-        className="relative group cursor-pointer w-full bg-[#f5e8d4] rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-2 sm:p-3.5 border border-[rgba(52,21,15,0.08)] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between h-full"
+        className="relative group cursor-pointer w-full bg-[#f5e8d4] rounded-tr-lg rounded-bl-lg sm:rounded-tr-2xl sm:rounded-bl-2xl p-1.5 sm:p-3.5 border border-[rgba(52,21,15,0.08)] shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between h-full"
       >
         <div>
           {/* Image Container with Thumbnail */}
-          <div className="relative w-full aspect-square overflow-hidden rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl bg-[#EACEAA]/30">
+          <div className="relative w-full aspect-square overflow-hidden rounded-tr-md rounded-bl-md sm:rounded-tr-xl sm:rounded-bl-xl bg-[#EACEAA]/30">
             <ProductThumb src={imageSrc} name={product.name} />
 
             {/* Discount Percentage Badge (Top-Left) */}
             {discountPercent > 0 && (
-              <span className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-[#34150F] text-[#D39858] text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-tr-md rounded-bl-md z-10 border border-[#D39858]/30">
+              <span className="absolute top-1 left-1 sm:top-2.5 sm:left-2.5 bg-[#34150F] text-[#D39858] text-[7.5px] sm:text-[10px] font-black px-1 sm:px-1.5 py-0.5 rounded-tr-xs rounded-bl-xs sm:rounded-tr-md sm:rounded-bl-md z-10 border border-[#D39858]/30 shadow-2xs">
                 {discountPercent}% OFF
               </span>
             )}
@@ -137,14 +137,14 @@ export const ProductCard = memo(function ProductCard({
               type="button"
               onClick={handleWishlist}
               aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              className={`absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-90 ${
+              className={`absolute top-1 right-1 sm:top-2.5 sm:right-2.5 z-20 w-5 h-5 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shadow-xs active:scale-90 ${
                 wishlisted
                   ? "bg-rose-500 text-white"
                   : "bg-[#34150F]/80 text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
               }`}
               title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart size={13} className={`sm:w-[15px] sm:h-[15px] ${wishlisted ? "fill-white" : ""}`} />
+              <Heart size={11} className={`sm:w-[15px] sm:h-[15px] ${wishlisted ? "fill-white" : ""}`} />
             </button>
 
             {/* Center Quick View Button Overlay on Card/Image Hover (Desktop only) */}
@@ -161,10 +161,10 @@ export const ProductCard = memo(function ProductCard({
           </div>
 
           {/* Details Section */}
-          <div className="mt-2 sm:mt-2.5">
+          <div className="mt-1.5 sm:mt-2.5">
             {/* Product Name */}
             <h4
-              className="text-[#34150F] text-[11px] sm:text-xs font-bold leading-tight mb-1 line-clamp-2 min-h-[26px] sm:min-h-[30px] hover:text-[#D39858] transition-colors"
+              className="text-[#34150F] text-[10.5px] sm:text-xs font-bold leading-tight mb-1 line-clamp-2 min-h-[26px] sm:min-h-[30px] hover:text-[#D39858] transition-colors"
             >
               {product.name}
             </h4>
@@ -177,33 +177,33 @@ export const ProductCard = memo(function ProductCard({
             )}
 
             {/* Dynamic Stock Status Badge */}
-            <div className="mb-1.5">
-              <span className={`inline-flex items-center text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${stockInfo.badgeClass}`}>
+            <div className="mb-1 sm:mb-1.5">
+              <span className={`inline-flex items-center text-[7.5px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded border ${stockInfo.badgeClass}`}>
                 {stockInfo.label}
               </span>
             </div>
 
             {/* Price Row: salePrice + price line-through + discount percentage */}
-            <div className="flex items-baseline gap-1.5 mb-2 flex-wrap">
+            <div className="flex items-baseline gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 flex-wrap">
               {/* Sale Price */}
-              <span className="text-[#34150F] font-black text-xs sm:text-base tracking-tight" style={{ fontFamily: "'DM Mono', monospace" }}>
+              <span className="text-[#34150F] font-black text-[11.5px] sm:text-base tracking-tight" style={{ fontFamily: "'DM Mono', monospace" }}>
                 ₹{salePrice.toLocaleString("en-IN")}
               </span>
 
               {/* Price Line-Through (Regular / Original Price) */}
               {hasDiscount && (
-                <span className="text-[#85431E]/50 text-[9px] sm:text-[11px] line-through font-semibold">
+                <span className="text-[#85431E]/50 text-[8.5px] sm:text-[11px] line-through font-semibold">
                   ₹{regularPrice.toLocaleString("en-IN")}
                 </span>
               )}
 
               {/* Discount / B2B Percentage Badge */}
               {effective.isB2B ? (
-                <span className="text-[8px] font-black text-[#34150F] bg-[#D39858] px-1 py-0.2 rounded shadow-2xs uppercase tracking-wider">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-[#34150F] bg-[#D39858] px-1 py-0.2 rounded shadow-2xs uppercase tracking-wider">
                   B2B {discountPercent}%
                 </span>
               ) : discountPercent > 0 && (
-                <span className="text-[8px] sm:text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                <span className="text-[7.5px] sm:text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
                   {discountPercent}% OFF
                 </span>
               )}
@@ -217,7 +217,7 @@ export const ProductCard = memo(function ProductCard({
             type="button"
             onClick={handleAddToCart}
             disabled={!stockInfo.isAvailable}
-            className={`w-full text-[10px] sm:text-xs font-bold py-1.5 sm:py-2 px-2 sm:px-3 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl transition-all duration-200 shadow-2xs flex items-center justify-center gap-1 active:scale-95 ${
+            className={`w-full text-[9.5px] sm:text-xs font-bold py-1 sm:py-2 px-1.5 sm:px-3 rounded-tr-md rounded-bl-md sm:rounded-tr-xl sm:rounded-bl-xl transition-all duration-200 shadow-2xs flex items-center justify-center gap-1 active:scale-95 ${
               !stockInfo.isAvailable
                 ? "bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300 opacity-80"
                 : added
@@ -226,14 +226,16 @@ export const ProductCard = memo(function ProductCard({
             }`}
           >
             {!stockInfo.isAvailable ? (
-              "Out of Stock"
+              <span className="truncate">Out of Stock</span>
             ) : added ? (
               <>
-                <Check size={12} className="sm:w-3.5 sm:h-3.5" /> Added
+                <Check size={11} className="sm:w-3.5 sm:h-3.5" /> Added
               </>
             ) : (
               <>
-                <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" /> Add to Cart
+                <ShoppingCart size={11} className="sm:w-3.5 sm:h-3.5" />
+                <span className="inline sm:hidden">Add</span>
+                <span className="hidden sm:inline">Add to Cart</span>
               </>
             )}
           </button>

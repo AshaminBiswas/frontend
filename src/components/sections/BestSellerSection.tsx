@@ -106,7 +106,7 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
         {/* Native GPU-Accelerated Smooth Horizontal Track */}
         <div
           ref={scrollRef}
-          className="flex gap-5 overflow-x-auto scroll-smooth scrollbar-hide py-4 px-1"
+          className="flex gap-2 sm:gap-5 overflow-x-auto scroll-smooth scrollbar-hide py-2 sm:py-4 px-0.5 sm:px-1"
         >
           {bestSellers.map((p) => {
             const isHovered = hoveredId === p.id;
@@ -117,7 +117,7 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
                 key={p.apiId || p.id}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                className={`flex-shrink-0 w-[240px] sm:w-[280px] md:w-[320px] lg:w-[calc(25%-15px)] transition-all duration-300 ease-out ${
+                className={`flex-shrink-0 w-[145px] xs:w-[160px] sm:w-[260px] md:w-[300px] lg:w-[calc(25%-15px)] transition-all duration-300 ease-out ${
                   isHovered
                     ? "scale-105 z-20 opacity-100"
                     : isOtherHovered

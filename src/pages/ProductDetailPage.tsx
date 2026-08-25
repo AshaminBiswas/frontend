@@ -25,8 +25,8 @@ function MainProductImage({ src, name }: { src?: string; name: string }) {
   const [errored, setErrored] = useState(false);
   if (!src || errored) {
     return (
-      <div className="w-full h-80 md:h-[450px] bg-gradient-to-br from-[#34150F]/20 via-[#D39858]/10 to-[#85431E]/20 flex items-center justify-center rounded-tr-2xl rounded-bl-2xl">
-        <Package size={56} className="text-[#85431E]/40" />
+      <div className="w-full h-64 xs:h-72 sm:h-80 md:h-[420px] lg:h-[450px] bg-gradient-to-br from-[#34150F]/20 via-[#D39858]/10 to-[#85431E]/20 flex items-center justify-center rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl">
+        <Package size={40} className="sm:w-14 sm:h-14 text-[#85431E]/40" />
       </div>
     );
   }
@@ -35,7 +35,7 @@ function MainProductImage({ src, name }: { src?: string; name: string }) {
       src={src}
       alt={name}
       onError={() => setErrored(true)}
-      className="w-full h-80 md:h-[450px] object-cover rounded-tr-2xl rounded-bl-2xl transition-all duration-300"
+      className="w-full h-64 xs:h-72 sm:h-80 md:h-[420px] lg:h-[450px] object-cover rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl transition-all duration-300"
     />
   );
 }
