@@ -59,8 +59,16 @@ export const authService = {
   },
 
   // 5. Forgot Password
-  async forgotPassword(payload: ForgotPasswordPayload): Promise<ApiResponse> {
+  async forgotPassword(payload: ForgotPasswordPayload): Promise<ApiResponse<{ message?: string; maskedEmail?: string }>> {
     return fetchApi("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // 5.1 Verify Reset OTP
+  async verifyResetOtp(payload: { identifier: string; otp: string }): Promise<ApiResponse<{ resetToken: string; message?: string }>> {
+    return fetchApi("/auth/verify-reset-otp", {
       method: "POST",
       body: JSON.stringify(payload),
     });

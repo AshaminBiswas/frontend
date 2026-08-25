@@ -34,6 +34,9 @@ export function AuthModal() {
   const [gstin, setGstin] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resetToken, setResetToken] = useState("");
+  const [forgotIdentifier, setForgotIdentifier] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
+  const [maskedEmailNotice, setMaskedEmailNotice] = useState("");
   const [currentTempPassword, setCurrentTempPassword] = useState("");
   const [newPermanentPassword, setNewPermanentPassword] = useState("");
   const [confirmPermanentPassword, setConfirmPermanentPassword] = useState("");
@@ -252,30 +255,49 @@ export function AuthModal() {
     }
   };
 
-  // Handler: Forgot Password
+  // Handler: Forgot Password (via Email OR GSTIN)
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      setErrorMsg("Please enter your registered email address.");
+    const identifier = forgotIdentifier.trim() || email.trim() || gstin.trim();
+    if (!identifier) {
+      setErrorMsg("Please enter your registered Email address or GSTIN Number.");
       return;
     }
 
     setIsSubmitting(true);
-    const res = await forgotPassword(email.trim());
+    const res = await forgotPassword(identifier);
     setIsSubmitting(false);
 
     if (res.success) {
-      setSuccessMsg(res.message || "Reset token generated! Check your email.");
+      setMaskedEmailNotice(res.maskedEmail || "");
+      setSuccessMsg(res.message || "A 6-digit password reset OTP has been sent to your registered email.");
     } else {
-      setErrorMsg(res.message || "Email address not found.");
+      setErrorMsg(res.message || "No registered account found matching this Email or GSTIN.");
     }
   };
 
-  // Handler: Reset Password
+  // Handler: Reset Password (via 6-digit OTP or Reset Token)
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetToken.trim() || !password.trim()) {
-      setErrorMsg("Please enter the reset token and your new password.");
+    const identifier = forgotIdentifier.trim() || pendingEmail.trim() || email.trim();
+
+    if (!resetOtp.trim() && !resetToken.trim()) {
+      setErrorMsg("Please enter the 6-digit reset OTP sent to your email.");
+      return;
+    }
+
+    if (resetOtp.trim() && resetOtp.trim().length !== 6) {
+      setErrorMsg("OTP code must be exactly 6 digits.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setErrorMsg("Please enter your new password.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMsg("New password must be at least 8 characters long.");
       return;
     }
 
@@ -286,16 +308,21 @@ export function AuthModal() {
 
     setIsSubmitting(true);
     const res = await resetPassword({
-      token: resetToken.trim(),
+      identifier: identifier || undefined,
+      otp: resetOtp.trim() || undefined,
+      token: resetToken.trim() || undefined,
       password,
       confirmPassword: confirmPassword || password,
     });
     setIsSubmitting(false);
 
     if (res.success) {
-      setSuccessMsg(res.message || "Password reset successfully! Log in now.");
+      setSuccessMsg("Password reset successfully! Please sign in with your new password.");
+      setResetOtp("");
+      setPassword("");
+      setConfirmPassword("");
     } else {
-      setErrorMsg(res.message || "Failed to reset password.");
+      setErrorMsg(res.message || "Failed to reset password. Invalid or expired OTP.");
     }
   };
 
@@ -342,9 +369,32 @@ export function AuthModal() {
 
         {/* Global Feedback Banners */}
         {errorMsg && (
-          <div className="mb-5 p-3 rounded-tr-xl rounded-bl-xl bg-red-900/40 border border-red-500/30 text-red-200 text-xs flex items-center gap-2 animate-in fade-in duration-200">
-            <AlertCircle size={16} className="flex-shrink-0 text-red-400" />
-            <span>{errorMsg}</span>
+          <div className="mb-5 p-3 rounded-tr-xl rounded-bl-xl bg-red-900/40 border border-red-500/30 text-red-200 text-xs space-y-2 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={16} className="flex-shrink-0 text-red-400 mt-0.5" />
+              <span className="flex-1 leading-relaxed">{errorMsg}</span>
+            </div>
+            {(errorMsg.toLowerCase().includes("already exists") ||
+              errorMsg.toLowerCase().includes("already registered") ||
+              errorMsg.toLowerCase().includes("already linked")) &&
+              !errorMsg.toLowerCase().includes("maximum allowed") && (
+                <div className="pt-2 flex items-center justify-between border-t border-red-500/30">
+                  <span className="text-[11px] text-[#EACEAA]/80">Forgot your account password?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetId = gstin.trim() || email.trim();
+                      setForgotIdentifier(targetId);
+                      setErrorMsg("");
+                      setSuccessMsg("");
+                      openAuthModal("forgot");
+                    }}
+                    className="bg-[#D39858] text-[#34150F] font-bold text-[11px] px-3 py-1 rounded-tr-lg rounded-bl-lg hover:bg-[#EACEAA] transition-all"
+                  >
+                    Reset Password →
+                  </button>
+                </div>
+              )}
           </div>
         )}
 
@@ -731,18 +781,28 @@ export function AuthModal() {
           </div>
         )}
 
-        {/* ── VIEW 4: FORGOT PASSWORD ── */}
+        {/* ── VIEW 4: FORGOT PASSWORD (EMAIL OR GSTIN) ── */}
         {authModalView === "forgot" && (
           <form onSubmit={handleForgotSubmit} className="space-y-4">
+            <div className="p-3 bg-[#D39858]/15 border border-[#D39858]/30 rounded-tr-xl rounded-bl-xl text-xs text-[#EACEAA] flex items-start gap-2">
+              <Info size={16} className="text-[#D39858] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-[#D39858]">Account Recovery &amp; Password Reset</p>
+                <p className="text-[11px] text-[#EACEAA]/80 mt-0.5">
+                  Enter your registered <strong>Email Address</strong> or <strong>15-character GSTIN Number</strong>. We will send a 6-digit verification OTP to your registered email.
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#D39858] mb-1">
-                Your Account Email
+                Email Address or GSTIN Number *
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="customer@example.com"
+                type="text"
+                value={forgotIdentifier || email || gstin}
+                onChange={(e) => setForgotIdentifier(e.target.value)}
+                placeholder="name@company.com or 27AAAAA0000A1Z5"
                 className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 pl-4 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
                 required
               />
@@ -753,7 +813,7 @@ export function AuthModal() {
               disabled={isSubmitting}
               className="w-full bg-[#D39858] text-[#34150F] font-bold py-3 px-4 rounded-tr-2xl rounded-bl-2xl hover:bg-[#EACEAA] transition-all duration-300 shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Sending..." : "Send Password Reset Link"}
+              {isSubmitting ? "Sending OTP Code..." : "Send 6-Digit Reset OTP"}
             </button>
 
             <div className="text-center text-xs pt-2">
@@ -768,26 +828,39 @@ export function AuthModal() {
           </form>
         )}
 
-        {/* ── VIEW 5: RESET PASSWORD ── */}
+        {/* ── VIEW 5: RESET PASSWORD (6-DIGIT OTP + NEW PASSWORD) ── */}
         {authModalView === "reset" && (
           <form onSubmit={handleResetSubmit} className="space-y-4">
+            <div className="p-3 bg-[#D39858]/15 border border-[#D39858]/30 rounded-tr-xl rounded-bl-xl text-xs text-[#EACEAA] flex items-start gap-2">
+              <Info size={16} className="text-[#D39858] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-[#D39858]">Verify OTP &amp; Set New Password</p>
+                <p className="text-[11px] text-[#EACEAA]/80 mt-0.5">
+                  {maskedEmailNotice
+                    ? `Enter the 6-digit OTP code sent to ${maskedEmailNotice}`
+                    : `Enter the 6-digit OTP code sent to your registered email (${forgotIdentifier || pendingEmail || email})`}
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#D39858] mb-1">
-                Reset Token / Code *
+                6-Digit Reset OTP *
               </label>
               <input
                 type="text"
-                value={resetToken}
-                onChange={(e) => setResetToken(e.target.value)}
-                placeholder="raw-reset-token-string"
-                className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
+                maxLength={6}
+                value={resetOtp}
+                onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ""))}
+                placeholder="123456"
+                className="w-full text-center text-xl font-mono tracking-widest bg-[#EACEAA]/15 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl border border-[#EACEAA]/30 focus:outline-none focus:border-[#D39858]"
                 required
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#D39858] mb-1">
-                New Password *
+                New Password * (Min. 8 characters)
               </label>
               <input
                 type="password"
@@ -818,8 +891,18 @@ export function AuthModal() {
               disabled={isSubmitting}
               className="w-full bg-[#D39858] text-[#34150F] font-bold py-3 px-4 rounded-tr-2xl rounded-bl-2xl hover:bg-[#EACEAA] transition-all duration-300 shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Resetting..." : "Reset Password & Login"}
+              {isSubmitting ? "Resetting Password..." : "Reset Password & Login"}
             </button>
+
+            <div className="text-center text-xs pt-2">
+              <button
+                type="button"
+                onClick={() => openAuthModal("forgot")}
+                className="text-[#EACEAA]/70 hover:text-[#D39858]"
+              >
+                Didn't receive OTP? Try again
+              </button>
+            </div>
           </form>
         )}
 

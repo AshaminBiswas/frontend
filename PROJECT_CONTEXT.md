@@ -213,7 +213,11 @@ The Storefront was architected and optimized for native app-like responsiveness 
   1. **GSTIN Validation**: Official GSTN Luhn Mod-36 checksum calculation, 37 Indian State/UT code validation with live state resolution (e.g. `27` -> Maharashtra), and PAN entity type decoding.
   2. **Phone Number Validation**: Strict 10-digit Indian mobile validation (`^[6-9]\d{9}$`), normalization (stripping `+91`/`0`/formatting), and rejection of dummy/sequence numbers.
   3. **Email Deliverability & Disposable Blocker**: Zero-cost DNS MX record verification (`dns.promises.resolveMx`) and 30+ disposable email domain blocklist (`tempmail`, `mailinator`, `10minutemail`, `yopmail`, etc.).
+- **Duplicate Account Prevention, Phone Multi-Account Limit & Unified Password Recovery (`auth.service.ts`, `AuthModal.tsx`)**:
+  1. **Registration Duplicate Prevention**: Pre-checks Email, GSTIN, and Company Name before creation. Rejects duplicates with a 1-click **"Reset Password →"** action that pre-fills their identifier into account recovery.
+  2. **Phone Number Multi-Account Limit**: Enforces a strict maximum of **3 accounts per phone number**; 4th registration triggers `PHONE_LIMIT_EXCEEDED`.
+  3. **Unified Password Reset via Email OR GSTIN with 6-Digit OTP**: Customers can initiate recovery by typing either their Email or GSTIN. A 6-digit OTP is dispatched to their registered email with interactive OTP entry and instant password reset.
 
 ---
 
-*Last Updated: 2026-08-25 (Government GSTIN Luhn Mod-36, Phone & Email DNS MX Validation Suite)*
+*Last Updated: 2026-08-25 (Duplicate Account Prevention, Max 3 Phone Limit & Email/GSTIN OTP Recovery)*

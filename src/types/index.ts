@@ -111,11 +111,20 @@ export interface VerifyOtpPayload {
 }
 
 export interface ForgotPasswordPayload {
-  email: string;
+  email?: string;
+  gstin?: string;
+  identifier?: string;
+}
+
+export interface VerifyResetOtpPayload {
+  identifier: string;
+  otp: string;
 }
 
 export interface ResetPasswordPayload {
-  token: string;
+  token?: string;
+  identifier?: string;
+  otp?: string;
   password: string;
   confirmPassword?: string;
 }

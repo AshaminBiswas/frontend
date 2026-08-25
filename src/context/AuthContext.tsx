@@ -18,7 +18,9 @@ interface AuthContextType {
   register: (payload: RegisterPayload) => Promise<{ success: boolean; requiresVerification?: boolean; message?: string }>;
   verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string }>;
   resendOtp: () => Promise<{ success: boolean; message?: string }>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
+  forgotPassword: (identifier: string) => Promise<{ success: boolean; message?: string; maskedEmail?: string }>;
+  verifyResetOtp: (identifier: string, otp: string) => Promise<{ success: boolean; resetToken?: string; message?: string }>;
+  resetPassword: (payload: ResetPasswordPayload) => Promise<{ success: boolean; message?: string }>;
   changePassword: (currentPassword: string, newPassword: string, confirmPassword?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>;
@@ -195,16 +197,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 5. Forgot Password
-  const forgotPassword = async (email: string) => {
-    const res = await authService.forgotPassword({ email });
+  const forgotPassword = async (identifier: string) => {
+    const res = await authService.forgotPassword({ identifier });
     if (res.success) {
-      setPendingEmail(email);
+      setPendingEmail(identifier);
       setAuthModalView("reset");
-      return { success: true, message: res.message || "Password reset token sent to your email." };
+      return {
+        success: true,
+        message: res.data?.message || res.message || "Password reset OTP sent to your registered email.",
+        maskedEmail: res.data?.maskedEmail,
+      };
     }
     return {
       success: false,
-      message: res.error?.message || res.message || "Email not found or request failed.",
+      message: res.error?.message || res.message || "No registered account found matching this Email or GSTIN.",
+    };
+  };
+
+  // 5.1 Verify Reset OTP
+  const verifyResetOtp = async (identifier: string, otp: string) => {
+    const res = await authService.verifyResetOtp({ identifier, otp });
+    if (res.success && res.data) {
+      return { success: true, resetToken: res.data.resetToken, message: res.data.message || res.message };
+    }
+    return {
+      success: false,
+      message: res.error?.message || res.message || "Invalid or expired OTP code.",
     };
   };
 
@@ -217,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     return {
       success: false,
-      message: res.error?.message || res.message || "Failed to reset password. Invalid or expired token.",
+      message: res.error?.message || res.message || "Failed to reset password. Invalid or expired token/OTP.",
     };
   };
 
@@ -284,6 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         verifyOtp,
         resendOtp,
         forgotPassword,
+        verifyResetOtp,
         resetPassword,
         changePassword,
         logout,
