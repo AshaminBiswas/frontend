@@ -4,7 +4,13 @@ import { CATEGORY_OPTIONS } from "../../data/products";
 import { getCategoriesApi, ApiCategory } from "../../services/categoryService";
 import { Loader2, ArrowRight } from "lucide-react";
 
-export function CategoryDropdown({ onSelectCategory }: { onSelectCategory?: (cat: string) => void }) {
+export function CategoryDropdown({
+  onSelectCategory,
+  onCloseMenu,
+}: {
+  onSelectCategory?: (cat: string) => void;
+  onCloseMenu?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,7 @@ export function CategoryDropdown({ onSelectCategory }: { onSelectCategory?: (cat
     if (onSelectCategory) {
       onSelectCategory(cat.label);
     }
+    if (onCloseMenu) onCloseMenu();
     navigate(`/category/${cat.slug}`);
   };
 
@@ -112,7 +119,10 @@ export function CategoryDropdown({ onSelectCategory }: { onSelectCategory?: (cat
                 <li>
                   <Link
                     to="/categories"
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      setOpen(false);
+                      if (onCloseMenu) onCloseMenu();
+                    }}
                     className="w-full text-left px-5 py-2.5 text-xs font-bold text-[#D39858] hover:text-[#EACEAA] hover:bg-[#EACEAA]/10 transition-all duration-200 flex items-center justify-between"
                   >
                     <span>View All Categories</span>

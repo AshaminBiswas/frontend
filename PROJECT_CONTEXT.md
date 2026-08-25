@@ -195,4 +195,14 @@ Whenever introducing changes to the codebase, follow these rules:
 
 ---
 
-*Last Updated: 2026-08-25 (Post Inventory Subsystem Decoupling & Auto-Recovery Enhancements)*
+## 7. Storefront Mobile-First UX Architecture (`D:\frontend`)
+
+The Storefront was architected and optimized for native app-like responsiveness on small mobile devices (320px–420px):
+- **Responsive Top Navigation**: Removed cluttered search and profile buttons on small screens, shifting brand logo to right with left hamburger drawer.
+- **Dedicated Bottom App Bar & Search Overlay**: Bottom navigation bar triggers interactive search overlay (`SearchOverlay.tsx`) modal without unnecessary page transitions.
+- **Ultra-Compact Product Cards (`ProductCard.tsx`)**: Re-engineered with `p-1.5` internal padding, scaled micro-typography, compact stock badges, and responsive action triggers (`Add` on mobile vs `Add to Cart` on desktop).
+- **Product Detail Viewing Page (`ProductDetailPage.tsx`)**: Responsive image gallery viewport (`h-64 sm:h-80 md:h-[450px]`), touch-scrollable horizontal specifications and review tab bar (`no-scrollbar touch-pan-x`), compact pricing and finish options, and a fixed bottom sticky purchase bar for mobile checkout.
+
+---
+
+*Last Updated: 2026-08-25 (Storefront Mobile-First UX Architecture & Product View Optimization)*

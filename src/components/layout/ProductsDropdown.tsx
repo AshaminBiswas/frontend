@@ -10,9 +10,10 @@ import { useB2BPricing } from "../../hooks/useB2BPricing";
 
 interface ProductsDropdownProps {
   onSelectProduct?: (prod: string) => void;
+  onCloseMenu?: () => void;
 }
 
-export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
+export function ProductsDropdown({ onSelectProduct, onCloseMenu }: ProductsDropdownProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
   const [open, setOpen] = useState(false);
@@ -71,6 +72,7 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
   const handleProductClick = (product: Product) => {
     if (onSelectProduct) onSelectProduct(product.name);
     setOpen(false);
+    if (onCloseMenu) onCloseMenu();
     navigate(`/product/${product.slug || product.id || product.apiId}`);
   };
 
@@ -207,7 +209,10 @@ export function ProductsDropdown({ onSelectProduct }: ProductsDropdownProps) {
               <div className="w-full mt-2 pt-2 border-t border-[#EACEAA]/10 flex items-center justify-center sm:justify-end text-[11px]">
                 <Link
                   to="/products"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    if (onCloseMenu) onCloseMenu();
+                  }}
                   className="w-full sm:w-auto text-center font-bold text-[#D39858] hover:text-[#EACEAA] flex items-center justify-center gap-1 transition-colors py-1.5 px-2 bg-[#34150F]/50 sm:bg-transparent rounded-lg sm:rounded-none border border-[#EACEAA]/10 sm:border-0"
                 >
                   <span>Explore Full Catalog ({products.length} Products)</span>

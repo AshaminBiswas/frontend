@@ -266,14 +266,14 @@ export function ProductDetailPage({
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
       {/* ═══════════════ BREADCRUMB & BACK LINK ═══════════════ */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-8 lg:px-16 pt-5 sm:pt-8 pb-4">
+      <div className="max-w-6xl mx-auto px-2.5 sm:px-4 md:px-8 lg:px-16 pt-3 sm:pt-6 pb-2 sm:pb-4">
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-xs md:text-sm font-bold text-[#85431E] hover:text-[#34150F] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#85431E] hover:text-[#34150F] transition-colors"
           >
-            <ArrowLeft size={16} /> Back to Catalog
+            <ArrowLeft size={14} className="sm:w-4 sm:h-4" /> Back to Catalog
           </button>
 
           {/* Breadcrumb Trail */}
@@ -288,28 +288,28 @@ export function ProductDetailPage({
       </div>
 
       {/* ═══════════════ MAIN PRODUCT HERO GRID ═══════════════ */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-8 lg:px-16 pb-12">
-        <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-4 sm:p-6 md:p-8 border border-[rgba(52,21,15,0.08)] shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-8 lg:px-16 pb-4 sm:pb-12">
+        <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-2.5 sm:p-6 md:p-8 border border-[rgba(52,21,15,0.08)] shadow-2xs grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-8 items-start">
 
           {/* ── Left Column: Multi-Image Gallery ── */}
           <div className="lg:col-span-6">
-            <div className="relative bg-[#EACEAA]/30 rounded-tr-2xl rounded-bl-2xl p-2 overflow-hidden border border-[rgba(52,21,15,0.08)] shadow-inner">
+            <div className="relative bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-1.5 sm:p-2 overflow-hidden border border-[rgba(52,21,15,0.08)] shadow-inner">
               <MainProductImage src={activeSrc} name={product.name} />
 
               {/* Floating Badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+              <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 flex flex-col gap-1.5 sm:gap-2 z-10">
                 {discountPercent > 0 && (
-                  <span className="bg-[#34150F] text-[#D39858] text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-tr-lg rounded-bl-lg shadow-md border border-[#D39858]/30 flex items-center gap-1">
-                    <Flame size={12} className="fill-[#D39858]" /> {discountPercent}% OFF
+                  <span className="bg-[#34150F] text-[#D39858] text-[8.5px] sm:text-[10px] font-black uppercase tracking-wider px-2 sm:px-3 py-0.5 sm:py-1 rounded-tr-md rounded-bl-md sm:rounded-tr-lg sm:rounded-bl-lg shadow-sm border border-[#D39858]/30 flex items-center gap-1">
+                    <Flame size={11} className="sm:w-3 sm:h-3 fill-[#D39858]" /> {discountPercent}% OFF
                   </span>
                 )}
                 {product.isBestseller && (
-                  <span className="bg-[#D39858] text-[#34150F] text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-tr-lg rounded-bl-lg shadow-md">
+                  <span className="bg-[#D39858] text-[#34150F] text-[8.5px] sm:text-[10px] font-black uppercase tracking-wider px-2 sm:px-3 py-0.5 sm:py-1 rounded-tr-md rounded-bl-md sm:rounded-tr-lg sm:rounded-bl-lg shadow-sm">
                     BEST SELLER
                   </span>
                 )}
                 {product.isNewArrival && (
-                  <span className="bg-emerald-800 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-tr-lg rounded-bl-lg shadow-md">
+                  <span className="bg-emerald-800 text-white text-[8.5px] sm:text-[10px] font-black uppercase tracking-wider px-2 sm:px-3 py-0.5 sm:py-1 rounded-tr-md rounded-bl-md sm:rounded-tr-lg sm:rounded-bl-lg shadow-sm">
                     NEW DROP
                   </span>
                 )}
@@ -319,26 +319,26 @@ export function ProductDetailPage({
               <button
                 type="button"
                 onClick={() => onWishlist(product)}
-                className={`absolute top-4 right-4 z-10 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ${
+                className={`absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 w-7 h-7 sm:w-10 sm:h-10 rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ${
                   isWishlisted ? "bg-red-50 text-red-500" : "bg-white/90 text-[#34150F] hover:bg-white"
                 }`}
                 title={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
               >
-                <Heart size={20} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
+                <Heart size={14} className={`sm:w-5 sm:h-5 ${isWishlisted ? "fill-red-500 text-red-500" : ""}`} />
               </button>
             </div>
 
             {/* Thumbnail Carousel */}
             {galleryImages.length > 1 && (
-              <div className="flex items-center gap-3 mt-4 overflow-x-auto pb-2 scrollbar-none">
+              <div className="flex items-center gap-1.5 sm:gap-3 mt-2 sm:mt-4 overflow-x-auto pb-1 no-scrollbar">
                 {galleryImages.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveImageIdx(idx)}
-                    className={`w-16 h-16 rounded-tr-xl rounded-bl-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    className={`w-12 h-12 sm:w-16 sm:h-16 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
                       activeImageIdx === idx
-                        ? "border-[#34150F] scale-105 shadow-md"
+                        ? "border-[#34150F] scale-105 shadow-sm"
                         : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
@@ -353,20 +353,20 @@ export function ProductDetailPage({
           <div className="lg:col-span-6 flex flex-col justify-between">
             <div>
               {/* Category & SKU */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#85431E] bg-[#EACEAA]/60 px-3 py-1 rounded-full border border-[rgba(52,21,15,0.08)]">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#85431E] bg-[#EACEAA]/60 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[rgba(52,21,15,0.08)]">
                   {typeof product.category === 'object'
                     ? (product.category as any).name || "Architectural Hardware"
                     : (product.category || "Architectural Hardware")}
                 </span>
-                <span className="text-[10px] font-mono text-[#85431E]/70">
+                <span className="text-[9px] sm:text-[10px] font-mono text-[#85431E]/70">
                   SKU: {product.sku || `PRC-HD-${product.id}`}
                 </span>
               </div>
 
               {/* Title */}
               <h1
-                className="text-2xl md:text-3xl font-black text-[#34150F] leading-snug mb-3"
+                className="text-lg sm:text-2xl md:text-3xl font-black text-[#34150F] leading-snug mb-1.5 sm:mb-3"
                 style={{ fontFamily: "'Gilda Display', serif" }}
               >
                 {product.name}
@@ -379,70 +379,71 @@ export function ProductDetailPage({
                   setActiveTab("REVIEWS");
                   document.getElementById("product-reviews-section")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="flex items-center gap-2 mb-5 cursor-pointer hover:opacity-80 transition-opacity text-left"
+                className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-5 cursor-pointer hover:opacity-80 transition-opacity text-left"
               >
                 <div className="flex gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
-                      size={15}
+                      size={12}
+                      className="sm:w-3.5 sm:h-3.5"
                       fill={s <= (product.rating || 5) ? "#D39858" : "none"}
                       stroke="#D39858"
                       strokeWidth={1.5}
                     />
                   ))}
                 </div>
-                <span className="text-xs font-bold text-[#34150F]">
+                <span className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                   {product.rating || 4.9} ★
                 </span>
-                <span className="text-xs text-[#85431E]/70 font-semibold underline decoration-dotted">
+                <span className="text-[11px] sm:text-xs text-[#85431E]/70 font-semibold underline decoration-dotted">
                   See customer reviews
                 </span>
               </button>
 
 
               {/* Pricing Box */}
-              <div className="bg-[#EACEAA]/40 p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.1)] mb-6">
-                <div className="flex items-baseline gap-3 mb-1">
+              <div className="bg-[#EACEAA]/40 p-3 sm:p-5 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl border border-[rgba(52,21,15,0.1)] mb-3.5 sm:mb-6">
+                <div className="flex items-baseline gap-2 sm:gap-3 mb-0.5 sm:mb-1 flex-wrap">
                   <span
-                    className="text-3xl md:text-4xl font-black text-[#34150F]"
+                    className="text-2xl sm:text-3xl md:text-4xl font-black text-[#34150F]"
                     style={{ fontFamily: "'DM Mono', monospace" }}
                   >
                     ₹{effective.unitPrice.toLocaleString("en-IN")}
                   </span>
                   {effective.originalPrice > effective.unitPrice && (
-                    <span className="text-base text-[#85431E]/60 line-through">
+                    <span className="text-xs sm:text-base text-[#85431E]/60 line-through">
                       ₹{effective.originalPrice.toLocaleString("en-IN")}
                     </span>
                   )}
                   {discountPercent > 0 && (
-                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                    <span className="text-[9.5px] sm:text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 sm:px-2.5 py-0.5 rounded-full">
                       Save ₹{(effective.originalPrice - effective.unitPrice).toLocaleString("en-IN")} ({discountPercent}%)
                     </span>
                   )}
                 </div>
 
-                <p className="text-[11px] text-[#85431E] font-semibold flex items-center gap-1.5 mt-2">
-                  <CheckCircle2 size={13} className="text-emerald-700" />
+                <p className="text-[9.5px] sm:text-[11px] text-[#85431E] font-semibold flex items-center gap-1.5 mt-1 sm:mt-2">
+                  <CheckCircle2 size={12} className="sm:w-3.5 sm:h-3.5 text-emerald-700 shrink-0" />
                   Inclusive of all taxes • GST Input Tax Credit available on invoice
                 </p>
               </div>
 
               {/* Available Colors / Finishes */}
               {product.colours && product.colours.length > 0 && (
-                <div className="mb-6">
-                  <label className="text-xs font-bold text-[#34150F] block mb-2">
+                <div className="mb-3 sm:mb-6">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F] block mb-1.5 sm:mb-2">
                     Select Finish / Color: <span className="text-[#D39858] font-black">{selectedColor}</span>
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {product.colours.map((color) => (
                       <button
                         key={color}
                         type="button"
                         onClick={() => setSelectedColor(color)}
-                        className={`px-3.5 py-1.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all border ${
+                        className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-[10.5px] sm:text-xs font-bold transition-all border ${
                           selectedColor === color
-                            ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-md"
+                            ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-xs"
                             : "bg-[#f5e8d4] text-[#85431E] border-[rgba(52,21,15,0.15)] hover:border-[#D39858]"
                         }`}
                       >
@@ -455,15 +456,15 @@ export function ProductDetailPage({
 
               {/* Compatibility Tags */}
               {product.compatibleFor && product.compatibleFor.length > 0 && (
-                <div className="mb-6">
-                  <label className="text-xs font-bold text-[#34150F] block mb-2">
+                <div className="mb-3 sm:mb-6">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F] block mb-1.5 sm:mb-2">
                     Compatible Applications:
                   </label>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5">
                     {product.compatibleFor.map((item) => (
                       <span
                         key={item}
-                        className="bg-[#34150F]/10 text-[#34150F] text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-[rgba(52,21,15,0.1)]"
+                        className="bg-[#34150F]/10 text-[#34150F] text-[9px] sm:text-[10px] font-extrabold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-[rgba(52,21,15,0.1)]"
                       >
                         ✓ {item}
                       </span>
@@ -473,28 +474,28 @@ export function ProductDetailPage({
               )}
 
               {/* Quantity Counter */}
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-xs font-bold text-[#34150F]">Quantity:</span>
-                <div className="flex items-center border border-[#85431E]/30 rounded-tr-lg rounded-bl-lg overflow-hidden bg-[#EACEAA]/40 shadow-xs">
+              <div className="flex items-center gap-2.5 sm:gap-4 mb-3.5 sm:mb-6">
+                <span className="text-[11px] sm:text-xs font-bold text-[#34150F]">Quantity:</span>
+                <div className="flex items-center border border-[#85431E]/30 rounded-tr-lg rounded-bl-lg overflow-hidden bg-[#EACEAA]/40 shadow-2xs">
                   <button
                     type="button"
                     onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    className="px-3.5 py-2 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
+                    className="px-2.5 sm:px-3.5 py-1 sm:py-2 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
                   >
                     -
                   </button>
-                  <span className="px-5 py-2 text-xs font-black text-[#34150F]">
+                  <span className="px-3.5 sm:px-5 py-1 sm:py-2 text-xs font-black text-[#34150F]">
                     {qty}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQty((q) => q + 1)}
-                    className="px-3.5 py-2 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
+                    className="px-2.5 sm:px-3.5 py-1 sm:py-2 text-xs font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-colors"
                   >
                     +
                   </button>
                 </div>
-                <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${stockInfo.badgeClass}`}>
+                <span className={`text-[9.5px] sm:text-xs font-extrabold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border ${stockInfo.badgeClass}`}>
                   {stockInfo.label} ({product.stock ?? 0} Available)
                 </span>
               </div>
@@ -502,12 +503,12 @@ export function ProductDetailPage({
 
             {/* Action Buttons */}
             <div>
-              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <div className="hidden sm:flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
                 <button
                   type="button"
                   onClick={handleAddToCart}
                   disabled={!stockInfo.isAvailable}
-                  className={`flex-1 py-3.5 px-6 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
+                  className={`flex-1 py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
                     !stockInfo.isAvailable
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300 opacity-80"
                       : added
@@ -536,7 +537,7 @@ export function ProductDetailPage({
                     handleAddToCart();
                     navigate("/checkout");
                   }}
-                  className={`font-black text-xs py-3.5 px-6 rounded-tr-xl rounded-bl-xl transition-all shadow-md active:scale-95 ${
+                  className={`font-black text-xs py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-tr-xl rounded-bl-xl transition-all shadow-md active:scale-95 ${
                     !stockInfo.isAvailable
                       ? "bg-slate-200 text-slate-400 cursor-not-allowed hidden"
                       : "bg-[#D39858] text-[#34150F] hover:bg-[#EACEAA]"
@@ -547,18 +548,18 @@ export function ProductDetailPage({
               </div>
 
               {/* Service Badges Bar */}
-              <div className="grid grid-cols-3 gap-2 pt-4 border-t border-[rgba(52,21,15,0.08)] text-center">
-                <div className="flex flex-col items-center gap-1 p-2 bg-[#EACEAA]/20 rounded-tr-xl rounded-bl-xl">
-                  <Truck size={18} className="text-[#D39858]" />
-                  <span className="text-[10px] font-bold text-[#34150F]">Fast Pan-India Shipping</span>
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-2.5 sm:pt-4 border-t border-[rgba(52,21,15,0.08)] text-center">
+                <div className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 bg-[#EACEAA]/20 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl">
+                  <Truck size={15} className="sm:w-[18px] sm:h-[18px] text-[#D39858]" />
+                  <span className="text-[8.5px] sm:text-[10px] font-bold text-[#34150F]">Fast Pan-India Shipping</span>
                 </div>
-                <div className="flex flex-col items-center gap-1 p-2 bg-[#EACEAA]/20 rounded-tr-xl rounded-bl-xl">
-                  <ShieldCheck size={18} className="text-[#D39858]" />
-                  <span className="text-[10px] font-bold text-[#34150F]">{product.warranty || "2-Yr Guarantee"}</span>
+                <div className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 bg-[#EACEAA]/20 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl">
+                  <ShieldCheck size={15} className="sm:w-[18px] sm:h-[18px] text-[#D39858]" />
+                  <span className="text-[8.5px] sm:text-[10px] font-bold text-[#34150F]">{product.warranty || "2-Yr Guarantee"}</span>
                 </div>
-                <div className="flex flex-col items-center gap-1 p-2 bg-[#EACEAA]/20 rounded-tr-xl rounded-bl-xl">
-                  <RotateCcw size={18} className="text-[#D39858]" />
-                  <span className="text-[10px] font-bold text-[#34150F]">7 Days Easy Return</span>
+                <div className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 bg-[#EACEAA]/20 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl">
+                  <RotateCcw size={15} className="sm:w-[18px] sm:h-[18px] text-[#D39858]" />
+                  <span className="text-[8.5px] sm:text-[10px] font-bold text-[#34150F]">7 Days Easy Return</span>
                 </div>
               </div>
             </div>
@@ -569,25 +570,25 @@ export function ProductDetailPage({
       </div>
 
       {/* ═══════════════ TABBED SPECIFICATIONS & SCHEMA DETAILS ═══════════════ */}
-      <section id="product-reviews-section" className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 pb-16">
+      <section id="product-reviews-section" className="max-w-6xl mx-auto px-2.5 sm:px-4 md:px-8 lg:px-16 pb-6 sm:pb-16">
 
-        <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-6 md:p-8 border border-[rgba(52,21,15,0.08)] shadow-sm">
+        <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-3.5 sm:p-6 md:p-8 border border-[rgba(52,21,15,0.08)] shadow-2xs">
 
           {/* Tab Strip */}
-          <div className="flex items-center gap-2 border-b border-[rgba(52,21,15,0.1)] pb-3 mb-6 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 sm:gap-2 border-b border-[rgba(52,21,15,0.1)] pb-2.5 sm:pb-3 mb-3.5 sm:mb-6 overflow-x-auto no-scrollbar touch-pan-x">
             {[
-              { key: "SPECS", label: "Technical Specifications" },
-              { key: "DESC", label: "Full Description & Application" },
-              { key: "MANUFACTURER", label: "Manufacturer & Brand Info" },
-              { key: "REVIEWS", label: "Customer Reviews & Ratings" },
+              { key: "SPECS", label: "Specifications" },
+              { key: "DESC", label: "Description" },
+              { key: "MANUFACTURER", label: "Brand Info" },
+              { key: "REVIEWS", label: "Reviews" },
             ].map((t) => (
               <button
                 key={t.key}
                 type="button"
                 onClick={() => setActiveTab(t.key as any)}
-                className={`px-5 py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border ${
+                className={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap border ${
                   activeTab === t.key
-                    ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-md"
+                    ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-xs"
                     : "bg-[#EACEAA]/40 text-[#85431E] border-[rgba(52,21,15,0.1)] hover:border-[#D39858] hover:text-[#34150F]"
                 }`}
               >
@@ -598,14 +599,14 @@ export function ProductDetailPage({
 
           {/* TAB 1: TECHNICAL SPECS */}
           {activeTab === "SPECS" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 animate-in fade-in duration-200">
               {Object.entries(specificationsMap).map(([key, val]) => (
                 <div
                   key={key}
-                  className="flex items-center justify-between p-3.5 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]"
+                  className="flex items-center justify-between p-2.5 sm:p-3.5 bg-[#EACEAA]/30 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.06)]"
                 >
-                  <span className="text-xs font-bold text-[#85431E]">{key}</span>
-                  <span className="text-xs font-black text-[#34150F]">{val}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-[#85431E]">{key}</span>
+                  <span className="text-[11px] sm:text-xs font-black text-[#34150F] text-right ml-2">{val}</span>
                 </div>
               ))}
             </div>
@@ -613,19 +614,19 @@ export function ProductDetailPage({
 
           {/* TAB 2: FULL DESCRIPTION */}
           {activeTab === "DESC" && (
-            <div className="space-y-4 text-xs text-[#85431E] leading-relaxed animate-in fade-in duration-200">
-              <p className="font-semibold text-sm text-[#34150F]">
+            <div className="space-y-2.5 sm:space-y-4 text-[11px] sm:text-xs text-[#85431E] leading-relaxed animate-in fade-in duration-200">
+              <p className="font-semibold text-xs sm:text-sm text-[#34150F]">
                 {product.shortDesc || product.name}
               </p>
               <p>
                 {product.description ||
                   "Precision manufactured by PRC Hardware using high-grade architectural metals. Designed for heavy-duty residential and commercial applications with ultra-smooth operating cycles and corrosion-resistant finishes."}
               </p>
-              <div className="bg-[#EACEAA]/30 p-4 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.08)] mt-4">
-                <h4 className="font-bold text-[#34150F] text-xs uppercase tracking-wider mb-2">
+              <div className="bg-[#EACEAA]/30 p-3 sm:p-4 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.08)] mt-3">
+                <h4 className="font-bold text-[#34150F] text-[11px] sm:text-xs uppercase tracking-wider mb-1.5 sm:mb-2">
                   Key Installation Features:
                 </h4>
-                <ul className="list-disc list-inside space-y-1 text-xs">
+                <ul className="list-disc list-inside space-y-1 text-[10.5px] sm:text-xs">
                   <li>Universal mounting pattern compatible with standard door/cabinet pre-drills.</li>
                   <li>Supplied with high-tensile mounting screws and alignment template.</li>
                   <li>Electroplated protective coating prevents tarnishing and finger marks.</li>
@@ -636,24 +637,24 @@ export function ProductDetailPage({
 
           {/* TAB 3: MANUFACTURER INFO */}
           {activeTab === "MANUFACTURER" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-              <div className="p-4 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
-                <p className="text-[10px] font-bold text-[#85431E] uppercase">Brand Name</p>
-                <p className="text-sm font-black text-[#34150F]">PRC Hardware India</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 animate-in fade-in duration-200">
+              <div className="p-3 sm:p-4 bg-[#EACEAA]/30 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
+                <p className="text-[9px] sm:text-[10px] font-bold text-[#85431E] uppercase">Brand Name</p>
+                <p className="text-xs sm:text-sm font-black text-[#34150F]">PRC Hardware India</p>
               </div>
-              <div className="p-4 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
-                <p className="text-[10px] font-bold text-[#85431E] uppercase">Country of Origin</p>
-                <p className="text-sm font-black text-[#34150F]">India</p>
+              <div className="p-3 sm:p-4 bg-[#EACEAA]/30 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
+                <p className="text-[9px] sm:text-[10px] font-bold text-[#85431E] uppercase">Country of Origin</p>
+                <p className="text-xs sm:text-sm font-black text-[#34150F]">India</p>
               </div>
-              <div className="p-4 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
-                <p className="text-[10px] font-bold text-[#85431E] uppercase">Manufacturer / Dispatch Address</p>
-                <p className="text-sm font-black text-[#34150F]">
+              <div className="p-3 sm:p-4 bg-[#EACEAA]/30 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
+                <p className="text-[9px] sm:text-[10px] font-bold text-[#85431E] uppercase">Manufacturer / Dispatch Address</p>
+                <p className="text-xs sm:text-sm font-black text-[#34150F]">
                   {(product as any).manufacturerInfo?.address || (product as any).address || "H -3, J.R. COMPLEX GATE NO 4, MELA RAM FARM, MANDOLI, DELHI 110093, INDIA"}
                 </p>
               </div>
-              <div className="p-4 bg-[#EACEAA]/30 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
-                <p className="text-[10px] font-bold text-[#85431E] uppercase">Quality Standards</p>
-                <p className="text-sm font-black text-[#34150F]">
+              <div className="p-3 sm:p-4 bg-[#EACEAA]/30 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.06)]">
+                <p className="text-[9px] sm:text-[10px] font-bold text-[#85431E] uppercase">Quality Standards</p>
+                <p className="text-xs sm:text-sm font-black text-[#34150F]">
                   {(product as any).manufacturerInfo?.qualityStandards || (product as any).qualityStandards || "ISO 9001 : 2015"}
                 </p>
               </div>
@@ -670,20 +671,19 @@ export function ProductDetailPage({
             </div>
           )}
 
-
         </div>
       </section>
 
       {/* ═══════════════ RELATED PRODUCTS CAROUSEL ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 pb-20 md:pb-16">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
+      <section className="max-w-6xl mx-auto px-2.5 sm:px-4 md:px-8 lg:px-16 pb-28 md:pb-16">
+        <div className="flex items-center justify-between mb-2.5 sm:mb-6">
           <h2
-            className="text-base sm:text-xl font-bold text-[#34150F]"
+            className="text-sm sm:text-xl font-bold text-[#34150F]"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             Frequently Paired Hardware
           </h2>
-          <Link to="/products" className="text-xs font-bold text-[#85431E] hover:text-[#34150F]">
+          <Link to="/products" className="text-[11px] sm:text-xs font-bold text-[#85431E] hover:text-[#34150F]">
             View All →
           </Link>
         </div>
@@ -702,20 +702,20 @@ export function ProductDetailPage({
       </section>
 
       {/* ═══════════════ MOBILE STICKY BOTTOM ACTION BAR ═══════════════ */}
-      <div className="fixed bottom-14 md:hidden left-0 right-0 z-40 bg-[#34150F]/95 backdrop-blur-md border-t border-[#EACEAA]/20 p-2.5 px-3 shadow-2xl flex items-center justify-between gap-2.5">
+      <div className="fixed bottom-14 md:hidden left-0 right-0 z-40 bg-[#34150F]/95 backdrop-blur-md border-t border-[#EACEAA]/20 p-2 px-3 shadow-2xl flex items-center justify-between gap-2">
         <div>
-          <span className="text-[10px] text-[#EACEAA]/60 block font-bold">Total Price</span>
-          <span className="text-sm font-black text-[#EACEAA]" style={{ fontFamily: "'DM Mono', monospace" }}>
+          <span className="text-[9px] text-[#EACEAA]/60 block font-bold">Total Price</span>
+          <span className="text-xs sm:text-sm font-black text-[#EACEAA]" style={{ fontFamily: "'DM Mono', monospace" }}>
             ₹{(effective.unitPrice * qty).toLocaleString("en-IN")}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 flex-1 max-w-[240px]">
+        <div className="flex items-center gap-1.5 flex-1 max-w-[230px]">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={!stockInfo.isAvailable}
-            className={`flex-1 py-2 px-2.5 rounded-tr-lg rounded-bl-lg font-extrabold text-[11px] flex items-center justify-center gap-1 shadow active:scale-95 ${
+            className={`flex-1 py-1.5 px-2 rounded-tr-md rounded-bl-md font-extrabold text-[10.5px] flex items-center justify-center gap-1 shadow-xs active:scale-95 ${
               !stockInfo.isAvailable
                 ? "bg-slate-500 text-slate-300 cursor-not-allowed"
                 : added
@@ -723,7 +723,7 @@ export function ProductDetailPage({
                 : "bg-[#D39858] text-[#34150F]"
             }`}
           >
-            {added ? <Check size={13} /> : <ShoppingCart size={13} />}
+            {added ? <Check size={11} /> : <ShoppingCart size={11} />}
             <span>{added ? "Added" : "Add to Cart"}</span>
           </button>
 
@@ -734,7 +734,7 @@ export function ProductDetailPage({
               navigate('/checkout');
             }}
             disabled={!stockInfo.isAvailable}
-            className="flex-1 py-2 px-2.5 rounded-tr-lg rounded-bl-lg font-extrabold text-[11px] bg-[#EACEAA] text-[#34150F] hover:bg-[#D39858] shadow active:scale-95 text-center"
+            className="flex-1 py-1.5 px-2 rounded-tr-md rounded-bl-md font-extrabold text-[10.5px] bg-[#EACEAA] text-[#34150F] hover:bg-[#D39858] shadow-xs active:scale-95 text-center"
           >
             Buy Now
           </button>

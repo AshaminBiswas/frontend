@@ -17,9 +17,10 @@ export { isProductOfMaterial };
 
 interface MaterialsDropdownProps {
   onSelectMaterial?: (mat: string) => void;
+  onCloseMenu?: () => void;
 }
 
-export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) {
+export function MaterialsDropdown({ onSelectMaterial, onCloseMenu }: MaterialsDropdownProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
   const [open, setOpen] = useState(false);
@@ -99,12 +100,14 @@ export function MaterialsDropdown({ onSelectMaterial }: MaterialsDropdownProps) 
   const handleProductClick = (product: Product) => {
     if (onSelectMaterial) onSelectMaterial(activeMaterial.name);
     setOpen(false);
+    if (onCloseMenu) onCloseMenu();
     navigate(`/product/${product.slug || product.id || product.apiId}`);
   };
 
   const handleMaterialNavigate = (slug: string) => {
     if (onSelectMaterial) onSelectMaterial(slug);
     setOpen(false);
+    if (onCloseMenu) onCloseMenu();
     navigate(`/material/${slug}`);
   };
 
