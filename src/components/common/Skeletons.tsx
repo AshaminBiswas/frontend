@@ -15,15 +15,15 @@ export { HomePageSkeleton, ProductCardSkeleton, ProductSectionSkeleton } from ".
 
 export function HeroSkeleton() {
   return (
-    <section className="relative overflow-hidden w-full bg-[#240c07] min-h-[175px] xs:min-h-[210px] sm:min-h-[260px] md:min-h-0 md:aspect-[1024/383] animate-shimmer">
-      <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 xs:pb-8 sm:pb-10 md:justify-center md:pb-0 px-4 sm:px-8 md:px-12 lg:px-16 space-y-2 sm:space-y-3 max-w-lg pointer-events-none">
+    <section className="relative overflow-hidden w-full bg-[#240c07] aspect-[750/280] md:aspect-[1024/383] animate-shimmer">
+      <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 sm:pb-10 md:justify-center md:pb-0 px-4 sm:px-8 md:px-12 lg:px-16 space-y-2 sm:space-y-3 max-w-lg pointer-events-none">
         <div className="h-4 sm:h-5 w-24 sm:w-28 bg-[#D39858]/30 rounded-full" />
         <div className="space-y-1.5 sm:space-y-2">
-          <div className="h-6 xs:h-7 sm:h-8 md:h-10 w-4/5 bg-[#EACEAA]/20 rounded-lg" />
-          <div className="h-4 xs:h-5 sm:h-6 md:h-7 w-1/2 bg-[#EACEAA]/15 rounded-lg" />
+          <div className="h-5 sm:h-8 md:h-10 w-4/5 bg-[#EACEAA]/20 rounded-lg" />
+          <div className="h-4 sm:h-6 md:h-7 w-1/2 bg-[#EACEAA]/15 rounded-lg" />
         </div>
         <div className="pt-1.5 sm:pt-2">
-          <div className="h-8 sm:h-10 w-32 sm:w-40 bg-[#D39858]/35 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl" />
+          <div className="h-7 sm:h-10 w-28 sm:w-40 bg-[#D39858]/35 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl" />
         </div>
       </div>
     </section>
