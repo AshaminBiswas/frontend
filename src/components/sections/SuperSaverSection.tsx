@@ -102,27 +102,27 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
   };
 
   return (
-    <section className="py-12 px-4 md:px-8 lg:px-16">
-      <div className="flex items-center justify-between mb-8">
+    <section className="py-6 sm:py-12 px-3 sm:px-4 md:px-8 lg:px-16">
+      <div className="flex items-center justify-between gap-2 mb-4 sm:mb-8">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="p-1 rounded-md bg-[#85431E]/10 text-[#85431E] flex items-center justify-center">
-              <Sparkles size={16} />
+              <Sparkles size={14} className="sm:w-4 sm:h-4" />
             </span>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
+            <h2 className="text-base sm:text-2xl md:text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
               Super Saver Offers
             </h2>
           </div>
-          <p className="text-xs text-[#85431E] mt-1">Direct factory promotional deals, volume bundles & limited-time price drops</p>
         </div>
 
         {/* Clicking View All navigates directly to /offers */}
         <Link
           to="/offers"
-          className="group relative inline-flex items-center gap-2 text-xs md:text-sm font-bold text-[#85431E] hover:text-[#34150F] px-4 py-2 rounded-full border border-[#85431E]/20 hover:border-[#34150F] transition-all duration-300 ease-out hover:bg-[#34150F]/5 shadow-sm hover:shadow active:scale-95"
+          className="group relative inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm font-bold text-[#85431E] hover:text-[#34150F] px-2.5 py-1 sm:px-4 sm:py-2 rounded-full border border-[#85431E]/20 hover:border-[#34150F] transition-all duration-300 ease-out hover:bg-[#34150F]/5 shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
         >
-          <span>View All Offers</span>
-          <ArrowRight size={16} className="transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+          <span className="inline sm:hidden">All</span>
+          <span className="hidden sm:inline">View All Offers</span>
+          <ArrowRight size={13} className="sm:w-4 sm:h-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
         </Link>
       </div>
 
