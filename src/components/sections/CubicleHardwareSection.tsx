@@ -10,12 +10,12 @@ export function CubicleHardwareSection({ onSelectCategory }: CubicleHardwareSect
   const { ref: headerRef, visible: headerVisible } = useInView({ threshold: 0.1 });
 
   return (
-    <section className="py-4 sm:py-6 md:py-10 px-3 sm:px-6 md:px-8 lg:px-16">
+    <section className="py-4 sm:py-6 md:py-10 px-3 sm:px-6 md:px-8 lg:px-16 overflow-hidden">
       {/* Scroll-triggered Header */}
       <div
         ref={headerRef}
         className={`transition-all duration-500 ease-out mb-3 sm:mb-6 ${
-          headerVisible ? "opacity-100 translate-y-0" : "opacity-0"
+          headerVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
         }`}
       >
         <h2
@@ -27,9 +27,9 @@ export function CubicleHardwareSection({ onSelectCategory }: CubicleHardwareSect
       </div>
 
       {/* Scroll-triggered Card Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 overflow-hidden">
         {CUBICLE_SECTION.map((item, i) => (
-          <div key={item.id} className="w-full">
+          <div key={item.id} className="w-full overflow-hidden">
             <CubicleCard item={item} index={i} onSelectCategory={onSelectCategory} />
           </div>
         ))}
@@ -47,14 +47,21 @@ function CubicleCard({
   index: number;
   onSelectCategory?: (title: string) => void;
 }) {
-  const { ref, visible } = useInView({ threshold: 0.1 });
+  const { ref, visible } = useInView({ threshold: 0.15 });
+  const isEven = index % 2 === 0;
+
+  const initialSlideClass = isEven
+    ? "-translate-x-16 sm:translate-x-0 sm:translate-y-3"
+    : "translate-x-16 sm:translate-x-0 sm:translate-y-3";
 
   return (
     <div
       ref={ref}
-      style={{ transitionDelay: `${index * 80}ms` }}
-      className={`w-full transition-opacity duration-500 ease-out ${
-        visible ? "opacity-100" : "opacity-0"
+      style={{ transitionDelay: `${(index % 2) * 90}ms` }}
+      className={`w-full will-change-transform transition-all duration-700 ease-out ${
+        visible
+          ? "opacity-100 translate-x-0 translate-y-0"
+          : `opacity-0 ${initialSlideClass}`
       }`}
     >
       <div
