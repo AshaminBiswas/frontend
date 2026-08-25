@@ -256,6 +256,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (res.success && res.data) {
       setUser(res.data);
       setStoredUser(res.data);
+      if (res.data.id) {
+        invalidateB2BPricingCache(res.data.id);
+      }
       return { success: true, message: "Profile updated successfully!" };
     }
     return {

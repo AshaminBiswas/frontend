@@ -249,23 +249,34 @@ export function UserProfilePage({
     clearFeedback();
     if (!firstName.trim() || !lastName.trim()) { setErrorMsg("First name and last name are required."); return; }
     if (!phone.trim()) { setErrorMsg("Phone number is required."); return; }
-    if (accountType === "b2b") {
+
+    const isB2BSubmission = isB2B || accountType === "b2b";
+    if (isB2BSubmission) {
       if (!companyName.trim()) { setErrorMsg("Company / Firm Name is required for B2B accounts."); return; }
       if (!gstin.trim()) { setErrorMsg("GSTIN is required for B2B accounts."); return; }
       if (gstin.trim().length !== 15) { setErrorMsg("GSTIN must be exactly 15 characters."); return; }
     }
+
     setIsLoading(true);
     const res = await updateUser({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone.trim(),
-      // If B2C, explicitly clear any existing business fields
-      companyName: accountType === "b2b" ? companyName.trim() : "",
-      gstin: accountType === "b2b" ? gstin.trim() : "",
+      ...(isB2BSubmission
+        ? { companyName: companyName.trim(), gstin: gstin.trim().toUpperCase() }
+        : {}),
     });
     setIsLoading(false);
-    if (res.success) { setSuccessMsg("Profile updated successfully!"); setTimeout(clearFeedback, 4000); }
-    else { setErrorMsg(res.message || "Failed to update profile."); }
+    if (res.success) {
+      if (!isB2B && isB2BSubmission) {
+        setSuccessMsg("Account upgraded to B2B Wholesale Partner successfully! Wholesale pricing and Quotation tools unlocked.");
+      } else {
+        setSuccessMsg("Profile updated successfully!");
+      }
+      setTimeout(clearFeedback, 4000);
+    } else {
+      setErrorMsg(res.message || "Failed to update profile.");
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -895,73 +906,181 @@ export function UserProfilePage({
 
               {/* Account Type + B2B Section */}
               <div className="pt-4 border-t border-[#34150F]/8">
-                <p className="text-[10px] font-bold text-[#85431E] uppercase tracking-wider mb-3">Account Type</p>
+                <p className="text-[10px] font-bold text-[#85431E] uppercase tracking-wider mb-3">
+                  Account Type &amp; Business Profile
+                </p>
 
-                {/* B2C / B2B Toggle */}
-                <div className="flex gap-2 mb-4">
-                  {(["b2c", "b2b"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => {
-                        setAccountType(type);
-                        // Clear B2B fields when switching to B2C
-                        if (type === "b2c") { setCompanyName(""); setGstin(""); }
-                      }}
-                      className={`flex-1 py-2 rounded-tr-xl rounded-bl-xl text-xs font-black uppercase tracking-wider border-2 transition-all duration-200 ${
-                        accountType === type
-                          ? type === "b2b"
-                            ? "bg-[#34150F] text-[#EACEAA] border-[#34150F] shadow-md"
-                            : "bg-[#D39858] text-[#34150F] border-[#D39858] shadow-md"
-                          : "bg-transparent text-[#85431E] border-[#34150F]/20 hover:border-[#34150F]/40"
-                      }`}
-                    >
-                      {type === "b2c" ? "B2C — Personal / Retail" : "B2B — Business / Wholesale"}
-                    </button>
-                  ))}
-                </div>
-
-                {/* B2C Info Banner */}
-                {accountType === "b2c" && (
-                  <div className="p-3 bg-[#EACEAA]/40 border border-[#34150F]/10 rounded-tr-xl rounded-bl-xl text-xs text-[#85431E] flex items-start gap-2">
-                    <span className="mt-0.5">ℹ️</span>
-                    <span>B2C accounts purchase at standard retail pricing. No company details required.</span>
-                  </div>
-                )}
-
-                {/* B2B Fields — only shown & required when B2B selected */}
-                {accountType === "b2b" && (
+                {isB2B ? (
+                  /* ── Verified B2B User: Locked to B2B (Cannot Downgrade) ── */
                   <div className="space-y-4">
-                    <div className="p-3 bg-[#34150F]/6 border border-[#34150F]/12 rounded-tr-xl rounded-bl-xl text-xs text-[#34150F] flex items-start gap-2">
-                      <Building2 size={13} className="text-[#D39858] mt-0.5 flex-shrink-0" />
-                      <span>B2B accounts get bulk pricing and GST invoices. Company name and GSTIN are <strong>required</strong>.</span>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-[#85431E] mb-1.5">
-                        Company / Firm Name <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
-                          placeholder="Acme Hardware Pvt Ltd" required={accountType === "b2b"}
-                          className="w-full bg-[#EACEAA]/30 text-[#34150F] placeholder-[#85431E]/40 pl-10 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#34150F]/12 focus:outline-none focus:border-[#D39858] focus:bg-[#EACEAA]/50 transition-all" />
-                        <Building2 size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
+                    <div className="p-3.5 bg-[#34150F]/6 border border-[#34150F]/15 rounded-tr-xl rounded-bl-xl text-xs text-[#34150F] flex items-start gap-2.5">
+                      <div className="w-6 h-6 rounded-tr-md rounded-bl-md bg-[#D39858] text-[#34150F] flex items-center justify-center flex-shrink-0 font-black text-xs">
+                        ✓
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-[#34150F] text-xs uppercase tracking-wider">
+                            B2B Wholesale Partner (Verified)
+                          </span>
+                          <span className="text-[10px] font-bold bg-[#D39858] text-[#34150F] px-2 py-0.5 rounded-full">
+                            Wholesale Pricing Active
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#85431E]/80 mt-1">
+                          Your account is registered as a B2B Wholesale Partner. B2B accounts cannot be downgraded to retail to safeguard your custom quote records, bulk pricing contracts, and GST invoices.
+                        </p>
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-[#85431E] mb-1.5">
-                        GSTIN <span className="text-red-500">*</span>{" "}
-                        <span className="text-[#34150F]/40 font-normal">(15 characters)</span>
-                      </label>
-                      <div className="relative">
-                        <input type="text" value={gstin}
-                          onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                          placeholder="27AAAAA0000A1Z5" maxLength={15} required={accountType === "b2b"}
-                          className="w-full bg-[#EACEAA]/30 text-[#34150F] placeholder-[#85431E]/40 pl-10 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#34150F]/12 focus:outline-none focus:border-[#D39858] focus:bg-[#EACEAA]/50 transition-all font-mono" />
-                        <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-[#85431E] mb-1.5">
+                          Company / Firm Name <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            placeholder="Acme Hardware Pvt Ltd"
+                            required
+                            className="w-full bg-[#EACEAA]/30 text-[#34150F] placeholder-[#85431E]/40 pl-10 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#34150F]/12 focus:outline-none focus:border-[#D39858] focus:bg-[#EACEAA]/50 transition-all"
+                          />
+                          <Building2 size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
+                        </div>
                       </div>
-                      {gstin && gstin.length !== 15 && <p className="text-[10px] text-red-500 mt-1">{gstin.length}/15 characters entered</p>}
-                      {gstin && gstin.length === 15 && <p className="text-[10px] text-emerald-600 mt-1">✓ Valid GSTIN length</p>}
+
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-[#85431E] mb-1.5">
+                          GSTIN <span className="text-red-500">*</span>{" "}
+                          <span className="text-[#34150F]/40 font-normal">(15 characters)</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={gstin}
+                            onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                            placeholder="27AAAAA0000A1Z5"
+                            maxLength={15}
+                            required
+                            className="w-full bg-[#EACEAA]/30 text-[#34150F] placeholder-[#85431E]/40 pl-10 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#34150F]/12 focus:outline-none focus:border-[#D39858] focus:bg-[#EACEAA]/50 transition-all font-mono"
+                          />
+                          <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
+                        </div>
+                        {gstin && gstin.length !== 15 && (
+                          <p className="text-[10px] text-red-500 mt-1">{gstin.length}/15 characters entered</p>
+                        )}
+                        {gstin && gstin.length === 15 && (
+                          <p className="text-[10px] text-emerald-600 mt-1">✓ Valid GSTIN length</p>
+                        )}
+                      </div>
                     </div>
+                  </div>
+                ) : (
+                  /* ── B2C Retail User: Can choose to Upgrade to B2B ── */
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAccountType("b2c")}
+                        className={`flex-1 py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-black uppercase tracking-wider border-2 transition-all duration-200 ${
+                          accountType === "b2c"
+                            ? "bg-[#D39858] text-[#34150F] border-[#D39858] shadow-md"
+                            : "bg-transparent text-[#85431E] border-[#34150F]/20 hover:border-[#34150F]/40"
+                        }`}
+                      >
+                        B2C — Personal / Retail
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAccountType("b2b")}
+                        className={`flex-1 py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-black uppercase tracking-wider border-2 transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                          accountType === "b2b"
+                            ? "bg-[#34150F] text-[#EACEAA] border-[#34150F] shadow-md"
+                            : "bg-transparent text-[#85431E] border-[#34150F]/20 hover:border-[#34150F]/40"
+                        }`}
+                      >
+                        <span>Upgrade to B2B</span>
+                        <span className="text-[9px] bg-[#D39858] text-[#34150F] px-1.5 py-0.5 rounded font-black">Wholesale</span>
+                      </button>
+                    </div>
+
+                    {accountType === "b2c" ? (
+                      <div className="p-3.5 bg-[#EACEAA]/40 border border-[#34150F]/10 rounded-tr-xl rounded-bl-xl text-xs text-[#85431E] flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 text-sm">ℹ️</span>
+                          <div>
+                            <span className="font-bold text-[#34150F]">Retail Account</span>
+                            <p className="text-[11px] text-[#85431E]/80 mt-0.5">
+                              You are currently on standard retail pricing. Are you a contractor, builder, or business?
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAccountType("b2b")}
+                          className="shrink-0 bg-[#34150F] text-[#EACEAA] font-bold text-[11px] px-3 py-1.5 rounded-tr-lg rounded-bl-lg hover:bg-[#D39858] hover:text-[#34150F] transition-all"
+                        >
+                          Upgrade to B2B →
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 p-4 bg-[#34150F]/5 border border-[#D39858]/30 rounded-tr-xl rounded-bl-xl">
+                        <div className="flex items-start gap-2 text-xs text-[#34150F]">
+                          <Building2 size={15} className="text-[#D39858] mt-0.5 flex-shrink-0" />
+                          <div>
+                            <span className="font-extrabold text-[#34150F]">Upgrading to B2B Wholesale Partner</span>
+                            <p className="text-[11px] text-[#85431E]/80 mt-0.5">
+                              Enter your registered Business Name and 15-character GSTIN below. Upon saving, you will instantly unlock tiered wholesale bulk pricing, custom PDF quotations, and PO submissions.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#85431E] mb-1.5">
+                              Company / Firm Name <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                placeholder="Acme Hardware Pvt Ltd"
+                                required={accountType === "b2b"}
+                                className="w-full bg-white text-[#34150F] placeholder-[#85431E]/40 pl-10 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#34150F]/15 focus:outline-none focus:border-[#D39858] transition-all"
+                              />
+                              <Building2 size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#85431E] mb-1.5">
+                              GSTIN <span className="text-red-500">*</span>{" "}
+                              <span className="text-[#34150F]/40 font-normal">(15 characters)</span>
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={gstin}
+                                onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                                placeholder="27AAAAA0000A1Z5"
+                                maxLength={15}
+                                required={accountType === "b2b"}
+                                className="w-full bg-white text-[#34150F] placeholder-[#85431E]/40 pl-10 pr-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#34150F]/15 focus:outline-none focus:border-[#D39858] transition-all font-mono"
+                              />
+                              <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
+                            </div>
+                            {gstin && gstin.length !== 15 && (
+                              <p className="text-[10px] text-red-500 mt-1">{gstin.length}/15 characters entered</p>
+                            )}
+                            {gstin && gstin.length === 15 && (
+                              <p className="text-[10px] text-emerald-600 mt-1">✓ Valid GSTIN length</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
