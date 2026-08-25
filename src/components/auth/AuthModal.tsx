@@ -43,6 +43,7 @@ export function AuthModal() {
   const [successMsg, setSuccessMsg] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [accountType, setAccountType] = useState<"b2c" | "b2b">("b2c");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Reset form errors on view change
   useEffect(() => {
@@ -154,6 +155,11 @@ export function AuthModal() {
 
     if (accountType === "b2b" && gstin.trim() && gstin.trim().length !== 15) {
       setErrorMsg("GSTIN number must be exactly 15 characters long.");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setErrorMsg("You must accept the Terms & Conditions and Privacy Policy to create an account.");
       return;
     }
 
@@ -555,10 +561,70 @@ export function AuthModal() {
               </>
             )}
 
+            {/* ── Terms & Conditions Checkbox ── */}
+            <div className="flex items-start gap-2.5 pt-1">
+              <div className="relative flex-shrink-0 mt-0.5">
+                <input
+                  id="accept-terms"
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="sr-only"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAcceptedTerms((v) => !v)}
+                  aria-checked={acceptedTerms}
+                  role="checkbox"
+                  className={`w-4 h-4 rounded border-2 transition-all duration-200 flex items-center justify-center flex-shrink-0 ${
+                    acceptedTerms
+                      ? "bg-[#D39858] border-[#D39858]"
+                      : "bg-transparent border-[#EACEAA]/40 hover:border-[#D39858]/70"
+                  }`}
+                >
+                  {acceptedTerms && (
+                    <svg viewBox="0 0 10 8" className="w-2.5 h-2 fill-none stroke-[#34150F] stroke-[2]" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 4l2.5 2.5L9 1" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <label
+                htmlFor="accept-terms"
+                onClick={() => setAcceptedTerms((v) => !v)}
+                className="text-[11px] text-[#EACEAA]/70 leading-relaxed cursor-pointer select-none"
+              >
+                I agree to PRC Hardware's{" "}
+                <a
+                  href="/terms-of-service"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[#D39858] font-semibold hover:underline"
+                >
+                  Terms &amp; Conditions
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[#D39858] font-semibold hover:underline"
+                >
+                  Privacy Policy
+                </a>
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#D39858] text-[#34150F] font-bold py-2.5 px-4 rounded-tr-2xl rounded-bl-2xl hover:bg-[#EACEAA] transition-all duration-300 shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 mt-3"
+              disabled={isSubmitting || !acceptedTerms}
+              className={`w-full font-bold py-2.5 px-4 rounded-tr-2xl rounded-bl-2xl transition-all duration-300 shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 mt-1 ${
+                acceptedTerms
+                  ? "bg-[#D39858] text-[#34150F] hover:bg-[#EACEAA] disabled:opacity-50"
+                  : "bg-[#D39858]/30 text-[#34150F]/50 cursor-not-allowed"
+              }`}
             >
               {isSubmitting ? (
                 <span className="animate-pulse">Creating Account...</span>
