@@ -374,24 +374,24 @@ export function RequestQuotePage() {
   // ─── GATE: If not B2B authenticated, show clean corporate gate & tracking tab ───
   if (!isB2B) {
     return (
-      <div className="min-h-screen bg-[#EACEAA]/20 py-12 px-4 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
-        <div className="max-w-3xl mx-auto space-y-6">
+      <div className="min-h-screen bg-[#EACEAA]/20 py-4 sm:py-12 px-2.5 sm:px-6 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-[#85431E] hover:text-[#34150F] font-bold text-xs transition-colors"
+            className="flex items-center gap-1.5 text-[#85431E] hover:text-[#34150F] font-bold text-xs transition-colors"
           >
-            <ArrowLeft size={14} /> Back
+            <ArrowLeft size={13} /> Back
           </button>
 
           {/* Navigation Sub-Tabs */}
-          <div className="flex bg-white/80 p-1.5 rounded-2xl border border-[#34150F]/10 max-w-md mx-auto shadow-sm">
+          <div className="flex bg-white/80 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-[#34150F]/10 max-w-md mx-auto shadow-2xs">
             <button
               type="button"
               onClick={() => setActiveTab("rfq-form")}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all ${
                 activeTab === "rfq-form"
-                  ? "bg-[#34150F] text-[#EACEAA] shadow"
+                  ? "bg-[#34150F] text-[#EACEAA] shadow-2xs"
                   : "text-[#85431E] hover:text-[#34150F]"
               }`}
             >
@@ -400,9 +400,9 @@ export function RequestQuotePage() {
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all ${
                 activeTab === "tracking"
-                  ? "bg-[#34150F] text-[#EACEAA] shadow"
+                  ? "bg-[#34150F] text-[#EACEAA] shadow-2xs"
                   : "text-[#85431E] hover:text-[#34150F]"
               }`}
             >
@@ -411,169 +411,162 @@ export function RequestQuotePage() {
           </div>
 
           {activeTab === "rfq-form" ? (
-            <div className="bg-white rounded-3xl p-8 md:p-12 border border-[#34150F]/10 shadow-lg text-center space-y-6">
-              <div className="w-20 h-20 bg-[#34150F]/10 text-[#34150F] rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-                <Building2 size={40} />
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-12 border border-[#34150F]/10 shadow-md text-center space-y-4 sm:space-y-6">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 bg-[#34150F]/10 text-[#34150F] rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <Building2 size={28} className="sm:w-10 sm:h-10" />
               </div>
 
               <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#D39858] bg-[#D39858]/10 px-3 py-1 rounded-full border border-[#D39858]/20">
+                <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-[#D39858] bg-[#D39858]/10 px-2.5 py-0.5 rounded-full border border-[#D39858]/20">
                   B2B Corporate Wholesale Portal
                 </span>
-                <h1 className="text-2xl md:text-3xl font-black text-[#34150F] mt-3" style={{ fontFamily: "'Gilda Display', serif" }}>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#34150F] mt-2 sm:mt-3" style={{ fontFamily: "'Gilda Display', serif" }}>
                   B2B Quotation (RFQ) Access Restricted
                 </h1>
-                <p className="text-xs md:text-sm text-[#85431E] max-w-lg mx-auto mt-2 leading-relaxed">
+                <p className="text-[11px] sm:text-xs md:text-sm text-[#85431E] max-w-lg mx-auto mt-1.5 leading-relaxed">
                   Direct contractor quotations, volume project estimation, and digitally-signed formal bids are reserved exclusively for registered business clients with valid GSTIN credentials.
                 </p>
               </div>
 
               {user ? (
-                <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl text-left max-w-lg mx-auto space-y-3">
-                  <p className="text-xs text-amber-900 leading-relaxed font-semibold">
+                <div className="bg-amber-50 border border-amber-200 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl text-left max-w-lg mx-auto space-y-2 sm:space-y-3">
+                  <p className="text-[11.5px] sm:text-xs text-amber-900 leading-relaxed font-semibold">
                     You are logged in as a retail account (<strong>{user.email}</strong>). Please upgrade your account with company & GSTIN information to activate instant RFQ submission.
                   </p>
                   <Link
                     to="/profile?tab=edit"
-                    className="inline-flex items-center justify-center gap-2 w-full bg-[#34150F] text-[#EACEAA] font-bold text-xs py-3 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
+                    className="inline-flex items-center justify-center gap-2 w-full bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2.5 sm:py-3 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-2xs"
                   >
                     Add Company Details to Profile
                   </Link>
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto pt-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-4 max-w-md mx-auto pt-1 sm:pt-2">
                   <button
                     type="button"
                     onClick={() => openAuthModal("login")}
-                    className="w-full bg-[#34150F] text-[#EACEAA] font-bold text-xs py-3.5 px-6 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
+                    className="w-full bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-2xs"
                   >
                     Sign In to B2B Account
                   </button>
                   <button
                     type="button"
                     onClick={() => openAuthModal("register")}
-                    className="w-full bg-[#D39858] text-[#34150F] font-bold text-xs py-3.5 px-6 rounded-xl hover:bg-[#34150F] hover:text-[#EACEAA] transition-all shadow"
+                    className="w-full bg-[#D39858] text-[#34150F] font-bold text-xs py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-lg sm:rounded-xl hover:bg-[#34150F] hover:text-[#EACEAA] transition-all shadow-2xs"
                   >
                     Register Business Account
                   </button>
                 </div>
               )}
 
-              <div className="pt-4 border-t border-[#34150F]/5 flex items-center justify-center gap-6 text-[11px] text-[#85431E]">
-                <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-600" /> GST Compliant</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-blue-600" /> Digital Signatures</span>
-                <span className="flex items-center gap-1.5"><Sparkles size={14} className="text-amber-600" /> Fast Turnaround</span>
+              <div className="pt-3 border-t border-[#34150F]/5 flex items-center justify-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] text-[#85431E] flex-wrap">
+                <span className="flex items-center gap-1"><ShieldCheck size={13} className="text-emerald-600" /> GST Compliant</span>
+                <span className="flex items-center gap-1"><CheckCircle2 size={13} className="text-blue-600" /> Digital Signatures</span>
+                <span className="flex items-center gap-1"><Sparkles size={13} className="text-amber-600" /> Fast Turnaround</span>
               </div>
             </div>
           ) : (
             /* Universal Tracking Section */
-            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#34150F]/10 shadow-lg space-y-6">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-[#34150F]/10 shadow-md space-y-4 sm:space-y-6">
               <div>
-                <h2 className="text-xl font-black text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
+                <h2 className="text-lg sm:text-xl font-black text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>
                   Track Quotation Status
                 </h2>
-                <p className="text-xs text-[#85431E] mt-1">
+                <p className="text-[11px] sm:text-xs text-[#85431E] mt-0.5">
                   Search by your <strong>Quotation Reference No</strong> (e.g. PRC-QT-2026-27/001), <strong>Email</strong>, <strong>GSTIN</strong>, or <strong>Phone Number</strong>.
                 </p>
               </div>
 
               <form onSubmit={handleTrackSubmit} className="flex gap-2">
                 <div className="relative flex-1">
-                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
                   <input
                     type="text"
                     value={trackingQuery}
                     onChange={(e) => setTrackingQuery(e.target.value)}
                     placeholder="Enter Reference No, Email, GSTIN, or Phone..."
-                    className="w-full pl-10 pr-4 py-3 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
+                    className="w-full pl-9 pr-3 py-2 sm:py-3 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isTracking || !trackingQuery.trim()}
-                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {isTracking ? <RefreshCw size={14} className="animate-spin" /> : "Track"}
+                  {isTracking ? <RefreshCw size={13} className="animate-spin" /> : "Track"}
                 </button>
               </form>
 
               {trackingError && (
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
-                  <AlertCircle size={16} />
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                  <AlertCircle size={14} />
                   <span>{trackingError}</span>
                 </div>
               )}
 
               {trackingSearched && trackedQuotes.length === 0 && !trackingError && (
-                <div className="p-8 text-center bg-[#EACEAA]/10 rounded-2xl border border-[#34150F]/5">
-                  <FileText size={32} className="mx-auto text-[#85431E]/40 mb-2" />
+                <div className="p-6 text-center bg-[#EACEAA]/10 rounded-xl border border-[#34150F]/5">
+                  <FileText size={28} className="mx-auto text-[#85431E]/40 mb-1.5" />
                   <p className="text-xs font-bold text-[#34150F]">No Quotations Found</p>
-                  <p className="text-[11px] text-[#85431E] mt-1">Please double-check the entered reference number or contact credentials.</p>
                 </div>
               )}
 
               {trackedQuotes.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {trackedQuotes.map((q) => (
-                    <div key={q.id} className="p-5 bg-[#EACEAA]/10 border border-[#34150F]/10 rounded-2xl space-y-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#34150F]/10 pb-3">
+                    <div key={q.id} className="p-3.5 sm:p-5 bg-[#EACEAA]/10 border border-[#34150F]/10 rounded-xl sm:rounded-2xl space-y-2.5 sm:space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-[#34150F]/10 pb-2">
                         <div>
                           <span className="font-mono font-bold text-xs text-[#34150F]">{q.referenceNo}</span>
-                          <p className="text-xs font-bold text-[#85431E]">{q.projectName}</p>
+                          <p className="text-[11px] font-bold text-[#85431E]">{q.projectName}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-                            q.status === "APPROVED"
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                              : q.status === "REJECTED"
-                              ? "bg-rose-100 text-rose-800 border border-rose-300"
-                              : "bg-amber-100 text-amber-800 border border-amber-300"
-                          }`}>
-                            {q.status}
-                          </span>
-                        </div>
+                        <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          q.status === "APPROVED"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                            : q.status === "REJECTED"
+                            ? "bg-rose-100 text-rose-800 border border-rose-300"
+                            : "bg-amber-100 text-amber-800 border border-amber-300"
+                        }`}>
+                          {q.status}
+                        </span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] sm:text-xs">
                         <div>
-                          <span className="text-[10px] text-[#85431E]/70 uppercase">Company</span>
+                          <span className="text-[9.5px] text-[#85431E]/70 uppercase">Company</span>
                           <p className="font-bold text-[#34150F] truncate">{q.companyName}</p>
                         </div>
                         <div>
-                          <span className="text-[10px] text-[#85431E]/70 uppercase">Client</span>
-                          <p className="font-bold text-[#34150F]">{q.clientName || q.emailMasked}</p>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-[#85431E]/70 uppercase">Items</span>
+                          <span className="text-[9.5px] text-[#85431E]/70 uppercase">Items</span>
                           <p className="font-bold text-[#34150F]">{q.itemCount} Product(s)</p>
                         </div>
                         <div>
-                          <span className="text-[10px] text-[#85431E]/70 uppercase">Est. Total</span>
+                          <span className="text-[9.5px] text-[#85431E]/70 uppercase">Est. Total</span>
                           <p className="font-extrabold text-[#85431E]">₹{q.grandTotal.toLocaleString("en-IN")}</p>
                         </div>
                       </div>
 
                       {q.status === "APPROVED" && q.accessToken && (
-                        <div className="pt-2 flex flex-wrap items-center justify-between gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
-                          <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                            <CheckCircle2 size={14} className="text-emerald-600" /> Approved & Digitally Signed
+                        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 bg-emerald-50 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border border-emerald-200">
+                          <span className="text-[11px] sm:text-xs font-bold text-emerald-900 flex items-center gap-1">
+                            <CheckCircle2 size={13} className="text-emerald-600" /> Approved & Digitally Signed
                           </span>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <AsyncActionButton
                               mode="download"
                               onAction={() => quotationService.downloadQuotePdfByToken(q.accessToken!, q.referenceNo)}
-                              idleIcon={<Download size={13} />}
+                              idleIcon={<Download size={12} />}
                               idleLabel="Download PDF"
-                              loadingLabel="Preparing PDF…"
-                              successLabel="Downloaded!"
-                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs px-3 py-2 rounded-lg transition-colors border border-emerald-300"
+                              loadingLabel="…"
+                              successLabel="✓"
+                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-[10.5px] px-2.5 py-1.5 rounded-md transition-colors border border-emerald-300"
                               variant="custom"
                             />
                             <Link
                               to={`/quote/${q.accessToken}`}
-                              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow"
+                              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10.5px] px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 shadow-2xs"
                             >
-                              <Eye size={14} /> View Quote
+                              <Eye size={12} /> View Quote
                             </Link>
                           </div>
                         </div>
@@ -592,10 +585,10 @@ export function RequestQuotePage() {
   // ─── SUCCESS SCREEN: If RFQ submitted successfully ───
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-[#EACEAA]/20 py-12 px-4 md:px-8 flex items-center justify-center" style={{ fontFamily: "'Nunito', sans-serif" }}>
-        <div className="max-w-xl w-full bg-white rounded-3xl p-8 md:p-10 border border-[#34150F]/10 shadow-2xl text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-            <CheckCircle2 size={36} />
+      <div className="min-h-screen bg-[#EACEAA]/20 py-6 sm:py-12 px-2.5 sm:px-6 md:px-8 flex items-center justify-center" style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <div className="max-w-xl w-full bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-10 border border-[#34150F]/10 shadow-xl text-center space-y-4 sm:space-y-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-emerald-100 text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 size={28} className="sm:w-9 sm:h-9" />
           </div>
 
           <div>
@@ -837,47 +830,47 @@ export function RequestQuotePage() {
           </div>
         ) : (
           /* Main RFQ Form */
-          <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 md:p-10 border border-[#34150F]/10 shadow-lg space-y-8">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 border border-[#34150F]/10 shadow-md space-y-5 sm:space-y-8">
             {/* Header Banner */}
-            <div className="border-b border-[#34150F]/10 pb-6">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#D39858] uppercase tracking-wider">
-                <Building2 size={15} />
+            <div className="border-b border-[#34150F]/10 pb-4 sm:pb-6">
+              <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs font-bold text-[#D39858] uppercase tracking-wider">
+                <Building2 size={13} />
                 <span>PRC Hardware • B2B Quotation Form</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
                 Request for Quotation (RFQ)
               </h1>
-              <p className="text-xs text-[#85431E] mt-1">
+              <p className="text-[11px] sm:text-xs text-[#85431E] mt-0.5">
                 Configure your commercial hardware bill of quantities for architectural cubicles, lockers, and restroom hardware.
               </p>
             </div>
 
             {/* Reference Number Preview */}
-            <div className="bg-[#EACEAA]/20 border border-[#34150F]/10 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-2">
+            <div className="bg-[#EACEAA]/20 border border-[#34150F]/10 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex flex-wrap items-center justify-between gap-1.5">
               <div>
-                <span className="text-[10px] text-[#85431E] font-bold uppercase tracking-wider block">Reference No</span>
-                <span className="font-mono font-bold text-xs text-[#34150F]">
-                  PRC-QT-2026-27/--- <span className="text-[11px] text-[#85431E] font-normal">(Auto-generated upon submission)</span>
+                <span className="text-[9px] text-[#85431E] font-bold uppercase tracking-wider block">Reference No</span>
+                <span className="font-mono font-bold text-[11px] sm:text-xs text-[#34150F]">
+                  PRC-QT-2026-27/--- <span className="text-[10px] sm:text-[11px] text-[#85431E] font-normal">(Auto-generated upon submission)</span>
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-full uppercase">
+                <span className="text-[9px] sm:text-[10px] text-emerald-800 font-bold bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full uppercase">
                   Verified B2B Account
                 </span>
               </div>
             </div>
 
             {/* Section 1: Project & Client Details */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-[#34150F] flex items-center gap-2 border-b border-[#34150F]/10 pb-2">
-                <Layers size={16} className="text-[#D39858]" />
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-bold text-[#34150F] flex items-center gap-1.5 border-b border-[#34150F]/10 pb-1.5">
+                <Layers size={14} className="text-[#D39858]" />
                 <span>1. Project & Business Details</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {/* Project Name */}
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     Project Name <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -886,18 +879,18 @@ export function RequestQuotePage() {
                     onChange={(e) => setProjectName(e.target.value)}
                     onBlur={() => handleBlur("projectName", projectName)}
                     placeholder="e.g. Prestige Tech Park Tower 4 Restroom Fitout"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
                       touched.projectName && errors.projectName ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.projectName && errors.projectName && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.projectName}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.projectName}</p>
                   )}
                 </div>
 
                 {/* First Name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     First Name <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -906,18 +899,18 @@ export function RequestQuotePage() {
                     onChange={(e) => setFirstName(e.target.value)}
                     onBlur={() => handleBlur("firstName", firstName)}
                     placeholder="e.g. Rajesh"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
                       touched.firstName && errors.firstName ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.firstName && errors.firstName && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.firstName}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.firstName}</p>
                   )}
                 </div>
 
                 {/* Last Name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     Last Name <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -926,18 +919,18 @@ export function RequestQuotePage() {
                     onChange={(e) => setLastName(e.target.value)}
                     onBlur={() => handleBlur("lastName", lastName)}
                     placeholder="e.g. Sharma"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
                       touched.lastName && errors.lastName ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.lastName && errors.lastName && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.lastName}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.lastName}</p>
                   )}
                 </div>
 
                 {/* Company Name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     Company Name <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -946,18 +939,18 @@ export function RequestQuotePage() {
                     onChange={(e) => setCompanyName(e.target.value)}
                     onBlur={() => handleBlur("companyName", companyName)}
                     placeholder="e.g. Apex Infrastructure Solutions Pvt Ltd"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
                       touched.companyName && errors.companyName ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.companyName && errors.companyName && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.companyName}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.companyName}</p>
                   )}
                 </div>
 
                 {/* GST No */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     GST No (GSTIN) <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -966,18 +959,18 @@ export function RequestQuotePage() {
                     onChange={(e) => setGstNo(e.target.value.toUpperCase())}
                     onBlur={() => handleBlur("gstNo", gstNo)}
                     placeholder="e.g. 27AAAAA0000A1Z5"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs font-mono text-[#34150F] placeholder-[#85431E]/40 uppercase focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs font-mono text-[#34150F] placeholder-[#85431E]/40 uppercase focus:outline-none ${
                       touched.gstNo && errors.gstNo ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.gstNo && errors.gstNo && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.gstNo}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.gstNo}</p>
                   )}
                 </div>
 
                 {/* Email */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     Business Email <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -986,18 +979,18 @@ export function RequestQuotePage() {
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={() => handleBlur("email", email)}
                     placeholder="e.g. procurement@apexinfra.com"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
                       touched.email && errors.email ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.email && errors.email && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.email}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.email}</p>
                   )}
                 </div>
 
                 {/* Phone */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#34150F]">
+                  <label className="text-[11px] sm:text-xs font-bold text-[#34150F]">
                     Phone Number (10 Digits) <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -1006,31 +999,31 @@ export function RequestQuotePage() {
                     onChange={(e) => setPhone(cleanIndianPhone(e.target.value))}
                     onBlur={() => handleBlur("phone", phone)}
                     placeholder="e.g. 9876543210"
-                    className={`w-full px-4 py-2.5 bg-[#EACEAA]/15 border rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
+                    className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none ${
                       touched.phone && errors.phone ? "border-rose-500 bg-rose-50/30" : "border-[#34150F]/15 focus:border-[#34150F]"
                     }`}
                   />
                   {touched.phone && errors.phone && (
-                    <p className="text-[11px] text-rose-600 font-semibold">{errors.phone}</p>
+                    <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.phone}</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Section 2: Live Product Selection & Filter */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-[#34150F] flex items-center gap-2 border-b border-[#34150F]/10 pb-2">
-                <Search size={16} className="text-[#D39858]" />
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-bold text-[#34150F] flex items-center gap-1.5 border-b border-[#34150F]/10 pb-1.5">
+                <Search size={14} className="text-[#D39858]" />
                 <span>2. Select Hardware Products</span>
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 {/* Category Filter */}
                 <div className="relative">
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] font-bold focus:outline-none focus:border-[#34150F] appearance-none cursor-pointer"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] font-bold focus:outline-none focus:border-[#34150F] appearance-none cursor-pointer"
                   >
                     {CATEGORY_OPTIONS.map((c) => (
                       <option key={c.slug} value={c.slug}>
@@ -1038,12 +1031,12 @@ export function RequestQuotePage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#85431E] pointer-events-none" />
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#85431E] pointer-events-none" />
                 </div>
 
                 {/* Search Bar */}
                 <div className="sm:col-span-2 relative">
-                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1052,20 +1045,20 @@ export function RequestQuotePage() {
                       setIsDropdownOpen(true);
                     }}
                     onFocus={() => setIsDropdownOpen(true)}
-                    placeholder="Search active catalog by name, SKU, or specification..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F]"
+                    placeholder="Search active catalog by name, SKU..."
+                    className="w-full pl-9 pr-3 py-2 sm:py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F]"
                   />
 
                   {/* Dropdown Results */}
                   {isDropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-[#34150F]/15 shadow-xl max-h-64 overflow-y-auto z-50 p-2 space-y-1">
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-xl sm:rounded-2xl border border-[#34150F]/15 shadow-xl max-h-56 overflow-y-auto z-50 p-1.5 space-y-1">
                       {isSearching ? (
-                        <div className="p-4 text-center text-xs text-[#85431E]">
-                          <RefreshCw size={16} className="animate-spin mx-auto mb-1 text-[#D39858]" />
+                        <div className="p-3 text-center text-xs text-[#85431E]">
+                          <RefreshCw size={14} className="animate-spin mx-auto mb-1 text-[#D39858]" />
                           Searching database...
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-[#85431E]">
+                        <div className="p-3 text-center text-xs text-[#85431E]">
                           No products found matching query.
                         </div>
                       ) : (
@@ -1077,31 +1070,31 @@ export function RequestQuotePage() {
                               key={p.id}
                               type="button"
                               onClick={() => handleAddProduct(p)}
-                              className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#EACEAA]/20 text-left transition-colors group"
+                              className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-[#EACEAA]/20 text-left transition-colors group"
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 {p.thumbnail ? (
-                                  <img src={p.thumbnail} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-[#34150F]/10" />
+                                  <img src={p.thumbnail} alt={p.name} className="w-8 h-8 object-cover rounded border border-[#34150F]/10" />
                                 ) : (
-                                  <div className="w-10 h-10 bg-[#EACEAA]/30 rounded-lg flex items-center justify-center text-[#85431E]">
-                                    <Building2 size={16} />
+                                  <div className="w-8 h-8 bg-[#EACEAA]/30 rounded flex items-center justify-center text-[#85431E]">
+                                    <Building2 size={14} />
                                   </div>
                                 )}
                                 <div>
-                                  <p className="text-xs font-bold text-[#34150F] group-hover:text-[#85431E]">{p.name}</p>
-                                  <p className="text-[10px] text-[#85431E]/70 font-mono">SKU: {p.sku || "PRC-HARDWARE"}</p>
+                                  <p className="text-xs font-bold text-[#34150F] group-hover:text-[#85431E] truncate max-w-[150px] sm:max-w-xs">{p.name}</p>
+                                  <p className="text-[9px] text-[#85431E]/70 font-mono">SKU: {p.sku || "PRC-HARDWARE"}</p>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="flex items-center justify-end gap-1.5">
+                                <div className="flex items-center justify-end gap-1">
                                   <span className="text-xs font-extrabold text-[#34150F]">₹{unitRate.toLocaleString("en-IN")}</span>
                                   {eff.isCustomB2BPrice ? (
-                                    <span className="text-[9px] text-[#A855F7] bg-[#A855F7]/10 border border-[#A855F7]/30 px-1.5 py-0.5 rounded font-extrabold">Custom</span>
+                                    <span className="text-[8px] text-[#A855F7] bg-[#A855F7]/10 border border-[#A855F7]/30 px-1 py-0.2 rounded font-extrabold">Custom</span>
                                   ) : (
-                                    <span className="text-[9px] text-[#D39858] bg-[#D39858]/10 border border-[#D39858]/30 px-1.5 py-0.5 rounded font-bold">B2B</span>
+                                    <span className="text-[8px] text-[#D39858] bg-[#D39858]/10 border border-[#D39858]/30 px-1 py-0.2 rounded font-bold">B2B</span>
                                   )}
                                 </div>
-                                <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded mt-0.5 inline-block font-bold">Add +</span>
+                                <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded mt-0.5 inline-block font-bold">Add +</span>
                               </div>
                             </button>
                           );
@@ -1113,71 +1106,71 @@ export function RequestQuotePage() {
               </div>
 
               {errors.lineItems && (
-                <p className="text-xs text-rose-600 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200 flex items-center gap-1.5">
-                  <AlertCircle size={14} />
+                <p className="text-xs text-rose-600 font-bold bg-rose-50 p-2 rounded-lg border border-rose-200 flex items-center gap-1.5">
+                  <AlertCircle size={13} />
                   <span>{errors.lineItems}</span>
                 </p>
               )}
 
               {/* Mobile Line Items Cards (Small screens) */}
-              <div className="md:hidden space-y-2.5">
+              <div className="md:hidden space-y-2">
                 {lineItems.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#85431E]/60 bg-white rounded-2xl border border-[#34150F]/10">
-                    No hardware items added yet. Use the search bar above to append products to the quote.
+                  <div className="p-4 text-center text-[11px] text-[#85431E]/60 bg-[#EACEAA]/10 rounded-xl border border-[#34150F]/10">
+                    No hardware items added yet. Search above to add items to quote.
                   </div>
                 ) : (
-                  lineItems.map((item, idx) => (
-                    <div key={item.productId} className="bg-white p-3 rounded-xl border border-[#34150F]/10 shadow-2xs space-y-2">
+                  lineItems.map((item) => (
+                    <div key={item.productId} className="bg-white p-2.5 rounded-lg border border-[#34150F]/10 shadow-2xs space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           {item.thumbnail ? (
-                            <img src={item.thumbnail} alt={item.name} className="w-10 h-10 object-cover rounded-lg border border-[#34150F]/10 shrink-0" />
+                            <img src={item.thumbnail} alt={item.name} className="w-8 h-8 object-cover rounded border border-[#34150F]/10 shrink-0" />
                           ) : (
-                            <div className="w-10 h-10 bg-[#EACEAA]/30 rounded-lg flex items-center justify-center text-[#85431E] shrink-0">
-                              <Building2 size={16} />
+                            <div className="w-8 h-8 bg-[#EACEAA]/30 rounded flex items-center justify-center text-[#85431E] shrink-0">
+                              <Building2 size={14} />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-[#34150F] leading-tight truncate">{item.name}</p>
-                            <p className="text-[10px] text-[#85431E]/70 font-mono">SKU: {item.sku || "PRC-HD"}</p>
+                            <p className="text-[11.5px] font-bold text-[#34150F] leading-tight truncate">{item.name}</p>
+                            <p className="text-[9px] text-[#85431E]/70 font-mono">SKU: {item.sku || "PRC-HD"}</p>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(item.productId)}
-                          className="text-rose-500 hover:text-rose-700 p-1.5 rounded bg-rose-50 transition-colors"
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded bg-rose-50 transition-colors"
                           title="Remove item"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
 
                       <div className="flex items-center justify-between pt-1 border-t border-[#34150F]/6 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-[#85431E] font-semibold">Qty:</span>
-                          <div className="flex items-center border border-[#34150F]/20 rounded-lg overflow-hidden bg-[#EACEAA]/20">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-[#85431E] font-semibold">Qty:</span>
+                          <div className="flex items-center border border-[#34150F]/20 rounded-md overflow-hidden bg-[#EACEAA]/20">
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
                               disabled={item.quantity <= 1}
-                              className="px-2 py-0.5 font-bold hover:bg-[#34150F]/10 disabled:opacity-30"
+                              className="px-1.5 py-0.2 font-bold hover:bg-[#34150F]/10 disabled:opacity-30 text-xs"
                             >
                               -
                             </button>
-                            <span className="px-2 font-mono font-bold text-xs">{item.quantity}</span>
+                            <span className="px-1.5 font-mono font-bold text-xs">{item.quantity}</span>
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                              className="px-2 py-0.5 font-bold hover:bg-[#34150F]/10"
+                              className="px-1.5 py-0.2 font-bold hover:bg-[#34150F]/10 text-xs"
                             >
                               +
                             </button>
                           </div>
-                          <span className="text-[10px] text-[#85431E] uppercase font-bold">{item.unit}</span>
+                          <span className="text-[9px] text-[#85431E] uppercase font-bold">{item.unit}</span>
                         </div>
 
                         <div className="text-right">
-                          <span className="text-[10px] text-[#85431E] block">₹{Number(item.rate || 0).toLocaleString("en-IN")}/u</span>
+                          <span className="text-[9px] text-[#85431E] block">₹{Number(item.rate || 0).toLocaleString("en-IN")}/u</span>
                           <span className="font-mono font-black text-xs text-[#34150F]">₹{Number(item.amount || 0).toLocaleString("en-IN")}</span>
                         </div>
                       </div>
@@ -1259,59 +1252,59 @@ export function RequestQuotePage() {
             </div>
 
             {/* Section 3: Cost Summary (Left-Aligned) */}
-            <div className="p-5 bg-[#EACEAA]/20 rounded-2xl border border-[#34150F]/10 max-w-md space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#34150F] border-b border-[#34150F]/10 pb-2">
+            <div className="p-3.5 sm:p-5 bg-[#EACEAA]/20 rounded-xl sm:rounded-2xl border border-[#34150F]/10 max-w-md space-y-2 sm:space-y-3">
+              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#34150F] border-b border-[#34150F]/10 pb-1.5">
                 Cost Summary
               </h4>
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#85431E] font-semibold">Shipping and Transport Cost</span>
-                <span className="font-bold text-[#34150F] bg-white px-2 py-0.5 rounded border border-[#34150F]/10">
+              <div className="flex items-center justify-between text-[11px] sm:text-xs">
+                <span className="text-[#85431E] font-semibold">Shipping / Transport</span>
+                <span className="font-bold text-[#34150F] bg-white px-2 py-0.2 rounded border border-[#34150F]/10 text-[10px] sm:text-xs">
                   At actual
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-[11px] sm:text-xs">
                 <span className="text-[#85431E] font-semibold">Basic Price (Excl. GST)</span>
                 <span className="font-mono font-bold text-[#34150F]">₹{basicPrice.toLocaleString("en-IN")}</span>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-[11px] sm:text-xs">
                 <span className="text-[#85431E] font-semibold">GST (18% Flat)</span>
                 <span className="font-mono font-bold text-[#34150F]">₹{gstAmount.toLocaleString("en-IN")}</span>
               </div>
 
-              <div className="flex items-center justify-between text-sm font-extrabold text-[#34150F] pt-2 border-t border-[#34150F]/10">
+              <div className="flex items-center justify-between text-xs sm:text-sm font-extrabold text-[#34150F] pt-1.5 border-t border-[#34150F]/10">
                 <span>Grand Total</span>
-                <span className="font-mono text-base text-[#85431E]">₹{grandTotal.toLocaleString("en-IN")}</span>
+                <span className="font-mono text-sm sm:text-base text-[#85431E]">₹{grandTotal.toLocaleString("en-IN")}</span>
               </div>
 
-              <p className="text-[10px] text-[#85431E]/70 leading-relaxed italic">
-                * Note: Grand Total excludes shipping; final shipping cost will be confirmed upon admin review.
+              <p className="text-[9px] sm:text-[10px] text-[#85431E]/70 leading-relaxed italic">
+                * Note: Grand Total excludes shipping; final freight confirmed upon estimation.
               </p>
             </div>
 
             {/* Section 4: Notes & Terms */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <label className="font-bold text-[#34150F]">Project Notes / Custom Specifications</label>
-                  <span className={`text-[10px] font-bold ${notes.length > 500 ? "text-rose-600" : "text-[#85431E]/70"}`}>
+                <div className="flex items-center justify-between text-[11px] sm:text-xs">
+                  <label className="font-bold text-[#34150F]">Project Notes / Custom Specs</label>
+                  <span className={`text-[9px] sm:text-[10px] font-bold ${notes.length > 500 ? "text-rose-600" : "text-[#85431E]/70"}`}>
                     {notes.length} / 500
                   </span>
                 </div>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={notes}
                   maxLength={500}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Specify custom finish (SS304/SS316, Matt Black, Antique Brass), delivery site logistics, or partition board thickness..."
-                  className="w-full px-4 py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F] resize-none"
+                  placeholder="Specify finish (SS304/SS316, Matt Black), site delivery address, partition thickness..."
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-[11.5px] sm:text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F] resize-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[#34150F]">
+                <label className="flex items-start gap-2 cursor-pointer text-[10.5px] sm:text-xs text-[#34150F]">
                   <input
                     type="checkbox"
                     checked={termsAccepted}
@@ -1321,43 +1314,43 @@ export function RequestQuotePage() {
                     }}
                     className="mt-0.5 rounded border-[#34150F]/30 text-[#34150F] focus:ring-[#34150F]"
                   />
-                  <span className="font-semibold">
+                  <span className="font-semibold leading-snug">
                     I accept all the terms and conditions and confirm that this inquiry is on behalf of a commercial business entity. <span className="text-rose-600">*</span>
                   </span>
                 </label>
                 {touched.termsAccepted && errors.termsAccepted && (
-                  <p className="text-[11px] text-rose-600 font-semibold">{errors.termsAccepted}</p>
+                  <p className="text-[10px] sm:text-[11px] text-rose-600 font-semibold">{errors.termsAccepted}</p>
                 )}
               </div>
             </div>
 
             {submitError && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
-                <AlertCircle size={16} />
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+                <AlertCircle size={14} />
                 <span>{submitError}</span>
               </div>
             )}
 
             {/* Submit Button */}
-            <div className="pt-4 border-t border-[#34150F]/10 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-[11px] text-[#85431E]">
-                <ShieldCheck size={14} className="text-emerald-600" />
-                <span>Protected by PRC Digital Signing System</span>
+            <div className="pt-3 border-t border-[#34150F]/10 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-[#85431E]">
+                <ShieldCheck size={13} className="text-emerald-600" />
+                <span>Protected by PRC Digital Signing</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting || lineItems.length === 0 || !termsAccepted}
-                className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs py-3.5 px-8 rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                className="w-full sm:w-auto bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs py-2.5 sm:py-3.5 px-6 sm:px-8 rounded-lg sm:rounded-xl transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
-                    <RefreshCw size={14} className="animate-spin" />
+                    <RefreshCw size={13} className="animate-spin" />
                     <span>Submitting Quotation...</span>
                   </>
                 ) : (
                   <>
-                    <Send size={14} />
+                    <Send size={13} />
                     <span>Submit RFQ Quotation</span>
                   </>
                 )}

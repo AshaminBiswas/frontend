@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
-import { fetchApi } from "../../services/api";
+import { fetchApi, API_BASE_URL } from "../../services/api";
 import { CartItem, Product } from "../../types";
 import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../../data/products";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
@@ -18,8 +18,20 @@ import { B2BQuotationManager } from "../b2b/B2BQuotationManager";
 import { isB2BUser, getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
 
-
 import { AsyncActionButton } from "../common/AsyncActionButton";
+
+// Safe helper functions for PO downloads & cancellation
+const deletePurchaseOrderApi = async (id: string) => {
+  return fetchApi(`/purchase-orders/${id}`, { method: 'DELETE' });
+};
+const downloadPackingListPdf = async (id: string, _poNumber?: string) => {
+  window.open(`${API_BASE_URL}/purchase-orders/${id}/packing-list/pdf`, '_blank');
+};
+const downloadPoInvoicePdf = async (id: string, _invoiceNumber?: string) => {
+  window.open(`${API_BASE_URL}/purchase-orders/${id}/invoice/pdf`, '_blank');
+};
+
+type CustomerPurchaseOrder = any;
 
 const ALL_PRODUCTS: Product[] = [...SUPER_SAVER_PRODUCTS, ...VALUE_MONEY_PRODUCTS, ...BEST_SELLER_PRODUCTS];
 
@@ -103,12 +115,6 @@ export function UserProfilePage({
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  /* ── PO Submissions (Intake) ── */
-  
-  
-  
-  
-
   /* ── Orders & Purchase Orders ── */
   const [orders, setOrders] = useState<any[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<CustomerPurchaseOrder[]>([]);
@@ -164,7 +170,11 @@ export function UserProfilePage({
         if (res.success && res.data?.orders) return res.data.orders;
         return [];
       }).catch(() => []),
-      getCustomerPurchaseOrdersApi().then((res) => res.items || []).catch(() => []),
+      fetchApi<any>("/purchase-orders/my").then((res) => {
+        if (res.success && Array.isArray(res.data)) return res.data;
+        if (res.success && Array.isArray(res.data?.items)) return res.data.items;
+        return [];
+      }).catch(() => []),
     ]).then(([fetchedOrders, fetchedPos]) => {
       setOrders(fetchedOrders);
       setPurchaseOrders(fetchedPos);
@@ -889,24 +899,24 @@ export function UserProfilePage({
 
         {/* ═══════════════ ORDERS & PURCHASE ORDERS ═══════════════ */}
         {activeTab === "orders" && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-black text-[#34150F] text-xs uppercase tracking-widest flex items-center gap-2">
-                <Package size={14} className="text-[#D39858]" /> Orders & Purchase Orders
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+              <h3 className="font-black text-[#34150F] text-[11px] sm:text-xs uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
+                <Package size={13} className="text-[#D39858]" /> Orders & Purchase Orders
               </h3>
 
               {isB2B && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       onClose();
                       navigate("/purchase-orders");
                     }}
-                    className="text-[11px] font-bold text-[#85431E] hover:text-[#34150F] flex items-center gap-1 transition-colors"
+                    className="text-[10px] sm:text-[11px] font-bold text-[#85431E] hover:text-[#34150F] flex items-center gap-1 transition-colors"
                   >
                     <span>Full PO Portal</span>
-                    <ExternalLink size={12} />
+                    <ExternalLink size={11} />
                   </button>
                   <button
                     type="button"
@@ -914,30 +924,30 @@ export function UserProfilePage({
                       onClose();
                       navigate("/purchase-orders/create");
                     }}
-                    className="flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold px-3.5 py-1.5 rounded-tr-xl rounded-bl-xl text-xs hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-sm"
+                    className="flex items-center gap-1 bg-[#34150F] text-[#EACEAA] font-bold px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-[10px] sm:text-xs hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-2xs"
                   >
-                    <Plus size={13} />
-                    <span>Create New PO</span>
+                    <Plus size={11} />
+                    <span>Create PO</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Sub-tab Filter Switcher (if user is B2B or has any POs) */}
+            {/* Sub-tab Filter Switcher */}
             {(isB2B || purchaseOrders.length > 0) && (
-              <div className="flex items-center gap-2 bg-white/70 p-1.5 rounded-2xl border border-[#34150F]/10 w-fit">
+              <div className="flex items-center gap-1 bg-white/70 p-1 rounded-xl border border-[#34150F]/10 w-fit overflow-x-auto no-scrollbar">
                 {[
                   { key: "ALL", label: `All (${orders.length + purchaseOrders.length})` },
-                  { key: "RETAIL", label: `Retail Orders (${orders.length})` },
-                  { key: "PO", label: `B2B Purchase Orders (${purchaseOrders.length})` },
+                  { key: "RETAIL", label: `Retail (${orders.length})` },
+                  { key: "PO", label: `PO (${purchaseOrders.length})` },
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => setOrdersFilter(tab.key as any)}
-                    className={`text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all ${
+                    className={`text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
                       ordersFilter === tab.key
-                        ? "bg-[#34150F] text-[#EACEAA] shadow-sm"
+                        ? "bg-[#34150F] text-[#EACEAA] shadow-2xs"
                         : "text-[#85431E] hover:text-[#34150F]"
                     }`}
                   >
@@ -948,25 +958,25 @@ export function UserProfilePage({
             )}
 
             {ordersLoading ? (
-              <div className="flex justify-center py-16">
-                <div className="w-8 h-8 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin" />
+              <div className="flex justify-center py-10 sm:py-16">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : orders.length === 0 && purchaseOrders.length === 0 ? (
-              <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-10 text-center border border-[#34150F]/6 shadow-sm">
-                <div className="w-20 h-20 rounded-tr-2xl rounded-bl-2xl bg-[#EACEAA]/60 flex items-center justify-center mx-auto mb-4">
-                  <Package size={36} className="text-[#D39858]/50" />
+              <div className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-6 sm:p-10 text-center border border-[#34150F]/6 shadow-2xs">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl bg-[#EACEAA]/60 flex items-center justify-center mx-auto mb-3">
+                  <Package size={28} className="text-[#D39858]/50" />
                 </div>
-                <h4 className="text-sm font-black text-[#34150F] mb-2">No Orders or POs Yet</h4>
-                <p className="text-xs text-[#85431E] max-w-xs mx-auto mb-5">
-                  Your standard retail orders and B2B purchase orders will appear here.
+                <h4 className="text-xs sm:text-sm font-black text-[#34150F] mb-1">No Orders or POs Yet</h4>
+                <p className="text-[11px] sm:text-xs text-[#85431E] max-w-xs mx-auto mb-4">
+                  Your retail orders and commercial purchase orders will appear here.
                 </p>
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="inline-flex items-center gap-2 bg-[#34150F] text-[#EACEAA] font-bold px-6 py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all text-sm shadow-md active:scale-95"
+                    className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold px-4 py-2 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all text-xs shadow-2xs active:scale-95"
                   >
-                    Shop Now <ChevronRight size={15} />
+                    Shop Now <ChevronRight size={13} />
                   </button>
                   {isB2B && (
                     <button
@@ -975,52 +985,52 @@ export function UserProfilePage({
                         onClose();
                         navigate("/purchase-orders/create");
                       }}
-                      className="inline-flex items-center gap-2 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold px-5 py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all text-sm"
+                      className="inline-flex items-center gap-1.5 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold px-4 py-2 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl hover:bg-[#D39858] transition-all text-xs"
                     >
-                      <Plus size={14} /> Submit PO
+                      <Plus size={12} /> Submit PO
                     </button>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 
                 {/* ─── B2B PURCHASE ORDERS ─── */}
                 {(ordersFilter === "ALL" || ordersFilter === "PO") && purchaseOrders.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {ordersFilter === "ALL" && (
-                      <div className="flex items-center gap-2 text-xs font-black text-[#85431E] uppercase tracking-wider pt-1">
-                        <FileText size={13} className="text-[#D39858]" />
-                        <span>B2B Commercial Purchase Orders ({purchaseOrders.length})</span>
+                      <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs font-black text-[#85431E] uppercase tracking-wider pt-0.5">
+                        <FileText size={12} className="text-[#D39858]" />
+                        <span>Commercial POs ({purchaseOrders.length})</span>
                       </div>
                     )}
                     {purchaseOrders.map((po) => (
                       <div
                         key={po.id}
-                        className="bg-white rounded-tr-2xl rounded-bl-2xl p-5 shadow-sm border border-[#34150F]/10 hover:shadow-md transition-shadow space-y-3"
+                        className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-3.5 sm:p-5 shadow-2xs border border-[#34150F]/10 hover:shadow-xs transition-shadow space-y-2.5"
                       >
                         {/* PO Header */}
-                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#34150F]/8 pb-3">
+                        <div className="flex flex-wrap items-start justify-between gap-1.5 border-b border-[#34150F]/8 pb-2">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black uppercase bg-[#34150F] text-[#EACEAA] px-2 py-0.5 rounded tracking-wider font-mono">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase bg-[#34150F] text-[#EACEAA] px-1.5 py-0.2 rounded tracking-wider font-mono">
                                 PO
                               </span>
                               <p className="text-xs font-black text-[#34150F] font-mono">
                                 {po.poNumber}
                               </p>
                             </div>
-                            <p className="text-[11px] text-[#85431E] font-mono mt-0.5">
-                              Ref Quotation: <span className="font-bold text-[#34150F]">{po.quotationNumber}</span>
+                            <p className="text-[10px] text-[#85431E] font-mono mt-0.5">
+                              Ref: <span className="font-bold text-[#34150F]">{po.quotationNumber}</span>
                             </p>
-                            <p className="text-[10px] text-[#85431E]/70 mt-0.5">
-                              Submitted: {new Date(po.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            <p className="text-[9px] text-[#85431E]/70">
+                              {new Date(po.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                             </p>
                           </div>
 
                           <div className="text-right">
                             <span
-                              className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider border ${
+                              className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border ${
                                 po.status === "INVOICED"
                                   ? "bg-purple-100 text-purple-800 border-purple-300"
                                   : po.status === "DISPATCHED"
@@ -1039,45 +1049,45 @@ export function UserProfilePage({
                               {po.status.replace(/_/g, " ")}
                             </span>
                             {po.dispatch && (
-                              <p className="text-[10px] font-bold text-teal-800 mt-1 flex items-center justify-end gap-1">
-                                <Truck size={11} /> {po.dispatch.carrierName}
+                              <p className="text-[9px] font-bold text-teal-800 mt-0.5 flex items-center justify-end gap-1">
+                                <Truck size={10} /> {po.dispatch.carrierName}
                               </p>
                             )}
                           </div>
                         </div>
 
                         {/* Financial and Items Summary */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-[#FAF5EE] p-3 rounded-xl border border-[#34150F]/6">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] bg-[#FAF5EE] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#34150F]/6">
                           <div>
-                            <span className="text-[10px] text-[#85431E] block">Items</span>
+                            <span className="text-[9px] text-[#85431E] block">Items</span>
                             <span className="font-bold text-[#34150F]">{po.items?.length || 0} Products</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#85431E] block">Total Amount</span>
+                            <span className="text-[9px] text-[#85431E] block">Total Amount</span>
                             <span className="font-bold font-mono text-[#34150F]">₹{Number(po.totalAmount).toLocaleString("en-IN")}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#85431E] block">Advance ({po.advancePercentage}%)</span>
+                            <span className="text-[9px] text-[#85431E] block">Advance ({po.advancePercentage}%)</span>
                             <span className="font-bold font-mono text-[#34150F]">₹{Number(po.advanceAmount).toLocaleString("en-IN")}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#85431E] block">Balance Due</span>
+                            <span className="text-[9px] text-[#85431E] block">Balance Due</span>
                             <span className="font-bold font-mono text-amber-900">₹{Number(po.balanceAmount).toLocaleString("en-IN")}</span>
                           </div>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 pt-0.5">
+                          <div className="flex items-center gap-1.5">
                             {po.packingList && (
                               <AsyncActionButton
                                 mode="download"
                                 onAction={() => downloadPackingListPdf(po.id, po.poNumber)}
-                                idleIcon={<Download size={11} />}
+                                idleIcon={<Download size={10} />}
                                 idleLabel="Packing List"
-                                loadingLabel="Preparing…"
-                                successLabel="Downloaded!"
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                                loadingLabel="…"
+                                successLabel="✓"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-md transition-colors"
                                 variant="custom"
                               />
                             )}
@@ -1085,17 +1095,17 @@ export function UserProfilePage({
                               <AsyncActionButton
                                 mode="download"
                                 onAction={() => downloadPoInvoicePdf(po.id, po.invoice?.invoiceNumber)}
-                                idleIcon={<Receipt size={11} />}
-                                idleLabel="Tax Invoice"
-                                loadingLabel="Preparing…"
-                                successLabel="Downloaded!"
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1.5 rounded-lg transition-colors"
+                                idleIcon={<Receipt size={10} />}
+                                idleLabel="Invoice"
+                                loadingLabel="…"
+                                successLabel="✓"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-1 rounded-md transition-colors"
                                 variant="custom"
                               />
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2 ml-auto">
+                          <div className="flex items-center gap-1.5 ml-auto">
                             {!["DISPATCHED", "INVOICED"].includes(po.status) && (
                               <button
                                 type="button"
@@ -1109,10 +1119,10 @@ export function UserProfilePage({
                                     alert(err.message || "Failed to delete Purchase Order");
                                   }
                                 }}
-                                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                                title="Cancel / Delete Purchase Order"
+                                className="p-1 rounded text-red-600 hover:bg-red-50 transition-colors"
+                                title="Cancel Purchase Order"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={12} />
                               </button>
                             )}
 
@@ -1122,10 +1132,10 @@ export function UserProfilePage({
                                 onClose();
                                 navigate(`/purchase-orders/${po.id}`);
                               }}
-                              idleLabel="View PO & Receipts"
+                              idleLabel="View PO"
                               loadingLabel="Opening…"
-                              idleIcon={<ChevronRight size={13} />}
-                              className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-1.5 rounded-xl transition-all shadow-sm"
+                              idleIcon={<ChevronRight size={11} />}
+                              className="inline-flex items-center gap-1 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-[10.5px] px-3 py-1 rounded-lg transition-all shadow-2xs"
                               variant="custom"
                             />
                           </div>
@@ -1137,37 +1147,37 @@ export function UserProfilePage({
 
                 {/* ─── STANDARD RETAIL ORDERS ─── */}
                 {(ordersFilter === "ALL" || ordersFilter === "RETAIL") && orders.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {ordersFilter === "ALL" && purchaseOrders.length > 0 && (
-                      <div className="flex items-center gap-2 text-xs font-black text-[#85431E] uppercase tracking-wider pt-2 border-t border-[#34150F]/10">
-                        <Package size={13} className="text-[#D39858]" />
-                        <span>Online Retail Orders ({orders.length})</span>
+                      <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs font-black text-[#85431E] uppercase tracking-wider pt-1.5 border-t border-[#34150F]/10">
+                        <Package size={12} className="text-[#D39858]" />
+                        <span>Online Orders ({orders.length})</span>
                       </div>
                     )}
                     {orders.map((order: any) => (
-                      <div key={order.id || order._id} className="bg-white rounded-tr-2xl rounded-bl-2xl p-5 shadow-sm border border-[#34150F]/6">
-                        <div className="flex items-start justify-between mb-3 gap-3">
+                      <div key={order.id || order._id} className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-3.5 sm:p-5 shadow-2xs border border-[#34150F]/6 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="text-xs font-black text-[#34150F] mb-0.5">
+                            <p className="text-xs font-black text-[#34150F]">
                               Order #{(order.orderNumber || order.id || "—").toString().slice(-8).toUpperCase()}
                             </p>
-                            <p className="text-[10px] text-[#85431E]">
+                            <p className="text-[9.5px] sm:text-[10px] text-[#85431E]">
                               {order.createdAt
                                 ? new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                                 : "—"}
                             </p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase tracking-wider ${
+                          <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
                             STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600 border-gray-200"
                           }`}>
                             {order.status || "Unknown"}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-[#85431E]">
+                        <div className="flex items-center justify-between pt-1 border-t border-[#34150F]/5">
+                          <p className="text-[10.5px] sm:text-xs text-[#85431E]">
                             {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""}
                           </p>
-                          <p className="text-sm font-black text-[#34150F]">
+                          <p className="text-xs sm:text-sm font-black text-[#34150F]">
                             ₹{(order.totalAmount || order.total || 0).toLocaleString("en-IN")}
                           </p>
                         </div>
