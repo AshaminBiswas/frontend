@@ -202,7 +202,9 @@ The Storefront was architected and optimized for native app-like responsiveness 
 - **Dedicated Bottom App Bar & Search Overlay**: Bottom navigation bar triggers interactive search overlay (`SearchOverlay.tsx`) modal without unnecessary page transitions.
 - **Ultra-Compact Product Cards (`ProductCard.tsx`)**: Re-engineered with `p-1.5` internal padding, scaled micro-typography, compact stock badges, and responsive action triggers (`Add` on mobile vs `Add to Cart` on desktop).
 - **Product Detail Viewing Page (`ProductDetailPage.tsx`)**: Responsive image gallery viewport (`h-64 sm:h-80 md:h-[450px]`), touch-scrollable horizontal specifications and review tab bar (`no-scrollbar touch-pan-x`), compact pricing and finish options, and a fixed bottom sticky purchase bar for mobile checkout.
+- **Showcase & Aesthetic Banners (`ShopByAestheticSection.tsx`, `CubicleHardwareSection.tsx`, `LockerHardwareSection.tsx`)**: Clean responsive CSS grid (1-column on mobile, 2-3 columns on tablet/desktop) preventing card overlap and scroll-shift jitter.
+- **Mobile Navigation Drawer Auto-Dismiss (`Header.tsx`, `ProductsDropdown.tsx`, `CategoryDropdown.tsx`, `MaterialsDropdown.tsx`)**: Propagates `onCloseMenu` on catalog links and product selections to automatically collapse the mobile drawer upon navigation.
 
 ---
 
-*Last Updated: 2026-08-25 (Storefront Mobile-First UX Architecture & Product View Optimization)*
+*Last Updated: 2026-08-25 (Storefront Mobile UX Architecture, Review Section, Aesthetic Grids & Navigation Sync)*
