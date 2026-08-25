@@ -275,25 +275,25 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#34150F]/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#34150F]/70 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-lg bg-[#2a0e08] border border-[#EACEAA]/20 rounded-tr-3xl rounded-bl-3xl shadow-2xl overflow-hidden p-6 md:p-8 animate-in zoom-in-95 duration-200 text-[#EACEAA]"
+        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar bg-[#2a0e08] border border-[#EACEAA]/20 rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl shadow-2xl p-4 sm:p-6 md:p-8 animate-in zoom-in-95 duration-200 text-[#EACEAA]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           type="button"
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 text-[#EACEAA]/60 hover:text-[#D39858] transition-colors p-1.5 rounded-full hover:bg-[#EACEAA]/10"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[#EACEAA]/60 hover:text-[#D39858] transition-colors p-1 sm:p-1.5 rounded-full hover:bg-[#EACEAA]/10 z-10"
           aria-label="Close modal"
         >
-          <X size={20} />
+          <X size={18} className="sm:w-5 sm:h-5" />
         </button>
 
         {/* Brand Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-tr-2xl rounded-bl-2xl bg-[#D39858]/20 text-[#D39858] mb-3 border border-[#D39858]/30">
-            <ShieldCheck size={24} />
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl bg-[#D39858]/20 text-[#D39858] mb-2 sm:mb-3 border border-[#D39858]/30">
+            <ShieldCheck size={20} className="sm:w-6 sm:h-6" />
           </div>
           <h3 className="text-2xl font-bold text-[#EACEAA]" style={{ fontFamily: "'Gilda Display', serif" }}>
             {authModalView === "login" && "Welcome Back to PRC"}

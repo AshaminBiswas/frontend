@@ -108,27 +108,27 @@ export function TrackOrderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#EACEAA] px-4 py-10 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="min-h-screen bg-[#EACEAA] px-3 sm:px-4 py-4 sm:py-10 pb-20 sm:pb-12 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <div className="max-w-3xl mx-auto">
         {/* Hero */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-[#34150F] rounded-tr-3xl rounded-bl-3xl flex items-center justify-center mx-auto mb-4">
-            <Truck size={30} className="text-[#D39858]" />
+        <div className="text-center mb-4 sm:mb-10">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#34150F] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl flex items-center justify-center mx-auto mb-2.5 sm:mb-4 shadow-sm">
+            <Truck size={24} className="text-[#D39858] sm:w-7 sm:h-7" />
           </div>
-          <h1 className="text-4xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>Track Your Order</h1>
-          <p className="text-[#85431E] mt-2">Enter your order ID to see real-time delivery status</p>
+          <h1 className="text-2xl sm:text-4xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>Track Your Order</h1>
+          <p className="text-xs sm:text-sm text-[#85431E] mt-1 sm:mt-2">Enter your order ID to see real-time delivery status</p>
         </div>
 
         {/* Search form */}
-        <form onSubmit={handleTrack} className="flex gap-3 mb-8">
+        <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-8">
           <input
             value={inputId}
             onChange={e => setInputId(e.target.value)}
             placeholder="Enter Order ID (e.g. ORD-2024-001)"
-            className="flex-1 bg-[#f5e8d4] text-[#34150F] placeholder-[#85431E]/50 px-4 py-3 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.15)] focus:outline-none focus:border-[#D39858] transition-colors"
+            className="flex-1 bg-[#f5e8d4] text-[#34150F] placeholder-[#85431E]/50 px-3.5 py-2.5 sm:py-3 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.15)] focus:outline-none focus:border-[#D39858] transition-colors text-xs sm:text-sm"
           />
-          <button type="submit" className="flex items-center gap-2 bg-[#34150F] text-[#EACEAA] px-6 py-3 rounded-tr-xl rounded-bl-xl font-bold hover:bg-[#85431E] transition-colors">
-            <Search size={16} /> Track
+          <button type="submit" className="flex items-center justify-center gap-2 bg-[#34150F] text-[#EACEAA] px-6 py-2.5 sm:py-3 rounded-tr-xl rounded-bl-xl font-bold hover:bg-[#85431E] transition-colors text-xs sm:text-sm">
+            <Search size={15} /> Track
           </button>
         </form>
 

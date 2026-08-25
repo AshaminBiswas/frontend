@@ -370,27 +370,27 @@ export function CategoriesPage({
           {/* Dynamic Products Grid for the Active Product Line */}
           <div className="pt-2">
             {filteredProducts.length === 0 ? (
-              <div className="bg-[#FAF4ED] rounded-tr-2xl rounded-bl-2xl p-10 text-center border border-[#34150F]/8">
-                <Package size={36} className="text-[#85431E]/40 mx-auto mb-2" />
+              <div className="bg-[#FAF4ED] rounded-tr-2xl rounded-bl-2xl p-8 sm:p-10 text-center border border-[#34150F]/8">
+                <Package size={32} className="text-[#85431E]/40 mx-auto mb-2" />
                 <h3 className="text-sm font-bold text-[#34150F]">No products found for this line</h3>
                 <p className="text-xs text-[#85431E] mt-1 mb-3">Try choosing another product line or check back soon.</p>
                 <button
                   type="button"
                   onClick={() => setSelectedLine("ALL")}
-                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2 rounded-tr-lg rounded-bl-lg hover:bg-[#D39858] hover:text-[#34150F] transition-colors"
+                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2 rounded-tr-lg rounded-bl-lg hover:bg-[#D39858] hover:text-[#34150F] transition-colors active:scale-95"
                 >
                   View All Products
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {filteredProducts.map((prod) => (
                   <ProductCard
-                    key={prod.id || prod.apiId || prod.name}
+                    key={prod.id || (prod as any).apiId || prod.name}
                     product={prod}
                     onAddToCart={onAddToCart}
                     onWishlist={onWishlist}
-                    wishlisted={wishlist.has(prod.id) || (prod.apiId ? wishlist.has(prod.apiId) : false)}
+                    wishlisted={wishlist.has(prod.id) || ((prod as any).apiId ? wishlist.has((prod as any).apiId) : false)}
                   />
                 ))}
               </div>

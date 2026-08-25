@@ -141,36 +141,36 @@ export function WishlistPage({
 
   return (
     <div
-      className="min-h-screen bg-[#EACEAA] px-4 py-8 md:px-8 lg:px-16"
+      className="min-h-screen bg-[#EACEAA] px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-12 md:px-8 lg:px-16"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
       <div className="max-w-6xl mx-auto">
         {/* ── Page Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-[#34150F] rounded-tr-xl rounded-bl-xl flex items-center justify-center flex-shrink-0 shadow-md">
-              <Heart size={22} className="text-[#D39858] fill-[#D39858]" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-8">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-[#34150F] rounded-tr-xl rounded-bl-xl flex items-center justify-center flex-shrink-0 shadow-md">
+              <Heart size={18} className="text-[#D39858] fill-[#D39858] sm:w-5 sm:h-5" />
             </div>
             <div>
               <h1
-                className="text-2xl md:text-3xl font-bold text-[#34150F] leading-tight"
+                className="text-xl sm:text-2xl md:text-3xl font-bold text-[#34150F] leading-tight"
                 style={{ fontFamily: "'Gilda Display', serif" }}
               >
                 My Saved Wishlist
               </h1>
-              <p className="text-xs text-[#85431E] mt-0.5">
+              <p className="text-[11px] sm:text-xs text-[#85431E] mt-0.5">
                 {wishlistedItems.length} product{wishlistedItems.length !== 1 ? "s" : ""} saved
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleAddAllToCart}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#34150F] text-[#EACEAA] font-bold px-5 py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all text-xs shadow-md active:scale-95"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 bg-[#34150F] text-[#EACEAA] font-bold px-4 py-2 sm:px-5 sm:py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all text-xs shadow-md active:scale-95"
             >
-              <ShoppingCart size={14} /> Add All to Cart
+              <ShoppingCart size={13} /> Add All to Cart
             </button>
             <Link
               to="/products"
@@ -181,8 +181,8 @@ export function WishlistPage({
           </div>
         </div>
 
-        {/* ── Responsive Wishlist Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 mb-12">
+        {/* ── Responsive Wishlist Grid (2-Col Mobile) ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-8 sm:mb-12">
           {wishlistedItems.map((product) => {
             const isAdded = addedIds.has(product.id);
             const effective = getEffectivePrice(product, user, 1, b2bCache);
@@ -195,7 +195,7 @@ export function WishlistPage({
             return (
               <div
                 key={product.id}
-                className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                className="bg-[#f5e8d4] rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden group"
               >
                 <div>
                   {/* Image Container with Badges */}
@@ -206,15 +206,15 @@ export function WishlistPage({
                     <button
                       type="button"
                       onClick={() => onToggleWishlist(product)}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-red-500 hover:bg-red-50 hover:scale-110 active:scale-95 transition-all"
+                      className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-red-500 hover:bg-red-50 hover:scale-110 active:scale-95 transition-all"
                       title="Remove from Wishlist"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={12} className="sm:w-3.5 sm:h-3.5" />
                     </button>
 
                     {/* Discount Badge */}
                     {effective.isB2B ? (
-                      <span className="absolute top-3 left-3 bg-[#D39858] text-[#34150F] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-tr-lg rounded-bl-lg shadow">
+                      <span className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 bg-[#D39858] text-[#34150F] text-[8px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-tr-md rounded-bl-md sm:rounded-tr-lg sm:rounded-bl-lg shadow">
                         B2B {discountPercent}% OFF
                       </span>
                     ) : discountPercent > 0 && (

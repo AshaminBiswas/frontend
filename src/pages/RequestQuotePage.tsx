@@ -1119,8 +1119,75 @@ export function RequestQuotePage() {
                 </p>
               )}
 
-              {/* Line Items Table */}
-              <div className="overflow-x-auto border border-[#34150F]/10 rounded-2xl bg-white shadow-sm">
+              {/* Mobile Line Items Cards (Small screens) */}
+              <div className="md:hidden space-y-2.5">
+                {lineItems.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-[#85431E]/60 bg-white rounded-2xl border border-[#34150F]/10">
+                    No hardware items added yet. Use the search bar above to append products to the quote.
+                  </div>
+                ) : (
+                  lineItems.map((item, idx) => (
+                    <div key={item.productId} className="bg-white p-3 rounded-xl border border-[#34150F]/10 shadow-2xs space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {item.thumbnail ? (
+                            <img src={item.thumbnail} alt={item.name} className="w-10 h-10 object-cover rounded-lg border border-[#34150F]/10 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 bg-[#EACEAA]/30 rounded-lg flex items-center justify-center text-[#85431E] shrink-0">
+                              <Building2 size={16} />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[#34150F] leading-tight truncate">{item.name}</p>
+                            <p className="text-[10px] text-[#85431E]/70 font-mono">SKU: {item.sku || "PRC-HD"}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(item.productId)}
+                          className="text-rose-500 hover:text-rose-700 p-1.5 rounded bg-rose-50 transition-colors"
+                          title="Remove item"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-[#34150F]/6 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-[#85431E] font-semibold">Qty:</span>
+                          <div className="flex items-center border border-[#34150F]/20 rounded-lg overflow-hidden bg-[#EACEAA]/20">
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              className="px-2 py-0.5 font-bold hover:bg-[#34150F]/10 disabled:opacity-30"
+                            >
+                              -
+                            </button>
+                            <span className="px-2 font-mono font-bold text-xs">{item.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                              className="px-2 py-0.5 font-bold hover:bg-[#34150F]/10"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="text-[10px] text-[#85431E] uppercase font-bold">{item.unit}</span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#85431E] block">₹{Number(item.rate || 0).toLocaleString("en-IN")}/u</span>
+                          <span className="font-mono font-black text-xs text-[#34150F]">₹{Number(item.amount || 0).toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Line Items Table */}
+              <div className="hidden md:block overflow-x-auto border border-[#34150F]/10 rounded-2xl bg-white shadow-sm">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#EACEAA]/30 text-[#34150F] border-b border-[#34150F]/10 font-bold">
                     <tr>
@@ -1151,27 +1218,24 @@ export function RequestQuotePage() {
                               )}
                               <div>
                                 <p className="font-bold text-[#34150F]">{item.name}</p>
-                                <p className="text-[10px] font-mono text-[#85431E]/70">{item.sku}</p>
+                                <p className="text-[10px] text-[#85431E]/70 font-mono">SKU: {item.sku || "PRC-HARDWARE"}</p>
                               </div>
                             </div>
                           </td>
                           <td className="py-3 px-3">
-                            <span className="font-bold text-[11px] bg-[#EACEAA]/30 px-2 py-0.5 rounded text-[#34150F]">
-                              {item.unit}
-                            </span>
+                            <span className="font-bold text-[#34150F] uppercase">{item.unit || "NOS"}</span>
                           </td>
                           <td className="py-3 px-3 text-center">
                             <input
                               type="number"
-                              min="1"
+                              min={1}
                               value={item.quantity}
-                              onChange={(e) => handleQuantityChange(item.productId, parseInt(e.target.value) || 1)}
-                              className="w-16 px-2 py-1 bg-white border border-[#34150F]/20 rounded-lg text-xs font-bold text-center text-[#34150F] focus:outline-none focus:border-[#34150F]"
+                              onChange={(e) => handleQtyChange(item.productId, parseInt(e.target.value) || 1)}
+                              className="w-16 px-2 py-1 border border-[#34150F]/20 rounded-lg text-center font-mono font-bold text-xs bg-[#EACEAA]/15 focus:outline-none focus:border-[#34150F]"
                             />
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-bold text-[#34150F]">
-                            <div>₹{Number(item.rate || 0).toLocaleString("en-IN")}</div>
-                            <span className="text-[9px] text-[#85431E]/70 block font-sans font-normal">B2B Rate</span>
+                            ₹{Number(item.rate || 0).toLocaleString("en-IN")}
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-extrabold text-[#85431E]">
                             ₹{Number(item.amount || 0).toLocaleString("en-IN")}

@@ -314,14 +314,14 @@ export function ContactPage() {
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
       {/* ═══════════════ HERO BANNER ═══════════════ */}
-      <section className="bg-[#34150F] text-[#EACEAA] py-14 sm:py-18 px-4 md:px-8 lg:px-16 text-center relative border-b border-[#D39858]/20">
-        <div className="max-w-4xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 text-[#D39858] text-[10px] font-extrabold uppercase tracking-widest px-4 py-1 rounded-full shadow-xs">
-            <Sparkles size={12} /> ARCHITECTURAL ASSISTANCE & TICKET TRACKING SYSTEM
+      <section className="bg-[#34150F] text-[#EACEAA] py-6 sm:py-14 md:py-18 px-3 sm:px-6 md:px-8 lg:px-16 text-center relative border-b border-[#D39858]/20">
+        <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
+          <div className="inline-flex items-center gap-1.5 bg-[#D39858]/20 border border-[#D39858]/40 text-[#D39858] text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider px-3 py-0.5 sm:px-4 sm:py-1 rounded-full shadow-2xs">
+            <Sparkles size={11} /> ARCHITECTURAL ASSISTANCE &amp; TICKET TRACKING SYSTEM
           </div>
 
           <h1
-            className="text-3xl sm:text-5xl font-extrabold text-[#EACEAA] leading-tight"
+            className="text-xl sm:text-3xl md:text-5xl font-extrabold text-[#EACEAA] leading-tight"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             Get in Touch with Our Hardware Team
@@ -334,45 +334,45 @@ export function ContactPage() {
       </section>
 
       {/* ═══════════════ QUICK CONTACT STATS ROW ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 -mt-7 relative z-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-[#f5e8d4] p-4 sm:p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-md flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#34150F] text-[#D39858] rounded-tr-xl rounded-bl-xl flex items-center justify-center flex-shrink-0">
-              <Phone size={20} />
+      <section className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 -mt-4 sm:-mt-7 relative z-20">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+          <div className="bg-[#f5e8d4] p-3 sm:p-5 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-xs flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#34150F] text-[#D39858] rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl flex items-center justify-center flex-shrink-0">
+              <Phone size={16} className="sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-[#85431E] uppercase">Phone Support</p>
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-[#85431E] uppercase">Phone Support</p>
               <p className="text-xs font-black text-[#34150F]">+91 98765 43210</p>
-              <p className="text-[10px] text-[#85431E]/70 font-semibold">Mon–Sat, 9:30 AM – 7 PM</p>
+              <p className="text-[9px] sm:text-[10px] text-[#85431E]/70 font-semibold">Mon–Sat, 9:30 AM – 7 PM</p>
             </div>
           </div>
 
-          <div className="bg-[#f5e8d4] p-4 sm:p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-md flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#34150F] text-[#D39858] rounded-tr-xl rounded-bl-xl flex items-center justify-center flex-shrink-0">
-              <Mail size={20} />
+          <div className="bg-[#f5e8d4] p-3 sm:p-5 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-xs flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#34150F] text-[#D39858] rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl flex items-center justify-center flex-shrink-0">
+              <Mail size={16} className="sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-[#85431E] uppercase">Email Confirmation</p>
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-[#85431E] uppercase">Email Confirmation</p>
               <p className="text-xs font-black text-[#34150F]">Automatic Receipt Sent</p>
-              <p className="text-[10px] text-[#85431E]/70 font-semibold">Checks inbox immediately</p>
+              <p className="text-[9px] sm:text-[10px] text-[#85431E]/70 font-semibold">Checks inbox immediately</p>
             </div>
           </div>
 
-          <div className="bg-[#f5e8d4] p-4 sm:p-5 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-md flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#34150F] text-[#D39858] rounded-tr-xl rounded-bl-xl flex items-center justify-center flex-shrink-0">
-              <Clock size={20} />
+          <div className="bg-[#f5e8d4] p-3 sm:p-5 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-xs flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#34150F] text-[#D39858] rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl flex items-center justify-center flex-shrink-0">
+              <Clock size={16} className="sm:w-5 sm:h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-extrabold text-[#85431E] uppercase">Guaranteed SLA</p>
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-[#85431E] uppercase">Guaranteed SLA</p>
               <p className="text-xs font-black text-[#34150F]">Max 48 Hours Response</p>
-              <p className="text-[10px] text-[#85431E]/70 font-semibold">Strict resolution deadline</p>
+              <p className="text-[9px] sm:text-[10px] text-[#85431E]/70 font-semibold">Strict resolution deadline</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ═══════════════ MAIN CONTENT GRID: LOCATIONS & FORM / TRACKING ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 py-12">
+      <section className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 py-4 sm:py-12 pb-20 sm:pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ── LEFT COLUMN: OFFICE & LOGISTICS MAPS (7 COLS) ── */}

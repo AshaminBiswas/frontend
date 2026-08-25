@@ -675,20 +675,20 @@ export function ProductDetailPage({
       </section>
 
       {/* ═══════════════ RELATED PRODUCTS CAROUSEL ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 pb-16">
-        <div className="flex items-center justify-between mb-6">
+      <section className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 pb-20 md:pb-16">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h2
-            className="text-2xl font-bold text-[#34150F]"
+            className="text-base sm:text-xl font-bold text-[#34150F]"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             Frequently Paired Hardware
           </h2>
           <Link to="/products" className="text-xs font-bold text-[#85431E] hover:text-[#34150F]">
-            View All Catalog →
+            View All →
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           {relatedProducts.map((rel) => (
             <ProductCard
               key={rel.id}
@@ -701,6 +701,45 @@ export function ProductDetailPage({
         </div>
       </section>
 
+      {/* ═══════════════ MOBILE STICKY BOTTOM ACTION BAR ═══════════════ */}
+      <div className="fixed bottom-14 md:hidden left-0 right-0 z-40 bg-[#34150F]/95 backdrop-blur-md border-t border-[#EACEAA]/20 p-2.5 px-3 shadow-2xl flex items-center justify-between gap-2.5">
+        <div>
+          <span className="text-[10px] text-[#EACEAA]/60 block font-bold">Total Price</span>
+          <span className="text-sm font-black text-[#EACEAA]" style={{ fontFamily: "'DM Mono', monospace" }}>
+            ₹{(effective.unitPrice * qty).toLocaleString("en-IN")}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 flex-1 max-w-[240px]">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!stockInfo.isAvailable}
+            className={`flex-1 py-2 px-2.5 rounded-tr-lg rounded-bl-lg font-extrabold text-[11px] flex items-center justify-center gap-1 shadow active:scale-95 ${
+              !stockInfo.isAvailable
+                ? "bg-slate-500 text-slate-300 cursor-not-allowed"
+                : added
+                ? "bg-emerald-600 text-white"
+                : "bg-[#D39858] text-[#34150F]"
+            }`}
+          >
+            {added ? <Check size={13} /> : <ShoppingCart size={13} />}
+            <span>{added ? "Added" : "Add to Cart"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              handleAddToCart();
+              navigate('/checkout');
+            }}
+            disabled={!stockInfo.isAvailable}
+            className="flex-1 py-2 px-2.5 rounded-tr-lg rounded-bl-lg font-extrabold text-[11px] bg-[#EACEAA] text-[#34150F] hover:bg-[#D39858] shadow active:scale-95 text-center"
+          >
+            Buy Now
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

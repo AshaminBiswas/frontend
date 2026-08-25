@@ -8,6 +8,8 @@ import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { ScrollToTop } from '../components/common/ScrollToTop';
 import { CartDrawer } from '../components/cart/CartDrawer';
+import { SearchOverlay } from '../components/search/SearchOverlay';
+import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { getAllProductsApi } from '../services/productService';
 import { PageSkeleton } from '../components/common/PageSkeleton';
 
@@ -195,6 +197,24 @@ function AppContent() {
       {/* Cart Drawer */}
       {cartOpen && (
         <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onRemove={removeFromCart} onQty={changeQty} />
+      )}
+
+      {/* Native Mobile App Bottom Navigation Bar */}
+      <MobileBottomNav
+        cartCount={cartCount}
+        wishlistCount={wishlistCount}
+        onOpenSearch={() => setSearchOpen(true)}
+        onOpenCart={() => setCartOpen(true)}
+      />
+
+      {/* Global / Mobile Search Overlay */}
+      {searchOpen && (
+        <SearchOverlay
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onClose={() => setSearchOpen(false)}
+          onAddToCart={addToCart}
+        />
       )}
 
       {/* Auth Modal */}

@@ -184,21 +184,23 @@ export function Header({
 
       <header className="z-40 bg-[#34150F] shadow-md flex-shrink-0 relative">
         {/* Top bar */}
-        <div className="px-3 sm:px-4 md:px-8 lg:px-16 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3">
-          {/* Hamburger + Logo */}
-          <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2">
-            <button
-              type="button"
-              className="md:hidden text-[#EACEAA] hover:text-[#D39858] transition-colors p-1 -ml-1"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Toggle menu"
-              aria-expanded={menuOpen}
-            >
-              {menuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-            <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 group cursor-pointer">
-              <img src="/logo.png" alt="PRC Hardware" className="h-10 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
-              <span className="text-[#EACEAA] font-semibold text-lg sm:text-xl tracking-wide">Hardware</span>
+        <div className="px-3 sm:px-4 md:px-8 lg:px-16 py-2.5 sm:py-3 flex items-center justify-between md:justify-start gap-2 sm:gap-3">
+          {/* Hamburger Menu (Left side on mobile) */}
+          <button
+            type="button"
+            className="md:hidden text-[#EACEAA] hover:text-[#D39858] transition-colors p-1 -ml-1"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
+          {/* Logo (Shifted to right side on small devices, left side on desktop) */}
+          <div className="flex-shrink-0 flex items-center ml-auto md:ml-0">
+            <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer">
+              <img src="/logo.png" alt="PRC Hardware" className="h-9 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+              <span className="hidden md:inline text-[#EACEAA] font-semibold text-lg sm:text-xl tracking-wide">Hardware</span>
             </Link>
           </div>
 
@@ -226,17 +228,8 @@ export function Header({
             </div>
           </div>
 
-          {/* Icons — use gap-2 on mobile to fit 320px screens */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto md:ml-0">
-            <button
-              type="button"
-              className="md:hidden text-[#EACEAA] hover:text-[#D39858] transition-colors"
-              onClick={() => setSearchOpen(!searchOpen)}
-              aria-label="Search"
-            >
-              <Search size={20} />
-            </button>
-
+          {/* Icons — hidden on small devices as they are present in MobileBottomNav */}
+          <div className="hidden md:flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto md:ml-0">
             {/* Account */}
             {isAuthenticated ? (
               <Link to="/profile" className="flex items-center gap-1 sm:gap-1.5 bg-[#EACEAA]/15 hover:bg-[#D39858]/20 border border-[#EACEAA]/20 px-2 sm:px-3 py-1.5 rounded-tr-xl rounded-bl-xl transition-all duration-200 text-xs text-[#EACEAA] hover:text-[#D39858]">
@@ -289,29 +282,6 @@ export function Header({
           </div>
         </div>
 
-        {/* Mobile Search Bar (full-width expandable) */}
-        {searchOpen && (
-          <div className="md:hidden px-3 sm:px-4 pb-3 animate-in fade-in slide-in-from-top-2 duration-200 relative">
-            <div className="relative w-full">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, materials..."
-                className="w-full bg-[#EACEAA]/15 text-[#EACEAA] placeholder-[#EACEAA]/50 pl-4 pr-10 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/30 focus:outline-none focus:border-[#D39858]"
-                autoFocus
-              />
-              {searchQuery ? (
-                <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#EACEAA]/60 hover:text-[#D39858] p-0.5">
-                  <X size={16} />
-                </button>
-              ) : (
-                <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#D39858]" />
-              )}
-            </div>
-            <SearchDropdown searchQuery={searchQuery} setSearchQuery={setSearchQuery} onClose={() => setSearchOpen(false)} onAddToCart={onAddToCart} />
-          </div>
-        )}
 
         {/* Desktop Nav — inline, hidden on mobile */}
         <nav className="hidden md:block border-t border-[#EACEAA]/10">

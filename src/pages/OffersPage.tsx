@@ -493,43 +493,43 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                       </button>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-4 sm:p-5">
-                      <span className="text-[10px] font-bold text-[#85431E] uppercase tracking-wider block mb-1">
+                    {/* Details */}
+                    <div className="p-2 sm:p-4">
+                      <span className="text-[9px] font-black uppercase text-[#85431E] block mb-1">
                         {product.category}
                       </span>
                       <Link to={`/product/${product.id}`}>
-                        <h3 className="text-xs sm:text-sm font-bold text-[#34150F] hover:text-[#85431E] transition-colors line-clamp-2 mb-2">
+                        <h3 className="text-[11px] sm:text-sm font-bold text-[#34150F] hover:text-[#85431E] transition-colors line-clamp-2 mb-1 min-h-[26px] sm:min-h-[32px]">
                           {product.name}
                         </h3>
                       </Link>
 
                       {/* Price Section */}
-                      <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-base sm:text-lg font-black text-[#34150F]">
+                      <div className="flex items-baseline gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
+                        <span className="text-xs sm:text-base font-black text-[#34150F]">
                           ₹{effective.unitPrice.toLocaleString("en-IN")}
                         </span>
                         {effective.originalPrice > effective.unitPrice && (
-                          <span className="text-xs text-[#85431E]/60 line-through">
+                          <span className="text-[9px] sm:text-xs text-[#85431E]/60 line-through">
                             ₹{effective.originalPrice.toLocaleString("en-IN")}
                           </span>
                         )}
                       </div>
 
                       {savingsRupees > 0 && (
-                        <p className="text-[10px] text-emerald-700 font-bold mb-3">
-                          Save ₹{savingsRupees.toLocaleString("en-IN")} direct
+                        <p className="text-[9px] sm:text-[10px] text-emerald-700 font-bold mb-2">
+                          Save ₹{savingsRupees.toLocaleString("en-IN")}
                         </p>
                       )}
                     </div>
                   </div>
 
                   {/* Add to Cart Button */}
-                  <div className="p-4 sm:p-5 pt-0">
+                  <div className="p-2 sm:p-4 pt-0">
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
-                      className={`w-full py-2.5 px-4 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow ${
+                      className={`w-full py-1.5 sm:py-2.5 px-2 sm:px-4 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 ${
                         isAdded
                           ? "bg-emerald-700 text-white"
                           : "bg-[#34150F] hover:bg-[#85431E] text-[#EACEAA]"
@@ -537,11 +537,11 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                     >
                       {isAdded ? (
                         <>
-                          <Check size={14} /> Added to Cart
+                          <Check size={12} className="sm:w-3.5 sm:h-3.5" /> Added
                         </>
                       ) : (
                         <>
-                          <ShoppingCart size={14} /> Add to Cart
+                          <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" /> Add to Cart
                         </>
                       )}
                     </button>

@@ -104,23 +104,23 @@ export function PrivacyPolicyPage() {
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
       {/* ═══════════════ HERO BANNER ═══════════════ */}
-      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-14 px-4 md:px-8 lg:px-16 text-[#EACEAA]">
+      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-5 sm:py-8 md:py-14 px-3 sm:px-6 md:px-8 lg:px-16 text-[#EACEAA]">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#EACEAA]/70 mb-4">
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-[#EACEAA]/70 mb-2 sm:mb-4">
             <Link to="/" className="hover:text-[#D39858]">Home</Link>
-            <ChevronRight size={12} />
+            <ChevronRight size={11} />
             <span className="text-[#EACEAA] font-bold">Privacy Policy</span>
           </div>
 
-          <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-3.5 py-1 rounded-full mb-3">
-            <Lock size={14} className="text-[#D39858]" />
-            <span className="text-[10px] font-black text-[#D39858] uppercase tracking-[0.2em]">
-              Data Protection & Compliance
+          <div className="inline-flex items-center gap-1.5 bg-[#D39858]/20 border border-[#D39858]/40 px-2.5 sm:px-3.5 py-0.5 sm:py-1 rounded-full mb-2 sm:mb-3">
+            <Lock size={13} className="text-[#D39858]" />
+            <span className="text-[9px] sm:text-[10px] font-black text-[#D39858] uppercase tracking-wider">
+              Data Protection &amp; Compliance
             </span>
           </div>
 
           <h1
-            className="text-3xl md:text-5xl font-black text-[#EACEAA] mb-3"
+            className="text-xl sm:text-3xl md:text-5xl font-black text-[#EACEAA] mb-2 sm:mb-3"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             {data?.title || "Privacy Policy"}
@@ -133,16 +133,16 @@ export function PrivacyPolicyPage() {
       </section>
 
       {/* ═══════════════ MAIN CONTENT ═══════════════ */}
-      <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-16 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 py-4 sm:py-12 pb-20 sm:pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
 
-          {/* Left Policy Menu */}
+          {/* Left Policy Menu / Mobile Pills Bar */}
           <div className="lg:col-span-4">
-            <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-5 border border-[rgba(52,21,15,0.08)] shadow-sm sticky top-24">
-              <h3 className="text-xs font-bold text-[#34150F] uppercase tracking-wider mb-4 pb-2 border-b border-[rgba(52,21,15,0.1)]">
-                Legal & Governance Links
+            <div className="bg-[#f5e8d4] rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-3 sm:p-5 border border-[rgba(52,21,15,0.08)] shadow-2xs lg:sticky lg:top-24">
+              <h3 className="text-[10px] sm:text-xs font-bold text-[#34150F] uppercase tracking-wider mb-2 sm:mb-4 pb-1.5 sm:pb-2 border-b border-[rgba(52,21,15,0.1)]">
+                Legal &amp; Governance
               </h3>
-              <div className="space-y-1.5">
+              <div className="flex overflow-x-auto no-scrollbar touch-pan-x gap-1.5 lg:flex-col lg:space-y-1.5 pb-1">
                 {[
                   { label: "Privacy Policy", to: "/policy/privacy", active: true },
                   { label: "Return & Refund Policy", to: "/policy/returns", active: false },
@@ -152,27 +152,27 @@ export function PrivacyPolicyPage() {
                   <Link
                     key={item.label}
                     to={item.to}
-                    className={`flex items-center justify-between px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all ${
+                    className={`flex items-center justify-between px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                       item.active
-                        ? "bg-[#34150F] text-[#EACEAA] shadow-md"
-                        : "text-[#85431E] hover:bg-[#EACEAA]/50 hover:text-[#34150F]"
+                        ? "bg-[#34150F] text-[#EACEAA] shadow-xs"
+                        : "text-[#85431E] bg-[#EACEAA]/40 lg:bg-transparent hover:bg-[#EACEAA]/50 hover:text-[#34150F]"
                     }`}
                   >
                     <span>{item.label}</span>
-                    <ChevronRight size={14} />
+                    {item.active && <ChevronRight size={13} className="ml-2 hidden lg:block" />}
                   </Link>
                 ))}
               </div>
 
               {/* Support Contact Box */}
-              <div className="mt-6 p-4 bg-[#EACEAA]/40 rounded-tr-xl rounded-bl-xl border border-[rgba(52,21,15,0.1)]">
+              <div className="mt-4 sm:mt-6 p-3.5 sm:p-4 bg-[#EACEAA]/40 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.1)]">
                 <p className="text-[11px] font-bold text-[#34150F] mb-1">Need Legal Clarifications?</p>
-                <p className="text-[10px] text-[#85431E] mb-3">Our privacy team is available Monday to Saturday.</p>
+                <p className="text-[10px] text-[#85431E] mb-2 sm:mb-3">Our privacy team is available Monday to Saturday.</p>
                 <a
                   href="mailto:privacy@prchardware.in"
                   className="text-[11px] font-extrabold text-[#34150F] hover:text-[#D39858] flex items-center gap-1.5"
                 >
-                  <Mail size={13} /> privacy@prchardware.in
+                  <Mail size={12} /> privacy@prchardware.in
                 </a>
               </div>
             </div>

@@ -111,17 +111,17 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
         </Link>
 
         {/* Controls Bar */}
-        <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-4 shadow-sm border border-[#34150F]/8 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs font-bold text-[#34150F]">
-            Showing <strong className="text-[#D39858]">{filteredProducts.length}</strong> products for "{categoryName}"
+        <div className="bg-[#f5e8d4] rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-2.5 sm:p-4 shadow-xs border border-[rgba(52,21,15,0.08)] mb-3 sm:mb-6 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
+          <p className="text-[11px] sm:text-xs font-bold text-[#34150F]">
+            Showing <strong className="text-[#D39858]">{filteredProducts.length}</strong> products in "{categoryName}"
           </p>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <ArrowUpDown size={15} className="text-[#D39858]" />
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <ArrowUpDown size={13} className="text-[#D39858]" />
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="bg-[#f5e8d4] text-[#34150F] text-xs font-bold px-3 py-2 rounded-tr-xl rounded-bl-xl border border-[#34150F]/15 outline-none cursor-pointer w-full sm:w-auto"
+              className="bg-[#EACEAA] text-[#34150F] text-[11px] sm:text-xs font-bold px-2.5 py-1.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[rgba(52,21,15,0.15)] outline-none cursor-pointer w-full sm:w-auto"
             >
               <option value="featured">Sort by: Featured</option>
               <option value="low-to-high">Price: Low to High</option>
@@ -135,19 +135,19 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-12 text-center border border-[#34150F]/8 shadow-sm">
-            <Filter size={36} className="text-[#D39858]/40 mx-auto mb-3" />
-            <h3 className="text-base font-black text-[#34150F] mb-1">No Specific Products Listed Yet</h3>
-            <p className="text-xs text-[#85431E] mb-4">Explore all hardware lines in our full products catalog.</p>
+          <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-8 sm:p-12 text-center border border-[rgba(52,21,15,0.08)] shadow-xs">
+            <Filter size={32} className="text-[#D39858]/40 mx-auto mb-2.5" />
+            <h3 className="text-sm sm:text-base font-black text-[#34150F] mb-1">No Specific Products Listed Yet</h3>
+            <p className="text-xs text-[#85431E] mb-3.5">Explore all hardware lines in our full products catalog.</p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-5 py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all"
+              className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-5 py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all active:scale-95"
             >
-              View Full Products Catalog
+              View Full Catalog
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-8">
             {filteredProducts.map((product) => {
               const isWishlisted =
                 wishlist.has(product.id) ||

@@ -21,6 +21,13 @@ import { ProductCard } from "../components/product/ProductCard";
 import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
+import {
+  MATERIAL_REGISTRY,
+  isProductOfMaterial,
+  resolveMaterialBySlug,
+  type MaterialMeta,
+} from "../utils/materials";
+
 export { MATERIAL_REGISTRY, isProductOfMaterial, resolveMaterialBySlug };
 export type { MaterialMeta };
 
@@ -231,30 +238,34 @@ export function MaterialProductsPage({ onAddToCart, onWishlist, wishlist }: Mate
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : materialProducts.length === 0 ? (
-          <div className="text-center py-16 bg-[#f5e8d4] rounded-3xl border border-[rgba(52,21,15,0.1)] p-8">
-            <Package size={40} className="mx-auto mb-3 text-[#D39858]" />
-            <h3 className="text-base font-extrabold text-[#34150F]">No products found for {currentMaterial.name}</h3>
+          <div className="text-center py-12 bg-[#f5e8d4] rounded-2xl sm:rounded-3xl border border-[rgba(52,21,15,0.1)] p-6 sm:p-8">
+            <Package size={36} className="mx-auto mb-2.5 text-[#D39858]" />
+            <h3 className="text-sm sm:text-base font-extrabold text-[#34150F]">No products found for {currentMaterial.name}</h3>
             <p className="text-xs text-[#85431E] mt-1 max-w-sm mx-auto">
               Our inventory for this specific material is currently updating. Please browse our other certified materials.
             </p>
             <div className="mt-4 flex justify-center gap-2">
               <button
                 onClick={() => navigate("/products")}
-                className="px-4 py-2 bg-[#34150F] text-[#EACEAA] text-xs font-bold rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all"
+                className="px-4 py-2 bg-[#34150F] text-[#EACEAA] text-xs font-bold rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all active:scale-95"
               >
                 Browse All Catalog
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 mb-8">
             {materialProducts.map((product) => (
               <ProductCard
-                key={product.id || product.apiId || product.name}
+                key={product.id || (product as any).apiId || product.name}
                 product={product}
                 onAddToCart={onAddToCart}
                 onWishlist={onWishlist}
-                isWishlisted={wishlist.has(product.id || product.apiId || product.name)}
+                wishlisted={
+                  wishlist.has(product.id) ||
+                  wishlist.has(String(product.id)) ||
+                  ((product as any).apiId ? wishlist.has((product as any).apiId) : false)
+                }
               />
             ))}
           </div>

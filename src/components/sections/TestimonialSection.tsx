@@ -112,39 +112,37 @@ export function TestimonialSection() {
       ? "opacity-0 translate-x-6"
       : "opacity-0 -translate-x-6"
     : "opacity-100 translate-x-0";
-
   return (
-    <section className="py-16 px-4 md:px-8 lg:px-16 bg-[#34150F] overflow-hidden">
+    <section className="bg-[#34150F] py-6 sm:py-10 md:py-14 px-3 sm:px-6 md:px-8 lg:px-16 overflow-hidden">
       <Reveal>
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-12">
+        <div className="flex items-center justify-between mb-4 sm:mb-8">
           <div>
-            <p className="text-[#D39858] text-xs font-bold uppercase tracking-[0.2em] mb-2">
-              What Our Clients Say
-            </p>
+            <span className="text-[#D39858] text-[10px] sm:text-xs font-bold uppercase tracking-widest block mb-1">
+              Client Stories
+            </span>
             <h2
-              className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#EACEAA]"
+              className="text-lg sm:text-2xl md:text-3xl font-bold text-[#EACEAA]"
               style={{ fontFamily: "'Gilda Display', serif" }}
             >
-              Client Testimonials
+              Architect &amp; Client Feedback
             </h2>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={prev}
               aria-label="Previous testimonial"
-              className="w-10 h-10 border border-[#D39858]/50 rounded-tr-xl rounded-bl-xl flex items-center justify-center text-[#D39858] hover:bg-[#D39858] hover:text-[#34150F] transition-all duration-200 hover:scale-105 active:scale-95"
+              className="w-8 h-8 sm:w-10 sm:h-10 border border-[#D39858]/50 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl flex items-center justify-center text-[#D39858] hover:bg-[#D39858] hover:text-[#34150F] transition-all duration-200 hover:scale-105 active:scale-95"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
             <button
               type="button"
               onClick={next}
               aria-label="Next testimonial"
-              className="w-10 h-10 bg-[#D39858] rounded-tr-xl rounded-bl-xl flex items-center justify-center text-[#34150F] hover:bg-[#EACEAA] transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-[#D39858] rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl flex items-center justify-center text-[#34150F] hover:bg-[#EACEAA] transition-all duration-200 hover:scale-105 active:scale-95 shadow-md"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
@@ -156,27 +154,27 @@ export function TestimonialSection() {
           className={`transition-all duration-300 ease-in-out ${slideClass}`}
           style={{ willChange: "opacity, transform" }}
         >
-          <div className="relative bg-[#85431E]/20 border border-[#EACEAA]/10 rounded-tr-3xl rounded-bl-3xl p-5 sm:p-8 md:p-12 shadow-2xl">
+          <div className="relative bg-[#85431E]/20 border border-[#EACEAA]/10 rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-4 sm:p-6 md:p-10 shadow-xl">
             {/* Decorative quote */}
-            <div className="absolute top-6 right-8 opacity-10 pointer-events-none">
-              <Quote size={72} className="text-[#D39858]" fill="currentColor" />
+            <div className="absolute top-4 right-6 opacity-10 pointer-events-none">
+              <Quote size={52} className="text-[#D39858]" fill="currentColor" />
             </div>
 
             {/* Stars */}
-            <div className="mb-6">
+            <div className="mb-3 sm:mb-5">
               <StarRatingInline rating={t.rating} />
             </div>
 
             {/* Quote */}
             <blockquote
-              className="text-[#EACEAA] text-base sm:text-lg md:text-xl leading-relaxed mb-6 sm:mb-8 font-medium relative z-10"
+              className="text-[#EACEAA] text-xs sm:text-base md:text-lg leading-relaxed mb-4 sm:mb-6 font-medium relative z-10"
               style={{ fontFamily: "'Nunito', sans-serif" }}
             >
               &ldquo;{t.message}&rdquo;
             </blockquote>
 
             {/* Author row */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="relative flex-shrink-0">
                 <Avatar src={t.avatar} name={t.name} size="md" />
                 {/* Verified tick */}

@@ -386,34 +386,33 @@ export function AppointmentsPage() {
 
   return (
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
-
       {/* ═══════════════ HERO BANNER ═══════════════ */}
-      <section className="bg-[#34150F] text-[#EACEAA] py-14 sm:py-18 px-4 md:px-8 lg:px-16 text-center relative border-b border-[#D39858]/20">
-        <div className="max-w-4xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 text-[#D39858] text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-xs">
-            <Wrench size={13} /> ARCHITECTURAL SERVICE & TOOL CALIBRATION APPOINTMENTS
+      <section className="bg-[#34150F] py-5 sm:py-8 md:py-12 px-3 sm:px-6 md:px-8 lg:px-16 border-b border-[#EACEAA]/10 relative overflow-hidden text-center">
+        <div className="max-w-4xl mx-auto relative z-10 space-y-2 sm:space-y-3">
+          <div className="inline-flex items-center gap-1.5 bg-[#EACEAA]/15 px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-extrabold text-[#D39858] uppercase tracking-wider">
+            <Wrench size={12} /> Architectural Technical Support
           </div>
 
           <h1
-            className="text-3xl sm:text-5xl font-extrabold text-[#EACEAA] leading-tight"
+            className="text-xl sm:text-3xl md:text-4xl font-black text-[#EACEAA]"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             Book & Manage Expert Appointments
           </h1>
 
-          <p className="text-xs sm:text-base text-[#EACEAA]/80 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#EACEAA]/80 max-w-2xl mx-auto leading-relaxed">
             Schedule on-site door fitting alignments, digital lock setup, or tool calibration with PRC Hardware technical specialists.
           </p>
         </div>
       </section>
 
       {/* ═══════════════ MAIN CONTENT SECTION ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <section className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 py-4 sm:py-8 pb-20 sm:pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 items-start">
 
           {/* ── LEFT COLUMN: BOOKING FORM (7 COLS) ── */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-6 sm:p-8 border border-[rgba(52,21,15,0.12)] shadow-sm">
+          <div className="lg:col-span-7 space-y-4 sm:space-y-6">
+            <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-4 sm:p-6 md:p-8 border border-[rgba(52,21,15,0.12)] shadow-xs">
 
               {bookingResult ? (
                 /* Booking Success Card */

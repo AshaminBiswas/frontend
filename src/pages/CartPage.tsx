@@ -397,6 +397,24 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
 
         </div>
       </div>
+
+      {/* ── Mobile Sticky Checkout Bar ── */}
+      <div className="fixed bottom-14 md:hidden left-0 right-0 z-40 bg-[#34150F]/95 backdrop-blur-md border-t border-[#EACEAA]/20 p-2.5 px-4 shadow-2xl flex items-center justify-between gap-3">
+        <div>
+          <span className="text-[10px] text-[#EACEAA]/60 block font-semibold">Grand Total</span>
+          <span className="text-base font-black text-[#D39858]" style={{ fontFamily: "'DM Mono', monospace" }}>
+            ₹{grandTotal.toLocaleString("en-IN")}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate("/checkout")}
+          className="flex-1 max-w-[200px] bg-[#D39858] text-[#34150F] font-black py-2.5 px-4 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all text-xs shadow-md active:scale-95 flex items-center justify-center gap-1"
+        >
+          Checkout <ChevronRight size={14} />
+        </button>
+      </div>
     </div>
   );
 }

@@ -133,21 +133,21 @@ export function PolicyPage() {
 
   return (
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
-      <div className="px-4 md:px-8 lg:px-16 py-10">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Sidebar */}
+      <div className="px-3 sm:px-4 md:px-8 lg:px-16 py-4 sm:py-10 pb-20 sm:pb-10">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-8">
+          {/* Sidebar / Mobile Pills Bar */}
           <div className="md:col-span-1">
-            <h3 className="text-xs font-bold text-[#85431E] uppercase tracking-wider mb-3">Policies</h3>
-            <div className="space-y-1">
+            <h3 className="text-[10px] sm:text-xs font-bold text-[#85431E] uppercase tracking-wider mb-2 sm:mb-3">Policies</h3>
+            <div className="flex overflow-x-auto no-scrollbar touch-pan-x gap-1.5 md:flex-col md:space-y-1 pb-1">
               {POLICIES.map(p => (
-                <Link key={p.slug} to={`/policy/${p.slug}`} className={`flex items-center gap-2 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm font-semibold transition-all ${
+                <Link key={p.slug} to={`/policy/${p.slug}`} className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap shrink-0 ${
                   slug === p.slug
-                    ? 'bg-[#34150F] text-[#EACEAA]'
-                    : 'text-[#85431E] hover:bg-[#f5e8d4] hover:text-[#34150F]'
+                    ? 'bg-[#34150F] text-[#EACEAA] shadow-xs'
+                    : 'text-[#85431E] bg-[#f5e8d4] md:bg-transparent hover:bg-[#f5e8d4] hover:text-[#34150F]'
                 }`}>
-                  <FileText size={14} />
+                  <FileText size={13} className="sm:w-3.5 sm:h-3.5" />
                   <span>{p.title}</span>
-                  {slug === p.slug && <ChevronRight size={14} className="ml-auto" />}
+                  {slug === p.slug && <ChevronRight size={13} className="ml-auto hidden md:block" />}
                 </Link>
               ))}
             </div>
@@ -156,23 +156,23 @@ export function PolicyPage() {
           {/* Content */}
           <div className="md:col-span-3">
             {loading ? (
-              <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-8 animate-pulse space-y-4">
-                <div className="h-8 bg-[#34150F]/10 rounded w-1/2" />
-                {[1,2,3,4,5].map(i => <div key={i} className="h-4 bg-[#34150F]/10 rounded" />)}
+              <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-4 sm:p-8 animate-pulse space-y-3 sm:space-y-4">
+                <div className="h-6 sm:h-8 bg-[#34150F]/10 rounded w-1/2" />
+                {[1,2,3,4,5].map(i => <div key={i} className="h-3.5 sm:h-4 bg-[#34150F]/10 rounded" />)}
               </div>
             ) : content ? (
-              <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-8 border border-[rgba(52,21,15,0.08)]">
-                <div className="flex items-center gap-2 mb-1">
-                  <Link to="/" className="text-xs text-[#85431E] hover:text-[#D39858]">Home</Link>
-                  <ChevronRight size={12} className="text-[#85431E]/50" />
-                  <span className="text-xs text-[#85431E]">{content.title}</span>
+              <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-4 sm:p-8 border border-[rgba(52,21,15,0.08)]">
+                <div className="flex items-center gap-1.5 mb-1 text-[11px] sm:text-xs">
+                  <Link to="/" className="text-[#85431E] hover:text-[#D39858]">Home</Link>
+                  <ChevronRight size={10} className="text-[#85431E]/50" />
+                  <span className="text-[#85431E] truncate">{content.title}</span>
                 </div>
-                <h1 className="text-3xl font-bold text-[#34150F] mt-4 mb-6" style={{ fontFamily: "'Gilda Display', serif" }}>{content.title}</h1>
+                <h1 className="text-xl sm:text-3xl font-bold text-[#34150F] mt-2 sm:mt-4 mb-3 sm:mb-6" style={{ fontFamily: "'Gilda Display', serif" }}>{content.title}</h1>
                 <div className="prose-sm">{renderContent(content.content)}</div>
               </div>
             ) : (
-              <div className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl p-8 text-center">
-                <p className="text-[#85431E]">Policy content not found.</p>
+              <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-6 sm:p-8 text-center">
+                <p className="text-xs sm:text-sm text-[#85431E]">Policy content not found.</p>
               </div>
             )}
           </div>

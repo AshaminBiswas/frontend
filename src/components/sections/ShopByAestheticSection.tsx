@@ -10,31 +10,32 @@ export function ShopByAestheticSection({ onSelectCategory }: ShopByAestheticSect
   const { ref: headerRef, visible: headerVisible } = useInView({ threshold: 0.2 });
 
   return (
-    <section className="py-12 px-4 md:px-8 lg:px-16 overflow-hidden">
+    <section className="py-4 sm:py-6 md:py-10 px-3 sm:px-6 md:px-8 lg:px-16 overflow-hidden">
       {/* Header */}
       <div
         ref={headerRef}
-        className={`transition-all duration-700 ease-out transform mb-8 ${
+        className={`transition-all duration-700 ease-out transform mb-3 sm:mb-6 ${
           headerVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6"
         }`}
       >
         <h2
-          className="text-xl sm:text-2xl md:text-3xl font-bold text-[#34150F]"
+          className="text-base sm:text-xl md:text-2xl font-bold text-[#34150F]"
           style={{ fontFamily: "'Gilda Display', serif" }}
         >
           Shop by Aesthetic
         </h2>
       </div>
 
-      {/* Clean 3-Card Grid without image borders */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Touch swipeable on mobile, 3-card grid on desktop */}
+      <div className="flex md:grid md:grid-cols-3 gap-3 sm:gap-5 overflow-x-auto md:overflow-visible no-scrollbar snap-x snap-mandatory -mx-3 px-3 md:mx-0 md:px-0 pb-1">
         {AESTHETIC_SECTION_1.map((item, i) => (
-          <AestheticGridCard
-            key={item.id}
-            item={item}
-            index={i}
-            onSelectCategory={onSelectCategory}
-          />
+          <div key={item.id} className="w-[220px] xs:w-[260px] md:w-auto shrink-0 md:shrink snap-start">
+            <AestheticGridCard
+              item={item}
+              index={i}
+              onSelectCategory={onSelectCategory}
+            />
+          </div>
         ))}
       </div>
     </section>
@@ -61,7 +62,7 @@ function AestheticGridCard({
       }`}
     >
       <div
-        className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl group cursor-pointer shadow-md hover:shadow-xl h-[280px] md:h-[320px] w-full"
+        className="relative overflow-hidden rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl group cursor-pointer shadow-sm hover:shadow-lg h-[160px] sm:h-[220px] md:h-[300px] w-full"
         onClick={() => onSelectCategory && onSelectCategory((item as any).slug || item.title)}
       >
         {/* Image without any border */}
@@ -72,19 +73,19 @@ function AestheticGridCard({
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#34150F]/80 via-[#34150F]/20 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#34150F]/85 via-[#34150F]/20 to-transparent z-10" />
 
         {/* Content Overlay */}
-        <div className="relative z-20 h-full flex flex-col justify-end p-6">
+        <div className="relative z-20 h-full flex flex-col justify-end p-3.5 sm:p-5">
           <h3
-            className="text-[#EACEAA] text-xl font-bold mb-3 drop-shadow-md"
+            className="text-[#EACEAA] text-sm sm:text-lg md:text-xl font-bold mb-1.5 drop-shadow-md"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             {item.title}
           </h3>
           <button
             type="button"
-            className="self-start bg-[#EACEAA] text-[#34150F] text-sm font-semibold px-5 py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-colors shadow-md"
+            className="self-start bg-[#EACEAA] text-[#34150F] text-[10px] sm:text-xs font-extrabold px-3 py-1 sm:px-4 sm:py-1.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl hover:bg-[#D39858] transition-colors shadow-xs active:scale-95"
           >
             Shop Now
           </button>

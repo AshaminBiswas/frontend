@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { Product } from "../../types";
 import { SUPER_SAVER_PRODUCTS, VALUE_MONEY_PRODUCTS, BEST_SELLER_PRODUCTS } from "../../data/products";
@@ -35,6 +36,7 @@ const POPULAR_SUGGESTIONS = [
 
 export function SearchOverlay({ searchQuery, setSearchQuery, onClose, onAddToCart }: SearchOverlayProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const b2bCache = useB2BPricing();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +122,11 @@ export function SearchOverlay({ searchQuery, setSearchQuery, onClose, onAddToCar
               {results.map((p) => (
                 <div
                   key={p.id}
+                  onClick={() => {
+                    navigate(`/product/${p.id}`);
+                    onClose();
+                    setSearchQuery("");
+                  }}
                   className="flex items-center gap-3 p-3 rounded-tr-2xl rounded-bl-2xl bg-[#EACEAA]/8 hover:bg-[#EACEAA]/15 transition-colors cursor-pointer group"
                 >
                   <div className="w-14 h-14 rounded-tr-xl rounded-bl-xl overflow-hidden bg-[#EACEAA]/10 flex-shrink-0">

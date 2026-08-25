@@ -118,92 +118,92 @@ export const ProductCard = memo(function ProductCard({
     <>
       <div
         onClick={handleCardClick}
-        className="relative group cursor-pointer w-full bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-3 sm:p-3.5 border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full"
+        className="relative group cursor-pointer w-full bg-[#f5e8d4] rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-2 sm:p-3.5 border border-[rgba(52,21,15,0.08)] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between h-full"
       >
         <div>
           {/* Image Container with Thumbnail */}
-          <div className="relative w-full aspect-square overflow-hidden rounded-tr-xl rounded-bl-xl bg-[#EACEAA]/30">
+          <div className="relative w-full aspect-square overflow-hidden rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl bg-[#EACEAA]/30">
             <ProductThumb src={imageSrc} name={product.name} />
 
             {/* Discount Percentage Badge (Top-Left) */}
             {discountPercent > 0 && (
-              <span className="absolute top-2.5 left-2.5 bg-[#34150F] text-[#D39858] text-[10px] font-black px-2 py-0.5 rounded-tr-md rounded-bl-md z-10 border border-[#D39858]/30">
+              <span className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 bg-[#34150F] text-[#D39858] text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-tr-md rounded-bl-md z-10 border border-[#D39858]/30">
                 {discountPercent}% OFF
               </span>
             )}
 
-            {/* Top-Right Wishlist Button (Replaced Eye Button) */}
+            {/* Top-Right Wishlist Button */}
             <button
               type="button"
               onClick={handleWishlist}
               aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              className={`absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md active:scale-95 ${
+              className={`absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-90 ${
                 wishlisted
                   ? "bg-rose-500 text-white"
                   : "bg-[#34150F]/80 text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
               }`}
               title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
-              <Heart size={15} className={wishlisted ? "fill-white" : ""} />
+              <Heart size={13} className={`sm:w-[15px] sm:h-[15px] ${wishlisted ? "fill-white" : ""}`} />
             </button>
 
-            {/* Center Quick View Button Overlay on Card/Image Hover */}
-            <div className="absolute inset-0 bg-[#34150F]/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
+            {/* Center Quick View Button Overlay on Card/Image Hover (Desktop only) */}
+            <div className="hidden sm:flex absolute inset-0 bg-[#34150F]/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 items-center justify-center pointer-events-none group-hover:pointer-events-auto">
               <button
                 type="button"
                 onClick={handleOpenQuickView}
-                className="flex items-center gap-1.5 bg-[#EACEAA] text-[#34150F] text-xs font-extrabold px-3.5 py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-colors shadow-lg active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#EACEAA] text-[#34150F] text-xs font-extrabold px-3 py-1.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-colors shadow-md active:scale-95 cursor-pointer"
               >
-                <Eye size={14} />
+                <Eye size={13} />
                 Quick View
               </button>
             </div>
           </div>
 
           {/* Details Section */}
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-2.5">
             {/* Product Name */}
             <h4
-              className="text-[#34150F] text-xs font-bold leading-snug mb-1 line-clamp-2 hover:text-[#D39858] transition-colors"
+              className="text-[#34150F] text-[11px] sm:text-xs font-bold leading-tight mb-1 line-clamp-2 min-h-[26px] sm:min-h-[30px] hover:text-[#D39858] transition-colors"
             >
               {product.name}
             </h4>
 
-            {/* Short Description */}
+            {/* Short Description — Desktop only */}
             {shortDescriptionText && (
-              <p className="text-[10px] text-[#85431E]/75 leading-relaxed line-clamp-2 mb-2 min-h-[28px]">
+              <p className="hidden sm:block text-[10px] text-[#85431E]/75 leading-relaxed line-clamp-2 mb-1.5 min-h-[26px]">
                 {shortDescriptionText}
               </p>
             )}
 
             {/* Dynamic Stock Status Badge */}
-            <div className="mb-2">
-              <span className={`inline-flex items-center text-[9px] font-extrabold px-2 py-0.5 rounded-md border ${stockInfo.badgeClass}`}>
+            <div className="mb-1.5">
+              <span className={`inline-flex items-center text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${stockInfo.badgeClass}`}>
                 {stockInfo.label}
               </span>
             </div>
 
             {/* Price Row: salePrice + price line-through + discount percentage */}
-            <div className="flex items-baseline gap-2 mb-3 flex-wrap">
+            <div className="flex items-baseline gap-1.5 mb-2 flex-wrap">
               {/* Sale Price */}
-              <span className="text-[#34150F] font-black text-base sm:text-lg tracking-tight" style={{ fontFamily: "'DM Mono', monospace" }}>
+              <span className="text-[#34150F] font-black text-xs sm:text-base tracking-tight" style={{ fontFamily: "'DM Mono', monospace" }}>
                 ₹{salePrice.toLocaleString("en-IN")}
               </span>
 
               {/* Price Line-Through (Regular / Original Price) */}
               {hasDiscount && (
-                <span className="text-[#85431E]/50 text-[11px] line-through font-semibold">
+                <span className="text-[#85431E]/50 text-[9px] sm:text-[11px] line-through font-semibold">
                   ₹{regularPrice.toLocaleString("en-IN")}
                 </span>
               )}
 
               {/* Discount / B2B Percentage Badge */}
               {effective.isB2B ? (
-                <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
-                  B2B {discountPercent}% OFF
+                <span className="text-[8px] font-black text-[#34150F] bg-[#D39858] px-1 py-0.2 rounded shadow-2xs uppercase tracking-wider">
+                  B2B {discountPercent}%
                 </span>
               ) : discountPercent > 0 && (
-                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                <span className="text-[8px] sm:text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
                   {discountPercent}% OFF
                 </span>
               )}
@@ -212,12 +212,12 @@ export const ProductCard = memo(function ProductCard({
         </div>
 
         {/* Add to Cart Button */}
-        <div className="pt-1">
+        <div className="pt-0.5">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={!stockInfo.isAvailable}
-            className={`w-full text-xs font-bold py-2.5 px-3 rounded-tr-xl rounded-bl-xl transition-all duration-200 shadow-xs flex items-center justify-center gap-1.5 ${
+            className={`w-full text-[10px] sm:text-xs font-bold py-1.5 sm:py-2 px-2 sm:px-3 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl transition-all duration-200 shadow-2xs flex items-center justify-center gap-1 active:scale-95 ${
               !stockInfo.isAvailable
                 ? "bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300 opacity-80"
                 : added
@@ -229,11 +229,11 @@ export const ProductCard = memo(function ProductCard({
               "Out of Stock"
             ) : added ? (
               <>
-                <Check size={14} /> Added to Cart
+                <Check size={12} className="sm:w-3.5 sm:h-3.5" /> Added
               </>
             ) : (
               <>
-                <ShoppingCart size={14} /> Add to Cart
+                <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" /> Add to Cart
               </>
             )}
           </button>

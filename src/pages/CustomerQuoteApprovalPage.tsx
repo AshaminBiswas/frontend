@@ -305,9 +305,38 @@ export function CustomerQuoteApprovalPage() {
             </div>
           </div>
 
-          {/* Line Items Table */}
+          {/* Line Items Table / Mobile Cards */}
           <div className="space-y-2">
-            <div className="overflow-x-auto border border-[#34150F]/10 rounded-2xl">
+            {/* Mobile Line Item Cards */}
+            <div className="md:hidden space-y-2">
+              {quote.items.map((item, idx) => (
+                <div key={item.id} className="bg-[#EACEAA]/15 p-3 rounded-xl border border-[#34150F]/10 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-[#34150F]">{item.productNameSnapshot}</p>
+                      {item.product?.sku && (
+                        <p className="text-[10px] font-mono text-[#85431E]/70">SKU: {item.product.sku}</p>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-[#85431E] bg-white px-2 py-0.5 rounded border border-[#34150F]/10">
+                      #{idx + 1}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-[#34150F]/6">
+                    <span className="text-[11px] text-[#85431E]">
+                      Qty: <strong>{item.quantity} {item.unit}</strong> @ ₹{item.rate.toLocaleString("en-IN")}
+                    </span>
+                    <span className="font-mono font-black text-xs text-[#34150F]">
+                      ₹{item.amount.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto border border-[#34150F]/10 rounded-2xl">
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#34150F] text-[#EACEAA] font-bold">
                   <tr>

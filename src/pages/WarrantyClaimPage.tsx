@@ -295,26 +295,26 @@ Customer Agreed to Terms: Yes
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
       {/* ═══════════════ HERO BANNER ═══════════════ */}
-      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-14 px-4 md:px-8 lg:px-16 text-[#EACEAA]">
+      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-5 sm:py-8 md:py-14 px-3 sm:px-6 md:px-8 lg:px-16 text-[#EACEAA]">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#EACEAA]/70 mb-4">
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-[#EACEAA]/70 mb-2 sm:mb-4">
             <Link to="/" className="hover:text-[#D39858]">Home</Link>
-            <ChevronRight size={12} />
+            <ChevronRight size={11} />
             <span className="text-[#EACEAA] font-bold">Warranty Claim Center</span>
           </div>
 
-          <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-3.5 py-1 rounded-full mb-3">
-            <ShieldCheck size={15} className="text-[#D39858]" />
-            <span className="text-[10px] font-black text-[#D39858] uppercase tracking-[0.2em]">
+          <div className="inline-flex items-center gap-1.5 bg-[#D39858]/20 border border-[#D39858]/40 px-2.5 sm:px-3.5 py-0.5 sm:py-1 rounded-full mb-2 sm:mb-3">
+            <ShieldCheck size={13} className="text-[#D39858]" />
+            <span className="text-[9px] sm:text-[10px] font-black text-[#D39858] uppercase tracking-wider">
               Digitally Signed Warranty Portal
             </span>
           </div>
 
           <h1
-            className="text-3xl md:text-5xl font-black text-[#EACEAA] mb-3"
+            className="text-xl sm:text-3xl md:text-5xl font-black text-[#EACEAA] mb-2 sm:mb-3"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
-            Digital Warranty Verification & Claim
+            Digital Warranty Verification &amp; Claim
           </h1>
 
           <p className="text-xs md:text-sm text-[#EACEAA]/80 max-w-2xl leading-relaxed">
@@ -324,8 +324,8 @@ Customer Agreed to Terms: Yes
       </section>
 
       {/* ═══════════════ MAIN CONTENT GRID ═══════════════ */}
-      <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-16 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 py-4 sm:py-8 pb-20 sm:pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
 
           {/* Left Column: Terms & Generator Trigger Card */}
           <div className="lg:col-span-5 space-y-6">

@@ -1,8 +1,12 @@
 /* ─────────────────────────────────────────────
-   PRC Hardware — Custom Scrollbar
+   PRC Hardware — Custom Scrollbar & Mobile App Styles
    Brand: #34150F (dark brown) · #D39858 (gold) · #EACEAA (cream)
-   Only shown on md+ (768px+). Hidden on mobile.
 ───────────────────────────────────────────── */
+
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
 
 /* ── Hide scrollbar on small devices (mobile/tablet < 768px) ── */
 @media (max-width: 767px) {
@@ -12,7 +16,24 @@
   * {
     scrollbar-width: none;
     -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding for mobile notch and navigation bar */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.pb-mobile-nav {
+  padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── Custom scrollbar on desktop (md+) ── */

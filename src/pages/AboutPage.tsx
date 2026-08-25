@@ -66,21 +66,25 @@ export function AboutPage() {
   return (
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
-      {/* ═══════════════ HERO BANNER ═══════════════ */}
-      <section className="relative bg-[#34150F] text-[#EACEAA] overflow-hidden py-16 sm:py-24 px-4 md:px-8 lg:px-16 border-b border-[#D39858]/20">
-        {/* Background Overlay Pattern */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-[#D39858]_1px,transparent_1px] [background-size:16px_16px] pointer-events-none" />
+      {/* ═══════════════ HERO HEADER ═══════════════ */}
+      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-8 sm:py-14 md:py-20 px-3 sm:px-6 md:px-8 lg:px-16 text-center relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#D39858]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-[#34150F]/40 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <Reveal delay={0}>
-            <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 text-[#D39858] text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6 shadow-sm">
-              <Sparkles size={12} /> ESTABLISHED 2009 • ARCHITECTURAL HARDWARE EXCELLENCE
+        <div className="max-w-4xl mx-auto relative z-10">
+          <Reveal>
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full mb-3 sm:mb-6 shadow-xs">
+              <Sparkles size={12} className="text-[#D39858] sm:w-3.5 sm:h-3.5" />
+              <span className="text-[9px] sm:text-[11px] font-black text-[#D39858] uppercase tracking-wider">
+                India&apos;s Architectural Hardware Specialist
+              </span>
             </div>
           </Reveal>
 
           <Reveal delay={50}>
             <h1
-              className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#EACEAA] leading-tight mb-6"
+              className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#EACEAA] leading-tight mb-3 sm:mb-6"
               style={{ fontFamily: "'Gilda Display', serif" }}
             >
               Crafting the Fine Details That <br className="hidden sm:inline" />
@@ -89,22 +93,22 @@ export function AboutPage() {
           </Reveal>
 
           <Reveal delay={100}>
-            <p className="text-sm sm:text-base md:text-lg text-[#EACEAA]/80 max-w-3xl mx-auto leading-relaxed mb-8">
+            <p className="text-xs sm:text-base md:text-lg text-[#EACEAA]/80 max-w-3xl mx-auto leading-relaxed mb-5 sm:mb-8">
               At PRC Hardware, we believe premium fittings are the soul of architectural design. From luxury cabinet pulls to heavy commercial door locks, we manufacture and curate hardware built for precision, durability, and timeless style.
             </p>
           </Reveal>
 
           <Reveal delay={150}>
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4">
               <Link
                 to="/products"
-                className="bg-[#D39858] text-[#34150F] font-black text-xs sm:text-sm px-7 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                className="bg-[#D39858] text-[#34150F] font-black text-xs sm:text-sm px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all shadow-md active:scale-95 flex items-center gap-2"
               >
-                Explore Product Catalog <ArrowRight size={16} />
+                Explore Product Catalog <ArrowRight size={14} />
               </Link>
               <Link
                 to="/contact"
-                className="bg-[#EACEAA]/10 text-[#EACEAA] font-bold text-xs sm:text-sm px-7 py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA]/20 transition-all border border-[#EACEAA]/20"
+                className="bg-[#EACEAA]/10 text-[#EACEAA] font-bold text-xs sm:text-sm px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA]/20 transition-all border border-[#EACEAA]/20"
               >
                 Contact Sales Team
               </Link>
@@ -114,22 +118,22 @@ export function AboutPage() {
       </section>
 
       {/* ═══════════════ STATS COUNTER ROW ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 -mt-10 relative z-20">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
+      <section className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 -mt-6 sm:-mt-10 relative z-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           {STATS.map(({ label, value, icon: Icon, detail }, idx) => (
             <Reveal key={label} delay={idx * 50}>
-              <div className="bg-[#f5e8d4] p-5 sm:p-6 rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-md hover:border-[#D39858] transition-all text-center group">
-                <div className="w-10 h-10 bg-[#34150F] text-[#D39858] rounded-tr-xl rounded-bl-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                  <Icon size={20} />
+              <div className="bg-[#f5e8d4] p-3 sm:p-5 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl border border-[rgba(52,21,15,0.12)] shadow-sm hover:border-[#D39858] transition-all text-center group">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#34150F] text-[#D39858] rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-2xs group-hover:scale-110 transition-transform">
+                  <Icon size={16} className="sm:w-5 sm:h-5" />
                 </div>
                 <p
-                  className="text-2xl sm:text-3xl font-black text-[#34150F] mb-1"
+                  className="text-lg sm:text-2xl md:text-3xl font-black text-[#34150F] mb-0.5 sm:mb-1"
                   style={{ fontFamily: "'DM Mono', monospace" }}
                 >
                   {value}
                 </p>
-                <p className="text-xs font-bold text-[#34150F]">{label}</p>
-                <p className="text-[10px] text-[#85431E]/70 font-semibold mt-0.5">{detail}</p>
+                <p className="text-[11px] sm:text-xs font-bold text-[#34150F]">{label}</p>
+                <p className="text-[9px] sm:text-[10px] text-[#85431E]/70 font-semibold mt-0.5">{detail}</p>
               </div>
             </Reveal>
           ))}

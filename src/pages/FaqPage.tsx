@@ -177,24 +177,25 @@ export function FaqPage() {
     <div className="min-h-screen bg-[#EACEAA]" style={{ fontFamily: "'Nunito', sans-serif" }}>
 
       {/* ═══════════════ HERO HEADER & SEARCH ═══════════════ */}
-      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-16 px-4 md:px-8 lg:px-16 text-[#EACEAA] relative overflow-hidden shadow-lg">
+      {/* ═══════════════ HERO SEARCH HEADER ═══════════════ */}
+      <section className="bg-gradient-to-r from-[#34150F] via-[#5c2415] to-[#85431E] py-6 sm:py-16 px-3 sm:px-6 md:px-8 lg:px-16 text-[#EACEAA] relative overflow-hidden shadow-md">
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 bg-[#D39858]/20 border border-[#D39858]/40 px-4 py-1.5 rounded-full mb-4 shadow">
-            <HelpCircle size={15} className="text-[#D39858]" />
-            <span className="text-xs font-black text-[#D39858] uppercase tracking-[0.2em]">
-              Help & Knowledge Base
+          <div className="inline-flex items-center gap-1.5 bg-[#D39858]/20 border border-[#D39858]/40 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full mb-2.5 sm:mb-4 shadow-xs">
+            <HelpCircle size={13} className="text-[#D39858]" />
+            <span className="text-[10px] sm:text-xs font-black text-[#D39858] uppercase tracking-wider">
+              Help &amp; Knowledge Base
             </span>
           </div>
 
           <h1
-            className="text-3xl sm:text-5xl font-black text-[#EACEAA] mb-4 tracking-tight"
+            className="text-2xl sm:text-4xl md:text-5xl font-black text-[#EACEAA] mb-2 sm:mb-4 tracking-tight"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             Frequently Asked Questions
           </h1>
 
-          <p className="text-xs sm:text-sm text-[#EACEAA]/80 max-w-xl mx-auto mb-8 leading-relaxed font-medium">
-            Have questions about architectural fittings, GST invoices, or pan-India shipping? We've got clear answers for you.
+          <p className="text-xs sm:text-sm text-[#EACEAA]/80 max-w-xl mx-auto mb-4 sm:mb-8 leading-relaxed font-medium">
+            Have questions about architectural fittings, GST invoices, or pan-India shipping? We&apos;ve got clear answers for you.
           </p>
 
           {/* Search Input */}
@@ -203,17 +204,17 @@ export function FaqPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search answers (e.g. GST invoice, shipping time, return policy)..."
-              className="w-full bg-[#EACEAA] text-[#34150F] placeholder-[#85431E]/60 pl-11 pr-10 py-3.5 rounded-tr-2xl rounded-bl-2xl text-xs sm:text-sm font-bold border-2 border-[#D39858] focus:outline-none shadow-xl"
+              placeholder="Search answers (e.g. GST invoice, shipping, return)..."
+              className="w-full bg-[#EACEAA] text-[#34150F] placeholder-[#85431E]/60 pl-9 sm:pl-11 pr-9 sm:pr-10 py-2.5 sm:py-3.5 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl text-xs sm:text-sm font-bold border-2 border-[#D39858] focus:outline-none shadow-md"
             />
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#85431E]" />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85431E]" />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#85431E] hover:text-[#34150F]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#85431E] hover:text-[#34150F]"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             )}
           </div>
@@ -221,20 +222,20 @@ export function FaqPage() {
       </section>
 
       {/* ═══════════════ MAIN CONTENT AREA ═══════════════ */}
-      <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-16 py-12">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 md:px-8 lg:px-16 py-4 sm:py-12 pb-20 sm:pb-12">
 
         {/* Category Pills Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-8 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x pb-2 mb-4 sm:mb-8">
           <button
             type="button"
             onClick={() => setActiveCategory("ALL")}
-            className={`px-5 py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border ${
+            className={`px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border shrink-0 ${
               activeCategory === "ALL"
-                ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-md"
+                ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-xs"
                 : "bg-[#f5e8d4] text-[#85431E] border-[rgba(52,21,15,0.1)] hover:border-[#D39858] hover:text-[#34150F]"
             }`}
           >
-            All Questions ({totalFaqsCount})
+            All ({totalFaqsCount})
           </button>
 
           {categories.map((cat) => (
@@ -242,9 +243,9 @@ export function FaqPage() {
               key={cat.id}
               type="button"
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-5 py-2.5 rounded-tr-xl rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border ${
+              className={`px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-xs font-bold transition-all whitespace-nowrap border shrink-0 ${
                 activeCategory === cat.id
-                  ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-md"
+                  ? "bg-[#34150F] text-[#EACEAA] border-transparent shadow-xs"
                   : "bg-[#f5e8d4] text-[#85431E] border-[rgba(52,21,15,0.1)] hover:border-[#D39858] hover:text-[#34150F]"
               }`}
             >

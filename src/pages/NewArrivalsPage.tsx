@@ -467,60 +467,56 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                     </div>
 
                     {/* Product Details */}
-                    <div className="p-4 sm:p-5">
-                      <p className="text-[10px] font-bold text-[#85431E]/80 uppercase tracking-widest mb-1">
-                        {product.category}
-                      </p>
-
+                    <div className="p-2 sm:p-4">
                       <Link to={`/product/${(product as any).apiId || product.id}`}>
-                        <h3 className="text-sm font-bold text-[#34150F] leading-snug line-clamp-2 hover:text-[#D39858] transition-colors mb-1">
+                        <h3 className="text-[11px] sm:text-sm font-bold text-[#34150F] leading-tight line-clamp-2 hover:text-[#D39858] transition-colors mb-1 min-h-[26px] sm:min-h-[32px]">
                           {product.name}
                         </h3>
                       </Link>
 
                       {((product as any).shortDesc || product.description) && (
-                        <p className="text-[10px] text-[#85431E]/65 leading-relaxed line-clamp-2 mb-2">
+                        <p className="hidden sm:block text-[10px] text-[#85431E]/65 leading-relaxed line-clamp-2 mb-2">
                           {(product as any).shortDesc || product.description}
                         </p>
                       )}
 
                       {/* Rating */}
-                      <div className="flex items-center gap-1 mb-3">
+                      <div className="flex items-center gap-1 mb-1.5 sm:mb-3">
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((s) => (
                             <Star
                               key={s}
-                              size={12}
+                              size={10}
                               fill={s <= Math.round(Number(product.rating || 5)) ? "#D39858" : "none"}
                               stroke="#D39858"
                               strokeWidth={1.5}
                             />
                           ))}
                         </div>
-                        <span className="text-[10px] text-[#85431E]/60 font-semibold">
+                        <span className="text-[9px] sm:text-[10px] text-[#85431E]/60 font-semibold">
                           ({Number(product.rating || 5.0).toFixed(1)})
                         </span>
                       </div>
 
                       {/* Price Row */}
-                      <div className="flex items-baseline gap-2 flex-wrap">
+                      <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap mb-2">
                         <span
-                          className="text-lg font-black text-[#34150F]"
+                          className="text-xs sm:text-base font-black text-[#34150F]"
                           style={{ fontFamily: "'DM Mono', monospace" }}
                         >
                           ₹{effective.unitPrice.toLocaleString("en-IN")}
                         </span>
                         {effective.originalPrice > effective.unitPrice && (
-                          <span className="text-xs text-[#85431E]/50 line-through font-semibold">
+                          <span className="text-[9px] sm:text-xs text-[#85431E]/50 line-through font-semibold">
                             ₹{effective.originalPrice.toLocaleString("en-IN")}
                           </span>
                         )}
                         {effective.isB2B ? (
-                          <span className="text-[9px] font-black text-[#34150F] bg-[#D39858] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-wider flex items-center gap-0.5">
-                            <Building2 size={10} /> B2B Rate
+                          <span className="text-[8px] font-black text-[#34150F] bg-[#D39858] px-1 py-0.2 rounded shadow-2xs uppercase tracking-wider flex items-center gap-0.5">
+                            <Building2 size={9} /> B2B
                           </span>
                         ) : discountPercent > 0 && (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[8px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">
                             {discountPercent}% OFF
                           </span>
                         )}
@@ -529,11 +525,11 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                   </div>
 
                   {/* Add to Cart CTA */}
-                  <div className="p-4 sm:p-5 pt-0">
+                  <div className="p-2 sm:p-4 pt-0">
                     <button
                       type="button"
                       onClick={() => handleAddToCart(product)}
-                      className={`w-full py-2.5 px-4 rounded-tr-xl rounded-bl-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-95 ${
+                      className={`w-full py-1.5 sm:py-2.5 px-2 sm:px-4 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1.5 transition-all duration-200 shadow-2xs active:scale-95 ${
                         isAdded
                           ? "bg-emerald-600 text-white"
                           : "bg-[#34150F] text-[#EACEAA] hover:bg-[#D39858] hover:text-[#34150F]"
@@ -541,11 +537,11 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                     >
                       {isAdded ? (
                         <>
-                          <Check size={14} /> Added to Cart!
+                          <Check size={12} className="sm:w-3.5 sm:h-3.5" /> Added
                         </>
                       ) : (
                         <>
-                          <ShoppingCart size={14} /> Add to Cart
+                          <ShoppingCart size={12} className="sm:w-3.5 sm:h-3.5" /> Add to Cart
                         </>
                       )}
                     </button>

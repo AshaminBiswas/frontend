@@ -57,21 +57,21 @@ export function UpcomingSlider() {
   // 1. Skeleton Loading State for Upcoming Banners
   if (loading) {
     return (
-      <section className="py-10 px-4 md:px-8 lg:px-16">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="h-7 w-28 bg-[#85431E]/40 rounded-tr-lg rounded-bl-lg animate-pulse" />
+      <section className="py-4 sm:py-6 md:py-8 px-3 sm:px-6 md:px-8 lg:px-16">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="h-6 w-24 bg-[#85431E]/40 rounded-tr-md rounded-bl-md animate-pulse" />
           <div className="h-px flex-1 bg-[#34150F]/15" />
-          <div className="flex gap-2">
-            <div className="w-9 h-9 border border-[#85431E]/20 rounded-tr-lg rounded-bl-lg bg-white/5 animate-pulse" />
-            <div className="w-9 h-9 border border-[#85431E]/20 rounded-tr-lg rounded-bl-lg bg-white/5 animate-pulse" />
+          <div className="flex gap-1.5">
+            <div className="w-7 h-7 border border-[#85431E]/20 rounded-tr-md rounded-bl-md bg-white/5 animate-pulse" />
+            <div className="w-7 h-7 border border-[#85431E]/20 rounded-tr-md rounded-bl-md bg-white/5 animate-pulse" />
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl h-[220px] sm:h-[280px] md:h-[340px] w-full bg-[#1e0a06] animate-pulse">
+        <div className="relative overflow-hidden rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl h-[160px] sm:h-[220px] md:h-[300px] w-full bg-[#1e0a06] animate-pulse">
           <div className="absolute inset-0 bg-gradient-to-r from-[#240c07] via-[#3d1810] to-[#240c07] animate-pulse" />
-          <div className="absolute inset-0 z-20 flex flex-col justify-center pl-4 sm:pl-6 md:pl-16 pr-4 sm:pr-6 max-w-xl space-y-3">
-            <div className="h-4 w-24 bg-[#D39858]/20 rounded animate-pulse" />
-            <div className="h-8 sm:h-10 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
+          <div className="absolute inset-0 z-20 flex flex-col justify-center pl-4 sm:pl-6 md:pl-16 pr-4 sm:pr-6 max-w-xl space-y-2">
+            <div className="h-3.5 w-20 bg-[#D39858]/20 rounded animate-pulse" />
+            <div className="h-6 sm:h-8 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
           </div>
         </div>
       </section>
@@ -84,41 +84,41 @@ export function UpcomingSlider() {
   }
 
   return (
-    <section className="py-10 px-4 md:px-8 lg:px-16">
+    <section className="py-4 sm:py-6 md:py-8 px-3 sm:px-6 md:px-8 lg:px-16">
       {/* Header bar with badge and navigation arrows */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="inline-flex items-center gap-2 bg-[#85431E] text-[#EACEAA] text-xs font-bold px-3.5 py-1.5 rounded-tr-lg rounded-bl-lg uppercase tracking-wider shadow-sm">
-          <span className="relative flex h-2 w-2">
+      <div className="flex items-center gap-2.5 mb-3 sm:mb-4">
+        <div className="inline-flex items-center gap-1.5 bg-[#85431E] text-[#EACEAA] text-[10px] sm:text-xs font-bold px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-tr-md rounded-bl-md uppercase tracking-wider shadow-xs">
+          <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#EACEAA] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#EACEAA]" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-[#EACEAA]" />
           </span>
           <span>Upcoming</span>
         </div>
 
         <div className="h-px flex-1 bg-[#34150F]/15" />
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <button
             type="button"
             onClick={upcoming.prev}
-            aria-label="Previous upcoming item"
-            className="w-9 h-9 border border-[#85431E] rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-all duration-200 hover:scale-110 active:scale-90 shadow-sm cursor-pointer"
+            aria-label="Previous upcoming banner"
+            className="w-7 h-7 sm:w-9 sm:h-9 border border-[#85431E]/30 rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-colors active:scale-95 cursor-pointer"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={14} className="sm:w-4 sm:h-4" />
           </button>
           <button
             type="button"
             onClick={upcoming.next}
-            aria-label="Next upcoming item"
-            className="w-9 h-9 border border-[#85431E] rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-all duration-200 hover:scale-110 active:scale-90 shadow-sm cursor-pointer"
+            aria-label="Next upcoming banner"
+            className="w-7 h-7 sm:w-9 sm:h-9 border border-[#85431E]/30 rounded-tr-lg rounded-bl-lg flex items-center justify-center text-[#85431E] hover:bg-[#85431E] hover:text-[#EACEAA] transition-colors active:scale-95 cursor-pointer"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={14} className="sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
 
       {/* Main Banner Slide Container */}
-      <div className="relative overflow-hidden rounded-tr-3xl rounded-bl-3xl shadow-lg h-[220px] sm:h-[280px] md:h-[340px] w-full group bg-[#34150F]">
+      <div className="relative overflow-hidden rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl shadow-lg h-[160px] sm:h-[220px] md:h-[300px] w-full group bg-[#34150F]">
         {slides.map((slide, i) => {
           const isActive = i === upcoming.idx;
 

@@ -335,43 +335,67 @@ export function UserProfilePage({
         <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-[#34150F]/5" />
       </div>
 
-      <div className="relative max-w-5xl mx-auto px-4 py-8 pb-16">
+      <div className="relative max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-16">
 
         {/* Back button */}
         <button
           type="button"
           onClick={onClose}
-          className="flex items-center gap-2 text-[#85431E] hover:text-[#34150F] font-bold text-sm mb-8 transition-colors group"
+          className="flex items-center gap-1.5 sm:gap-2 text-[#85431E] hover:text-[#34150F] font-bold text-xs sm:text-sm mb-4 sm:mb-8 transition-colors group"
         >
-          <ArrowLeft size={17} className="group-hover:-translate-x-1 transition-transform duration-200" />
+          <ArrowLeft size={15} className="group-hover:-translate-x-1 transition-transform duration-200" />
           <span>Back to Store</span>
         </button>
 
         {/* ── HERO CARD ── */}
-        <div className="relative bg-gradient-to-br from-[#34150F] via-[#4a1e0d] to-[#6b2f12] rounded-tr-3xl rounded-bl-3xl p-6 md:p-8 mb-6 shadow-2xl overflow-hidden">
+        <div className="relative bg-gradient-to-br from-[#34150F] via-[#4a1e0d] to-[#6b2f12] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 shadow-xl overflow-hidden">
           <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
             <div className="absolute top-3 right-8 w-40 h-40 rounded-full border-4 border-[#EACEAA]" />
             <div className="absolute bottom-3 right-24 w-24 h-24 rounded-full border-2 border-[#EACEAA]" />
             <div className="absolute top-20 right-4 w-14 h-14 rounded-full border-2 border-[#EACEAA]" />
           </div>
 
-          <div className="relative flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 md:w-28 md:h-28 rounded-tr-2xl rounded-bl-2xl bg-gradient-to-br from-[#D39858] to-[#85431E] flex items-center justify-center shadow-2xl border-4 border-[#EACEAA]/20">
-                <span className="text-[#34150F] font-black text-3xl md:text-4xl" style={{ fontFamily: "'Gilda Display', serif" }}>
-                  {getInitials()}
-                </span>
-              </div>
-              {user?.isVerified && (
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-emerald-500 rounded-full border-2 border-[#34150F] flex items-center justify-center shadow">
-                  <CheckCircle2 size={14} className="text-white" />
+          <div className="relative flex flex-col md:flex-row items-start md:items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl bg-gradient-to-br from-[#D39858] to-[#85431E] flex items-center justify-center shadow-xl border-2 sm:border-4 border-[#EACEAA]/20">
+                  <span className="text-[#34150F] font-black text-xl sm:text-3xl md:text-4xl" style={{ fontFamily: "'Gilda Display', serif" }}>
+                    {getInitials()}
+                  </span>
                 </div>
-              )}
+                {user?.isVerified && (
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-7 sm:h-7 bg-emerald-500 rounded-full border-2 border-[#34150F] flex items-center justify-center shadow">
+                    <CheckCircle2 size={11} className="text-white sm:w-3.5 sm:h-3.5" />
+                  </div>
+                )}
+              </div>
+
+              {/* Identity Info (mobile header right) */}
+              <div className="flex-1 min-w-0 md:hidden">
+                <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                  <h1 className="text-base sm:text-xl font-black text-[#EACEAA] truncate" style={{ fontFamily: "'Gilda Display', serif" }}>
+                    {user?.firstName} {user?.lastName}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.2 rounded-full ${
+                    isB2B ? "bg-[#D39858] text-[#34150F]" : "bg-[#EACEAA]/20 text-[#EACEAA] border border-[#EACEAA]/30"
+                  }`}>
+                    {isB2B ? "B2B" : "Retail"}
+                  </span>
+                  {user?.isVerified && (
+                    <span className="text-[9px] font-bold bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded-full">
+                      ✓ Verified
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#EACEAA]/70 truncate mt-1">{user?.email}</p>
+              </div>
             </div>
 
-            {/* Identity Info */}
-            <div className="flex-1 min-w-0">
+            {/* Desktop Identity Info */}
+            <div className="hidden md:block flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <h1 className="text-2xl md:text-3xl font-black text-[#EACEAA]" style={{ fontFamily: "'Gilda Display', serif" }}>
                   {user?.firstName} {user?.lastName}
@@ -414,31 +438,31 @@ export function UserProfilePage({
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-2 text-red-300 hover:text-red-100 bg-red-900/30 hover:bg-red-900/60 border border-red-500/30 px-4 py-2 rounded-tr-xl rounded-bl-xl transition-all duration-200 text-xs font-bold flex-shrink-0"
+              className="flex items-center gap-1.5 text-red-300 hover:text-red-100 bg-red-900/30 hover:bg-red-900/60 border border-red-500/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl transition-all duration-200 text-xs font-bold flex-shrink-0 self-end md:self-auto"
             >
-              <LogOut size={14} />
+              <LogOut size={13} />
               <span>Sign Out</span>
             </button>
           </div>
         </div>
 
-        {/* ── TABS ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 mb-6">
+        {/* ── TABS (Mobile horizontal swipe strip / Desktop grid) ── */}
+        <div className="flex overflow-x-auto no-scrollbar touch-pan-x gap-1.5 pb-2 mb-4 -mx-3 px-3 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 md:flex md:flex-wrap">
           {TABS.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => switchTab(t.key)}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+              className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap active:scale-95 ${
                 activeTab === t.key
-                  ? "bg-[#34150F] text-[#EACEAA] shadow-lg"
-                  : "bg-white/70 text-[#85431E] hover:bg-white border border-[#34150F]/10"
+                  ? "bg-[#34150F] text-[#EACEAA] shadow-md"
+                  : "bg-white/80 text-[#85431E] hover:bg-white border border-[#34150F]/10"
               }`}
             >
               {t.icon}
-              {t.label}
+              <span>{t.label}</span>
               {t.badge !== undefined && t.badge > 0 && (
-                <span className={`ml-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center ${
+                <span className={`ml-1 min-w-[16px] h-[16px] sm:min-w-[18px] sm:h-[18px] px-1 rounded-full text-[9px] sm:text-[10px] font-black flex items-center justify-center ${
                   activeTab === t.key ? "bg-[#D39858] text-[#34150F]" : "bg-[#34150F] text-[#EACEAA]"
                 }`}>{t.badge}</span>
               )}

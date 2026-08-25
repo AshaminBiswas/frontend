@@ -74,27 +74,27 @@ export function NotificationsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#EACEAA] px-4 py-8 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div className="min-h-screen bg-[#EACEAA] px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-12 md:px-8 lg:px-16" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>Notifications</h1>
-            {unreadCount > 0 && <p className="text-sm text-[#85431E] mt-0.5">{unreadCount} unread</p>}
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#34150F]" style={{ fontFamily: "'Gilda Display', serif" }}>Notifications</h1>
+            {unreadCount > 0 && <p className="text-xs sm:text-sm text-[#85431E] mt-0.5">{unreadCount} unread</p>}
           </div>
           {unreadCount > 0 && (
-            <button onClick={handleMarkAllRead} className="flex items-center gap-1.5 text-sm font-semibold text-[#34150F] bg-[#f5e8d4] hover:bg-[#D39858] hover:text-[#34150F] px-4 py-2 rounded-tr-xl rounded-bl-xl transition-all border border-[rgba(52,21,15,0.1)]">
-              <CheckCheck size={15} /> Mark all read
+            <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-[#34150F] bg-[#f5e8d4] hover:bg-[#D39858] hover:text-[#34150F] px-3 py-1.5 sm:px-4 sm:py-2 rounded-tr-xl rounded-bl-xl transition-all border border-[rgba(52,21,15,0.1)] shadow-2xs">
+              <CheckCheck size={14} /> Mark all read
             </button>
           )}
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <div className="flex gap-1.5 mb-4 overflow-x-auto no-scrollbar touch-pan-x pb-1">
           {filters.map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)} className={`whitespace-nowrap px-4 py-2 rounded-tr-xl rounded-bl-xl text-sm font-semibold transition-all border ${
+            <button key={f.key} onClick={() => setFilter(f.key)} className={`whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 rounded-tr-xl rounded-bl-xl text-xs sm:text-sm font-semibold transition-all border shrink-0 ${
               filter === f.key
-                ? 'bg-[#34150F] text-[#EACEAA] border-transparent'
+                ? 'bg-[#34150F] text-[#EACEAA] border-transparent shadow-xs'
                 : 'bg-[#f5e8d4] text-[#85431E] border-[rgba(52,21,15,0.1)] hover:border-[#D39858] hover:text-[#34150F]'
             }`}>
               {f.label}
