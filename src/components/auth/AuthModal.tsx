@@ -580,7 +580,7 @@ export function AuthModal() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password123!"
+                  placeholder="••••••••••••"
                   className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-3 py-2 rounded-tr-xl rounded-bl-xl text-xs border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
                   required
                 />
@@ -593,7 +593,7 @@ export function AuthModal() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Password123!"
+                  placeholder="••••••••••••"
                   className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-3 py-2 rounded-tr-xl rounded-bl-xl text-xs border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
                   required
                 />
@@ -866,7 +866,7 @@ export function AuthModal() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="NewPassword123!"
+                placeholder="••••••••••••"
                 className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
                 required
               />
@@ -880,7 +880,7 @@ export function AuthModal() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="NewPassword123!"
+                placeholder="••••••••••••"
                 className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-sm border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
                 required
               />
