@@ -18,6 +18,7 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { B2BQuotationManager } from "../b2b/B2BQuotationManager";
 import { isB2BUser, getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
+import { validateGstin, validatePhoneNumber } from "../../utils/validation";
 
 import { AsyncActionButton } from "../common/AsyncActionButton";
 
@@ -248,20 +249,29 @@ export function UserProfilePage({
     e.preventDefault();
     clearFeedback();
     if (!firstName.trim() || !lastName.trim()) { setErrorMsg("First name and last name are required."); return; }
-    if (!phone.trim()) { setErrorMsg("Phone number is required."); return; }
+
+    const phoneCheck = validatePhoneNumber(phone);
+    if (!phoneCheck.isValid) {
+      setErrorMsg(phoneCheck.error!);
+      return;
+    }
 
     const isB2BSubmission = isB2B || accountType === "b2b";
     if (isB2BSubmission) {
       if (!companyName.trim()) { setErrorMsg("Company / Firm Name is required for B2B accounts."); return; }
       if (!gstin.trim()) { setErrorMsg("GSTIN is required for B2B accounts."); return; }
-      if (gstin.trim().length !== 15) { setErrorMsg("GSTIN must be exactly 15 characters."); return; }
+      const gstCheck = validateGstin(gstin);
+      if (!gstCheck.isValid) {
+        setErrorMsg(gstCheck.error!);
+        return;
+      }
     }
 
     setIsLoading(true);
     const res = await updateUser({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone.trim(),
+      phone: phoneCheck.normalized || phone.trim(),
       ...(isB2BSubmission
         ? { companyName: companyName.trim(), gstin: gstin.trim().toUpperCase() }
         : {}),
@@ -967,12 +977,17 @@ export function UserProfilePage({
                           />
                           <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
                         </div>
-                        {gstin && gstin.length !== 15 && (
-                          <p className="text-[10px] text-red-500 mt-1">{gstin.length}/15 characters entered</p>
-                        )}
-                        {gstin && gstin.length === 15 && (
-                          <p className="text-[10px] text-emerald-600 mt-1">✓ Valid GSTIN length</p>
-                        )}
+                        {gstin && (() => {
+                          const check = validateGstin(gstin);
+                          if (check.isValid) {
+                            return (
+                              <p className="text-[10px] text-emerald-600 font-bold mt-1">
+                                ✓ Valid {check.stateName} GSTIN ({check.entityType})
+                              </p>
+                            );
+                          }
+                          return <p className="text-[10px] text-red-500 mt-1">{check.error}</p>;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1071,12 +1086,17 @@ export function UserProfilePage({
                               />
                               <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D39858]" />
                             </div>
-                            {gstin && gstin.length !== 15 && (
-                              <p className="text-[10px] text-red-500 mt-1">{gstin.length}/15 characters entered</p>
-                            )}
-                            {gstin && gstin.length === 15 && (
-                              <p className="text-[10px] text-emerald-600 mt-1">✓ Valid GSTIN length</p>
-                            )}
+                            {gstin && (() => {
+                              const check = validateGstin(gstin);
+                              if (check.isValid) {
+                                return (
+                                  <p className="text-[10px] text-emerald-600 font-bold mt-1">
+                                    ✓ Valid {check.stateName} GSTIN ({check.entityType})
+                                  </p>
+                                );
+                              }
+                              return <p className="text-[10px] text-red-500 mt-1">{check.error}</p>;
+                            })()}
                           </div>
                         </div>
                       </div>

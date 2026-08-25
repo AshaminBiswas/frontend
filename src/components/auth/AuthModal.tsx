@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Lock, Mail, ShieldCheck, Eye, EyeOff, AlertCircle, CheckCircle2, ArrowRight, Info, Phone } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { validateGstin, validatePhoneNumber, validateEmail } from "../../utils/validation";
 
 export function AuthModal() {
   const {
@@ -138,8 +139,15 @@ export function AuthModal() {
       return;
     }
 
-    if (!phone.trim()) {
-      setErrorMsg("Phone number is mandatory for account creation.");
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.isValid) {
+      setErrorMsg(emailCheck.error!);
+      return;
+    }
+
+    const phoneCheck = validatePhoneNumber(phone);
+    if (!phoneCheck.isValid) {
+      setErrorMsg(phoneCheck.error!);
       return;
     }
 
@@ -153,9 +161,20 @@ export function AuthModal() {
       return;
     }
 
-    if (accountType === "b2b" && gstin.trim() && gstin.trim().length !== 15) {
-      setErrorMsg("GSTIN number must be exactly 15 characters long.");
-      return;
+    if (accountType === "b2b") {
+      if (!companyName.trim()) {
+        setErrorMsg("Company / Firm Name is required for B2B registration.");
+        return;
+      }
+      if (!gstin.trim()) {
+        setErrorMsg("GSTIN is required for B2B registration.");
+        return;
+      }
+      const gstCheck = validateGstin(gstin);
+      if (!gstCheck.isValid) {
+        setErrorMsg(gstCheck.error!);
+        return;
+      }
     }
 
     if (!acceptedTerms) {
@@ -170,10 +189,10 @@ export function AuthModal() {
       confirmPassword: confirmPassword || password,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone.trim(),
+      phone: phoneCheck.normalized || phone.trim(),
       accountType: accountType === "b2b" ? "B2B" : "B2C",
       companyName: companyName.trim() ? companyName.trim() : undefined,
-      gstin: gstin.trim() ? gstin.trim() : undefined,
+      gstin: gstin.trim() ? gstin.trim().toUpperCase() : undefined,
     });
     setIsSubmitting(false);
 
@@ -536,27 +555,41 @@ export function AuthModal() {
               <>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#D39858] mb-1">
-                    Company / Firm Name
+                    Company / Firm Name *
                   </label>
                   <input
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="Acme Hardware Pvt Ltd"
+                    required
                     className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-3 py-2 rounded-tr-xl rounded-bl-xl text-xs border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#D39858] mb-1">
-                    GSTIN Number (15 Digits)
+                    GSTIN Number (15 Digits) *
                   </label>
                   <input
                     type="text"
                     value={gstin}
                     onChange={(e) => setGstin(e.target.value.toUpperCase())}
                     placeholder="27AAAAA0000A1Z5"
-                    className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-3 py-2 rounded-tr-xl rounded-bl-xl text-xs border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858]"
+                    maxLength={15}
+                    required
+                    className="w-full bg-[#EACEAA]/10 text-[#EACEAA] placeholder-[#EACEAA]/40 px-3 py-2 rounded-tr-xl rounded-bl-xl text-xs border border-[#EACEAA]/20 focus:outline-none focus:border-[#D39858] font-mono"
                   />
+                  {gstin && (() => {
+                    const check = validateGstin(gstin);
+                    if (check.isValid) {
+                      return (
+                        <p className="text-[10px] text-emerald-400 font-bold mt-1">
+                          ✓ Valid {check.stateName} GSTIN ({check.entityType})
+                        </p>
+                      );
+                    }
+                    return <p className="text-[10px] text-amber-300 mt-1">{check.error}</p>;
+                  })()}
                 </div>
               </>
             )}
