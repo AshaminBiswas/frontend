@@ -64,7 +64,7 @@ function AestheticGridCard({
   return (
     <div
       ref={ref}
-      style={{ transitionDelay: `${(index % 3) * 90}ms` }}
+      style={{ transitionDelay: visible ? `${(index % 3) * 90}ms` : "0ms" }}
       className={`w-full will-change-transform transition-all duration-700 ease-out ${
         visible
           ? "opacity-100 translate-x-0 translate-y-0"

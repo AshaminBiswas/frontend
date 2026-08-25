@@ -22,7 +22,7 @@ function AestheticCard({
   return (
     <div
       ref={ref}
-      style={{ transitionDelay: `${index * 150}ms` }}
+      style={{ transitionDelay: visible ? `${index * 150}ms` : "0ms" }}
       className={`transition-all duration-700 ease-out transform ${
         visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-14 scale-95"
       }`}
