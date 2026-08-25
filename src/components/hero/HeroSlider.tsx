@@ -18,8 +18,8 @@ export function HeroSlider() {
     mobileImage?: string;
     linkUrl?: string;
     ctaText?: string;
-  }>>(DEFAULT_HERO_SLIDES);
-  const [loading, setLoading] = useState(false);
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -146,14 +146,43 @@ export function HeroSlider() {
     }
   };
 
-  // If no banners are active in the database, return null
+  // 1. Measured Mobile-First Skeleton while live database banners load
+  if (loading) {
+    return (
+      <section 
+        className="relative overflow-hidden w-full bg-[#240c07] min-h-[175px] xs:min-h-[210px] sm:min-h-[260px] md:min-h-0 md:aspect-[1024/383] animate-shimmer"
+        style={{ aspectRatio }}
+      >
+        <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 xs:pb-8 sm:pb-10 md:justify-center md:pb-0 px-4 sm:px-8 md:px-12 lg:px-16 space-y-2 sm:space-y-3 max-w-lg pointer-events-none">
+          <div className="h-4 sm:h-5 w-24 sm:w-28 bg-[#D39858]/30 rounded-full" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="h-6 xs:h-7 sm:h-8 md:h-10 w-4/5 bg-[#EACEAA]/20 rounded-lg" />
+            <div className="h-4 xs:h-5 sm:h-6 md:h-7 w-1/2 bg-[#EACEAA]/15 rounded-lg" />
+          </div>
+          <div className="pt-1.5 sm:pt-2">
+            <div className="h-8 sm:h-10 w-32 sm:w-40 bg-[#D39858]/35 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl" />
+          </div>
+        </div>
+
+        {/* Bottom Right Slide Indicator Skeleton */}
+        <div className="absolute bottom-2.5 sm:bottom-4 right-3 sm:right-6 md:right-8 z-20 flex items-center gap-1.5 sm:gap-2 bg-[#34150F]/60 backdrop-blur-md p-1 sm:p-1.5 px-2.5 sm:px-3.5 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl border border-[#EACEAA]/10">
+          <div className="h-3 w-8 sm:w-10 bg-white/15 rounded" />
+          <div className="h-3 w-px bg-white/15" />
+          <div className="h-5 w-5 sm:h-6 sm:w-6 bg-white/15 rounded" />
+          <div className="h-5 w-5 sm:h-6 sm:w-6 bg-white/15 rounded" />
+        </div>
+      </section>
+    );
+  }
+
+  // 2. If no banners are active in the database, return null
   if (!slides || slides.length === 0) {
     return null;
   }
 
   return (
     <section 
-      className="relative overflow-hidden w-full bg-[#240c07] group transition-[aspect-ratio] duration-300"
+      className="relative overflow-hidden w-full bg-[#240c07] group transition-[aspect-ratio] duration-300 min-h-[175px] xs:min-h-[210px] sm:min-h-[260px] md:min-h-0 md:aspect-[1024/383]"
       style={{ aspectRatio }}
     >
       {/* Background Slides - Full Image View */}

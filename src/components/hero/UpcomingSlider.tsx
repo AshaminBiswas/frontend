@@ -15,8 +15,8 @@ export function UpcomingSlider() {
     desktopImage?: string;
     mobileImage?: string;
     linkUrl?: string;
-  }>>(DEFAULT_UPCOMING_SLIDES);
-  const [loading, setLoading] = useState(false);
+  }>>([]);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -54,9 +54,20 @@ export function UpcomingSlider() {
 
   const upcoming = useSlider(slides.length, true, 5000);
 
-  // If no upcoming slides, return null
-  if (!slides || slides.length === 0) {
-    return null;
+  // 1. Measured Mobile-First Skeleton while live database banners load
+  if (loading) {
+    return (
+      <section className="py-4 sm:py-6 md:py-8 px-3 sm:px-6 md:px-8 lg:px-16 overflow-hidden">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <div className="h-6 w-24 bg-[#85431E]/20 rounded-tr-md rounded-bl-md" />
+          <div className="h-px flex-1 bg-[#34150F]/10" />
+        </div>
+        <div className="w-full h-[140px] xs:h-[160px] sm:h-[220px] md:h-[280px] rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl bg-[#240c07] animate-shimmer relative p-4 sm:p-6 md:p-10 flex flex-col justify-center">
+          <div className="h-3.5 sm:h-4 w-16 sm:w-20 bg-[#D39858]/25 rounded mb-2" />
+          <div className="h-5 sm:h-8 w-2/3 sm:w-1/2 bg-[#EACEAA]/20 rounded-lg" />
+        </div>
+      </section>
+    );
   }
 
   // 2. Hide section if no upcoming banners exist in the database

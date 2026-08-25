@@ -206,7 +206,8 @@ The Storefront was architected and optimized for native app-like responsiveness 
 - **Product Showcase Sliders (`SuperSaverSection.tsx`, `BestSellerSection.tsx`, `ValueMoneySection.tsx`)**: Upward scroll-triggered animation (`opacity-0 translate-y-12` -> `opacity-100 translate-y-0`) with staggered product card elevation as the user scrolls into view.
 - **Responsive Order & Quotation Suite (`UserProfilePage.tsx`, `RequestQuotePage.tsx`, `CustomerQuoteApprovalPage.tsx`, `B2BQuotationManager.tsx`)**: Optimized orders tab, B2B quotation submission form, line item cards, financial cost breakdown, and digital signature verification seal with compact typography, scaled paddings, and mobile-first touch actions for small devices (320px–420px).
 - **Reversible Bidirectional Scroll Animations (`useInView.ts`, Showcase Sections)**: Implemented continuous reversible scroll observation across all showcase banners and product sliders. When scrolling into view (up or down), cards and headers glide in smoothly with staggered elevation; when scrolling past or away, components gracefully reset their transforms so they continuously re-animate on every scroll interaction.
+- **Mobile-First Single-Phase Home Page Skeleton (`HeroSlider.tsx`, `UpcomingSlider.tsx`, `HomePageSkeleton`, `PageSkeleton.tsx`)**: Measured and locked small-device hero banner height (`min-h-[175px] xs:min-h-[210px] sm:min-h-[260px] md:aspect-[1024/383]`) and upcoming banner height (`h-[140px] xs:h-[160px] sm:h-[220px] md:h-[280px]`). Eliminated nested secondary Suspense boundaries so the page transitions cleanly in ONE single unified phase on initial reload with zero jump and zero CLS.
 
 ---
 
-*Last Updated: 2026-08-25 (Storefront Reversible Bidirectional Scroll Animations Sync)*
+*Last Updated: 2026-08-25 (Storefront Single-Phase Mobile-First Home Page Skeleton & Measured Hero Height)*

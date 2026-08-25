@@ -19,16 +19,16 @@ interface HomePageProps {
 export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }: HomePageProps) {
   return (
     <>
-      {/* Hero Slider */}
+      {/* 1. Hero Slider */}
       <HeroSlider />
 
-      {/* Upcoming Slider */}
+      {/* 2. Upcoming Slider */}
       <UpcomingSlider />
 
-      {/* Shop by Aesthetic */}
+      {/* 3. Shop by Aesthetic */}
       <ShopByAestheticSection onSelectCategory={onSelectCategory} />
 
-      {/* Super Saver Offers */}
+      {/* 4. Super Saver Offers */}
       <div className="bg-[#34150F]/8 py-2">
         <SuperSaverSection
           onAddToCart={onAddToCart}
@@ -38,10 +38,10 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
         />
       </div>
 
-      {/* Cubicle Hardware Collection */}
+      {/* 5. Cubicle Hardware Collection */}
       <CubicleHardwareSection onSelectCategory={onSelectCategory} />
 
-      {/* Value for Money */}
+      {/* 6. Value for Money */}
       <div className="bg-[#34150F]/8 py-2">
         <ValueMoneySection
           onAddToCart={onAddToCart}
@@ -51,10 +51,10 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
         />
       </div>
 
-      {/* Locker Hardware Collection */}
+      {/* 7. Locker Hardware Collection */}
       <LockerHardwareSection onSelectCategory={onSelectCategory} />
 
-      {/* Best Sellers */}
+      {/* 8. Best Sellers */}
       <div className="bg-[#34150F]/8 py-2">
         <BestSellerSection
           onAddToCart={onAddToCart}
@@ -64,7 +64,7 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
         />
       </div>
 
-      {/* Testimonials */}
+      {/* 9. Testimonials */}
       <TestimonialSection />
     </>
   );

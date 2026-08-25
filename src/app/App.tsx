@@ -11,6 +11,7 @@ import { CartDrawer } from '../components/cart/CartDrawer';
 import { SearchOverlay } from '../components/search/SearchOverlay';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { getAllProductsApi } from '../services/productService';
+import { PageSkeleton } from '../components/common/PageSkeleton';
 
 // ─── Code-Split Page Routes with React.lazy() ─────────────────────────────────
 
@@ -137,7 +138,7 @@ function AppContent() {
         />
 
         <ErrorBoundary>
-          <Suspense fallback={<div className="min-h-[50vh] flex flex-col items-center justify-center gap-3"><div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" /><span className="text-xs font-bold text-[#85431E]">Loading...</span></div>}>
+          <Suspense fallback={<PageSkeleton />}>
             <Routes>
               {/* Core routes */}
               <Route path="/" element={<HomePage onAddToCart={addToCart} onWishlist={toggleWishlist} wishlist={wishlist} onSelectCategory={handleSelectCategory} />} />
