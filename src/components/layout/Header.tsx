@@ -49,8 +49,16 @@ export function Header({
   useEffect(() => {
     if (!isAuthenticated) { setNotifCount(0); return; }
     const fetchCount = async () => {
-      const res = await notificationService.getAll({ limit: 1 });
-      if (res.success && res.data) setNotifCount(res.data.unreadCount ?? 0);
+      try {
+        const res = await notificationService.getAll({ limit: 1 });
+        if (res.success && res.data) {
+          setNotifCount(res.data.unreadCount ?? 0);
+        } else if (res.error?.code === 'HTTP_401') {
+          setNotifCount(0);
+        }
+      } catch {
+        // Suppress network error during sleep
+      }
     };
     fetchCount();
     const interval = setInterval(fetchCount, 60_000);
