@@ -1,34 +1,13 @@
-import { lazy, Suspense } from "react";
 import { Product } from "../types";
 import { HeroSlider } from "../components/hero/HeroSlider";
 import { UpcomingSlider } from "../components/hero/UpcomingSlider";
-import {
-  ProductSliderSkeleton,
-  AestheticBannerSkeleton,
-  TestimonialSkeleton,
-} from "../components/common/Skeletons";
-
-const ShopByAestheticSection = lazy(() =>
-  import("../components/sections/ShopByAestheticSection").then((m) => ({ default: m.ShopByAestheticSection }))
-);
-const SuperSaverSection = lazy(() =>
-  import("../components/sections/SuperSaverSection").then((m) => ({ default: m.SuperSaverSection }))
-);
-const CubicleHardwareSection = lazy(() =>
-  import("../components/sections/CubicleHardwareSection").then((m) => ({ default: m.CubicleHardwareSection }))
-);
-const ValueMoneySection = lazy(() =>
-  import("../components/sections/ValueMoneySection").then((m) => ({ default: m.ValueMoneySection }))
-);
-const LockerHardwareSection = lazy(() =>
-  import("../components/sections/LockerHardwareSection").then((m) => ({ default: m.LockerHardwareSection }))
-);
-const BestSellerSection = lazy(() =>
-  import("../components/sections/BestSellerSection").then((m) => ({ default: m.BestSellerSection }))
-);
-const TestimonialSection = lazy(() =>
-  import("../components/sections/TestimonialSection").then((m) => ({ default: m.TestimonialSection }))
-);
+import { ShopByAestheticSection } from "../components/sections/ShopByAestheticSection";
+import { SuperSaverSection } from "../components/sections/SuperSaverSection";
+import { CubicleHardwareSection } from "../components/sections/CubicleHardwareSection";
+import { ValueMoneySection } from "../components/sections/ValueMoneySection";
+import { LockerHardwareSection } from "../components/sections/LockerHardwareSection";
+import { BestSellerSection } from "../components/sections/BestSellerSection";
+import { TestimonialSection } from "../components/sections/TestimonialSection";
 
 interface HomePageProps {
   onAddToCart: (p: Product) => void;
@@ -47,60 +26,46 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       <UpcomingSlider />
 
       {/* Shop by Aesthetic */}
-      <Suspense fallback={<AestheticBannerSkeleton />}>
-        <ShopByAestheticSection onSelectCategory={onSelectCategory} />
-      </Suspense>
+      <ShopByAestheticSection onSelectCategory={onSelectCategory} />
 
       {/* Super Saver Offers */}
       <div className="bg-[#34150F]/8 py-2">
-        <Suspense fallback={<ProductSliderSkeleton title="Super Saver Offers" />}>
-          <SuperSaverSection
-            onAddToCart={onAddToCart}
-            onWishlist={onWishlist}
-            wishlist={wishlist}
-            onViewAll={onSelectCategory}
-          />
-        </Suspense>
+        <SuperSaverSection
+          onAddToCart={onAddToCart}
+          onWishlist={onWishlist}
+          wishlist={wishlist}
+          onViewAll={onSelectCategory}
+        />
       </div>
 
       {/* Cubicle Hardware Collection */}
-      <Suspense fallback={<AestheticBannerSkeleton />}>
-        <CubicleHardwareSection onSelectCategory={onSelectCategory} />
-      </Suspense>
+      <CubicleHardwareSection onSelectCategory={onSelectCategory} />
 
       {/* Value for Money */}
       <div className="bg-[#34150F]/8 py-2">
-        <Suspense fallback={<ProductSliderSkeleton title="Value For Money" />}>
-          <ValueMoneySection
-            onAddToCart={onAddToCart}
-            onWishlist={onWishlist}
-            wishlist={wishlist}
-            onViewAll={onSelectCategory}
-          />
-        </Suspense>
+        <ValueMoneySection
+          onAddToCart={onAddToCart}
+          onWishlist={onWishlist}
+          wishlist={wishlist}
+          onViewAll={onSelectCategory}
+        />
       </div>
 
       {/* Locker Hardware Collection */}
-      <Suspense fallback={<AestheticBannerSkeleton />}>
-        <LockerHardwareSection onSelectCategory={onSelectCategory} />
-      </Suspense>
+      <LockerHardwareSection onSelectCategory={onSelectCategory} />
 
       {/* Best Sellers */}
       <div className="bg-[#34150F]/8 py-2">
-        <Suspense fallback={<ProductSliderSkeleton title="Best Sellers" />}>
-          <BestSellerSection
-            onAddToCart={onAddToCart}
-            onWishlist={onWishlist}
-            wishlist={wishlist}
-            onViewAll={onSelectCategory}
-          />
-        </Suspense>
+        <BestSellerSection
+          onAddToCart={onAddToCart}
+          onWishlist={onWishlist}
+          wishlist={wishlist}
+          onViewAll={onSelectCategory}
+        />
       </div>
 
       {/* Testimonials */}
-      <Suspense fallback={<TestimonialSkeleton />}>
-        <TestimonialSection />
-      </Suspense>
+      <TestimonialSection />
     </>
   );
 }

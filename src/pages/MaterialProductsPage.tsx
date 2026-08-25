@@ -18,7 +18,6 @@ import { useAuth } from "../context/AuthContext";
 import { getAllProductsApi } from "../services/productService";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
-import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 import {
@@ -236,7 +235,10 @@ export function MaterialProductsPage({ onAddToCart, onWishlist, wishlist }: Mate
 
         {/* ── Products Grid ── */}
         {loading ? (
-          <ProductGridSkeleton count={8} />
+          <div className="py-16 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-semibold text-[#85431E]">Loading material products...</span>
+          </div>
         ) : materialProducts.length === 0 ? (
           <div className="text-center py-12 bg-[#f5e8d4] rounded-2xl sm:rounded-3xl border border-[rgba(52,21,15,0.1)] p-6 sm:p-8">
             <Package size={36} className="mx-auto mb-2.5 text-[#D39858]" />

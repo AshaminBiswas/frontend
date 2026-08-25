@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Percent } from "lucide-react";
 import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
-import { ProductSliderSkeleton } from "../common/Skeletons";
 import { fetchApi } from "../../services/api";
 import { couponService, Coupon } from "../../services/couponService";
 import { subscribeToProductSync } from "../../services/productSyncService";
 import { normalizeRawProduct } from "../../utils/productUtils";
+import { useInView } from "../../hooks/useInView";
 
 import { DEFAULT_SHOWCASE_PRODUCTS } from "../../data/products";
 
@@ -19,6 +19,7 @@ interface SuperSaverSectionProps {
 }
 
 export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSaverSectionProps) {
+  const { ref: sectionRef, visible } = useInView({ threshold: 0.1 });
   const scrollRef = useRef<HTMLDivElement>(null);
   const [offerProducts, setOfferProducts] = useState<Product[]>(DEFAULT_SHOWCASE_PRODUCTS);
   const [loading, setLoading] = useState(false);
@@ -88,10 +89,6 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
     return subscribeToProductSync(loadOffers);
   }, []);
 
-  if (loading) {
-    return <ProductSliderSkeleton title="Super Saver Offers" />;
-  }
-
   // Native GPU-accelerated smooth 1-card scroll
   const scroll = (direction: number) => {
     if (scrollRef.current) {
@@ -102,8 +99,17 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
   };
 
   return (
-    <section className="py-6 sm:py-12 px-3 sm:px-4 md:px-8 lg:px-16">
-      <div className="flex items-center justify-between gap-2 mb-4 sm:mb-8">
+    <section
+      ref={sectionRef}
+      className={`py-6 sm:py-12 px-3 sm:px-4 md:px-8 lg:px-16 overflow-hidden will-change-transform transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12 sm:translate-y-16"
+      }`}
+    >
+      <div
+        className={`flex items-center justify-between gap-2 mb-4 sm:mb-8 transition-all duration-600 ease-out ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+        }`}
+      >
         <div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="p-1 rounded-md bg-[#85431E]/10 text-[#85431E] flex items-center justify-center">
@@ -126,7 +132,11 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
         </Link>
       </div>
 
-      <div className="relative group/section">
+      <div
+        className={`relative group/section transition-all duration-700 delay-100 ease-out ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+        }`}
+      >
         {/* Left Arrow Button */}
         <button
           type="button"
@@ -142,7 +152,7 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           ref={scrollRef}
           className="flex gap-2 sm:gap-5 overflow-x-auto scroll-smooth scrollbar-hide py-2 sm:py-4 px-0.5 sm:px-1"
         >
-          {offerProducts.map((p) => {
+          {offerProducts.map((p, idx) => {
             const isHovered = hoveredId === p.id;
             const isOtherHovered = hoveredId !== null && !isHovered;
 
@@ -151,12 +161,17 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
                 key={p.apiId || p.id}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                className={`flex-shrink-0 w-[145px] xs:w-[160px] sm:w-[260px] md:w-[300px] lg:w-[calc(25%-15px)] transition-all duration-300 ease-out ${
+                style={{
+                  transitionDelay: visible ? `${idx * 45}ms` : "0ms",
+                }}
+                className={`flex-shrink-0 w-[145px] xs:w-[160px] sm:w-[260px] md:w-[300px] lg:w-[calc(25%-15px)] transition-all duration-500 ease-out ${
+                  visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                } ${
                   isHovered
                     ? "scale-105 z-20 opacity-100"
                     : isOtherHovered
                     ? "scale-95 opacity-40"
-                    : "scale-100 opacity-100"
+                    : "scale-100"
                 }`}
               >
                 <ProductCard

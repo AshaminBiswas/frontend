@@ -14,7 +14,13 @@ import { subscribeToProductSync } from "../services/productSyncService";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
-import { ProductGridSkeleton } from "../components/common/Skeletons";
+
+interface OffersPageProps {
+  onAddToCart: (p: Product) => void;
+  onWishlist: (productOrId: Product | number | string) => void;
+  wishlist: Set<number | string>;
+}
+
 export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProps) {
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
@@ -439,7 +445,10 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
 
         {/* ── Offer Products Grid (DYNAMIC PRODUCT CARDS) ── */}
         {loading ? (
-          <ProductGridSkeleton count={8} />
+          <div className="py-16 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-semibold text-[#85431E]">Loading special offers...</span>
+          </div>
         ) : displayedProducts.length === 0 ? (
           <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-12 text-center border border-[rgba(52,21,15,0.08)] shadow-sm">
             <Package size={42} className="text-[#85431E]/40 mx-auto mb-3" />

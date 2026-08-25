@@ -18,8 +18,8 @@ export function HeroSlider() {
     mobileImage?: string;
     linkUrl?: string;
     ctaText?: string;
-  }>>([]);
-  const [loading, setLoading] = useState(true);
+  }>>(DEFAULT_HERO_SLIDES);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -146,50 +146,7 @@ export function HeroSlider() {
     }
   };
 
-  // 1. Sleek Skeleton Shimmer Loader while fetching live database banners
-  if (loading) {
-    return (
-      <section 
-        className="relative overflow-hidden w-full bg-[#1e0a06] transition-[aspect-ratio] duration-300"
-        style={{ aspectRatio }}
-      >
-        {/* Shimmer background animation */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#240c07] via-[#3d1810] to-[#240c07] animate-pulse" />
-        
-        {/* Top Progress Bar Placeholder */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-[#34150F]/50" />
-
-        {/* Hero Content Overlay Skeleton */}
-        <div className="absolute inset-0 z-10 flex flex-col justify-end pb-6 sm:pb-10 md:justify-center md:pb-0 px-4 sm:px-8 md:px-12 lg:px-16 pointer-events-none">
-          <div className="space-y-3 max-w-md md:max-w-lg">
-            {/* Badge Skeleton */}
-            <div className="h-5 w-28 bg-[#D39858]/20 rounded-full animate-pulse" />
-
-            {/* Title Skeleton */}
-            <div className="space-y-2">
-              <div className="h-7 sm:h-9 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
-              <div className="h-5 sm:h-7 w-1/2 bg-[#EACEAA]/10 rounded-lg animate-pulse" />
-            </div>
-
-            {/* CTA Button Skeleton */}
-            <div className="pt-2">
-              <div className="h-9 sm:h-10 w-36 sm:w-44 bg-[#D39858]/30 rounded-tr-2xl rounded-bl-2xl animate-pulse" />
-            </div>
-          </div>
-        </div>
-
-        {/* Skeleton Slide Controls — Bottom Right */}
-        <div className="absolute bottom-2.5 sm:bottom-4 right-3 sm:right-6 md:right-8 z-20 flex items-center gap-2 bg-[#34150F]/60 backdrop-blur-md p-1.5 px-3 rounded-tr-xl rounded-bl-xl border border-[#EACEAA]/10">
-          <div className="h-3.5 w-12 bg-white/10 rounded animate-pulse" />
-          <div className="h-3.5 w-px bg-white/10" />
-          <div className="h-6 w-6 bg-white/10 rounded-md animate-pulse" />
-          <div className="h-6 w-6 bg-white/10 rounded-md animate-pulse" />
-        </div>
-      </section>
-    );
-  }
-
-  // 2. If no banners are active in the database, return null
+  // If no banners are active in the database, return null
   if (!slides || slides.length === 0) {
     return null;
   }

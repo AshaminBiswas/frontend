@@ -15,8 +15,8 @@ export function UpcomingSlider() {
     desktopImage?: string;
     mobileImage?: string;
     linkUrl?: string;
-  }>>([]);
-  const [loading, setLoading] = useState(true);
+  }>>(DEFAULT_UPCOMING_SLIDES);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -54,28 +54,9 @@ export function UpcomingSlider() {
 
   const upcoming = useSlider(slides.length, true, 5000);
 
-  // 1. Skeleton Loading State for Upcoming Banners
-  if (loading) {
-    return (
-      <section className="py-4 sm:py-6 md:py-8 px-3 sm:px-6 md:px-8 lg:px-16">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="h-6 w-24 bg-[#85431E]/40 rounded-tr-md rounded-bl-md animate-pulse" />
-          <div className="h-px flex-1 bg-[#34150F]/15" />
-          <div className="flex gap-1.5">
-            <div className="w-7 h-7 border border-[#85431E]/20 rounded-tr-md rounded-bl-md bg-white/5 animate-pulse" />
-            <div className="w-7 h-7 border border-[#85431E]/20 rounded-tr-md rounded-bl-md bg-white/5 animate-pulse" />
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-tr-2xl rounded-bl-2xl sm:rounded-tr-3xl sm:rounded-bl-3xl h-[160px] sm:h-[220px] md:h-[300px] w-full bg-[#1e0a06] animate-pulse">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#240c07] via-[#3d1810] to-[#240c07] animate-pulse" />
-          <div className="absolute inset-0 z-20 flex flex-col justify-center pl-4 sm:pl-6 md:pl-16 pr-4 sm:pr-6 max-w-xl space-y-2">
-            <div className="h-3.5 w-20 bg-[#D39858]/20 rounded animate-pulse" />
-            <div className="h-6 sm:h-8 w-3/4 bg-[#EACEAA]/15 rounded-lg animate-pulse" />
-          </div>
-        </div>
-      </section>
-    );
+  // If no upcoming slides, return null
+  if (!slides || slides.length === 0) {
+    return null;
   }
 
   // 2. Hide section if no upcoming banners exist in the database

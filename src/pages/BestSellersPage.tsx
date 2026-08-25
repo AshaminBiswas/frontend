@@ -12,7 +12,6 @@ import { subscribeToProductSync } from "../services/productSyncService";
 import { useAuth } from "../context/AuthContext";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
-import { ProductGridSkeleton } from "../components/common/Skeletons";
 
 function normalizeRawProduct(item: any): Product {
   const rawId = item._id || item.id || item.apiId;
@@ -399,7 +398,10 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
         </div>
 
         {loading ? (
-          <ProductGridSkeleton count={4} />
+          <div className="py-16 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-semibold text-[#85431E]">Loading best sellers...</span>
+          </div>
         ) : displayedProducts.length === 0 ? (
           <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-12 text-center border border-[rgba(52,21,15,0.08)]">
             <Package size={40} className="text-[#85431E]/40 mx-auto mb-3" />

@@ -12,7 +12,6 @@ import { getEffectivePrice } from "../utils/pricing";
 import { getProductStockStatus } from "../utils/stock";
 import { fetchApi } from "../services/api";
 import { ProductCard } from "../components/product/ProductCard";
-import { ProductDetailSkeleton } from "../components/common/Skeletons";
 import { ProductReviewSection } from "../components/review/ProductReviewSection";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { useB2BPricing } from "../hooks/useB2BPricing";
@@ -218,7 +217,12 @@ export function ProductDetailPage({
   }, [product]);
 
   if (loading || !product) {
-    return <ProductDetailSkeleton />;
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold text-[#85431E]">Loading product details...</span>
+      </div>
+    );
   }
 
   const isWishlisted =

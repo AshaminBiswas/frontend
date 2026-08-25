@@ -7,7 +7,6 @@ import { getCategoryBySlugApi, ApiCategoryDetail } from "../services/categorySer
 import { getProductsByCategorySlugApi } from "../services/productService";
 import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
-import { ProductGridSkeleton } from "../components/common/Skeletons";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
 
@@ -133,7 +132,10 @@ export function CategoryProductsPage({ onAddToCart, onWishlist, wishlist }: Cate
 
         {/* Product Grid */}
         {loading ? (
-          <ProductGridSkeleton count={8} />
+          <div className="py-16 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-semibold text-[#85431E]">Loading products...</span>
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl p-8 sm:p-12 text-center border border-[rgba(52,21,15,0.08)] shadow-xs">
             <Filter size={32} className="text-[#D39858]/40 mx-auto mb-2.5" />

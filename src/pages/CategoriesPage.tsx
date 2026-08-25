@@ -6,7 +6,6 @@ import { getCategoriesApi, ApiCategory } from "../services/categoryService";
 import { fetchApi } from "../services/api";
 import { subscribeToProductSync } from "../services/productSyncService";
 import { ProductCard } from "../components/product/ProductCard";
-import { CategoriesCatalogSkeleton } from "../components/common/Skeletons";
 
 function safeCategoryString(category: any): string {
   if (!category) return "";
@@ -229,9 +228,14 @@ export function CategoriesPage({
     });
   }, [products, selectedLine]);
 
-  // If initial load is in progress, display unified skeleton loader (no stale UI flashing)
+  // If initial load is in progress, display clean spinner loader
   if (loading) {
-    return <CategoriesCatalogSkeleton />;
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Nunito', sans-serif" }}>
+        <div className="w-8 h-8 border-2 border-[#34150F] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold text-[#85431E]">Loading categories catalog...</span>
+      </div>
+    );
   }
 
   return (
