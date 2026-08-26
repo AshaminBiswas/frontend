@@ -137,6 +137,10 @@ export function CustomerQuoteApprovalPage() {
 
   const handleDownloadPdf = async () => {
     if (!token || !quote) return;
+    if (quote.status !== "APPROVED") {
+      setDecisionError("Quotation PDF can only be downloaded after approval by administration.");
+      return;
+    }
     setDownloadingPdf(true);
     setDecisionError("");
     try {
@@ -208,20 +212,27 @@ export function CustomerQuoteApprovalPage() {
           </button>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <AsyncActionButton
-              mode="download"
-              onAction={async () => {
-                if (token && quote) {
-                  await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
-                }
-              }}
-              idleIcon={<Download size={13} />}
-              idleLabel="PDF"
-              loadingLabel="…"
-              successLabel="✓"
-              className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-[11px] sm:text-xs px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
-              variant="custom"
-            />
+            {quote.status === "APPROVED" ? (
+              <AsyncActionButton
+                mode="download"
+                onAction={async () => {
+                  if (token && quote) {
+                    await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
+                  }
+                }}
+                idleIcon={<Download size={13} />}
+                idleLabel="Download PDF"
+                loadingLabel="Preparing PDF…"
+                successLabel="Downloaded!"
+                className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-[11px] sm:text-xs px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                variant="custom"
+              />
+            ) : (
+              <div className="bg-amber-100/90 text-amber-900 border border-amber-300 font-bold text-[10px] sm:text-xs px-3 py-2 rounded-lg sm:rounded-xl flex items-center gap-1.5 shadow-2xs">
+                <Clock size={12} className="text-amber-700 shrink-0" />
+                <span>Submitted • PDF available upon approval</span>
+              </div>
+            )}
 
             <button
               type="button"
@@ -426,20 +437,22 @@ export function CustomerQuoteApprovalPage() {
                       variant="custom"
                       title="Copy Signature Hash"
                     />
-                    <AsyncActionButton
-                      mode="download"
-                      onAction={async () => {
-                        if (token && quote) {
-                          await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
-                        }
-                      }}
-                      idleIcon={<Download size={10} />}
-                      idleLabel="PDF"
-                      loadingLabel="…"
-                      successLabel="✓"
-                      className="text-emerald-400 hover:text-emerald-300 font-sans font-bold text-[9px] flex items-center gap-0.5 ml-1"
-                      variant="custom"
-                    />
+                    {quote.status === "APPROVED" && (
+                      <AsyncActionButton
+                        mode="download"
+                        onAction={async () => {
+                          if (token && quote) {
+                            await quotationService.downloadQuotePdfByToken(token, quote.referenceNo || quote.quoteNumber);
+                          }
+                        }}
+                        idleIcon={<Download size={10} />}
+                        idleLabel="PDF"
+                        loadingLabel="…"
+                        successLabel="✓"
+                        className="text-emerald-400 hover:text-emerald-300 font-sans font-bold text-[9px] flex items-center gap-0.5 ml-1 cursor-pointer"
+                        variant="custom"
+                      />
+                    )}
                   </div>
                 </div>
               )}

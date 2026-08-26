@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Building2, ArrowLeft, Search, Plus, Trash2, CheckCircle2,
+  Building2, ArrowLeft, Search, Plus, Minus, Trash2, CheckCircle2,
   Clock, AlertCircle, FileText, Send, ShieldCheck, HelpCircle,
   ChevronDown, Layers, Sparkles, RefreshCw, Eye, Check, Download
 } from "lucide-react";
@@ -238,16 +238,17 @@ export function RequestQuotePage() {
     setSearchQuery("");
   };
 
-  // Update item quantity
+  // Update item quantity (Increase/Decrease)
   const handleQuantityChange = (productId: string, newQty: number) => {
-    if (newQty < 1) return;
+    const parsed = Number(newQty);
+    const validQty = isNaN(parsed) || parsed < 1 ? 1 : Math.floor(parsed);
     setLineItems((prev) =>
       prev.map((item) =>
         item.productId === productId
           ? {
               ...item,
-              quantity: newQty,
-              amount: Math.round(newQty * Number(item.rate || 0) * 100) / 100,
+              quantity: validQty,
+              amount: Math.round(validQty * Number(item.rate || 0) * 100) / 100,
             }
           : item
       )
@@ -1145,28 +1146,36 @@ export function RequestQuotePage() {
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 border-t border-[#34150F]/6 text-xs">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] text-[#85431E] font-semibold">Qty:</span>
-                          <div className="flex items-center border border-[#34150F]/20 rounded-md overflow-hidden bg-[#EACEAA]/20">
+                      <div className="flex items-center justify-between pt-1.5 border-t border-[#34150F]/6 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-[#85431E] font-bold">Qty:</span>
+                          <div className="flex items-center border border-[#34150F]/20 rounded-lg overflow-hidden bg-white shadow-2xs">
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
                               disabled={item.quantity <= 1}
-                              className="px-1.5 py-0.2 font-bold hover:bg-[#34150F]/10 disabled:opacity-30 text-xs"
+                              className="w-7 h-7 flex items-center justify-center font-bold text-[#34150F] hover:bg-[#EACEAA]/40 disabled:opacity-30 transition-colors"
+                              title="Decrease quantity"
                             >
-                              -
+                              <Minus size={11} />
                             </button>
-                            <span className="px-1.5 font-mono font-bold text-xs">{item.quantity}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={(e) => handleQuantityChange(item.productId, parseInt(e.target.value) || 1)}
+                              className="w-9 text-center font-mono font-bold text-xs bg-transparent border-x border-[#34150F]/15 py-0.5 focus:outline-none text-[#34150F]"
+                            />
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                              className="px-1.5 py-0.2 font-bold hover:bg-[#34150F]/10 text-xs"
+                              className="w-7 h-7 flex items-center justify-center font-bold text-[#34150F] hover:bg-[#EACEAA]/40 transition-colors"
+                              title="Increase quantity"
                             >
-                              +
+                              <Plus size={11} />
                             </button>
                           </div>
-                          <span className="text-[9px] text-[#85431E] uppercase font-bold">{item.unit}</span>
+                          <span className="text-[10px] text-[#85431E] uppercase font-bold">{item.unit || "NOS"}</span>
                         </div>
 
                         <div className="text-right">
@@ -1187,7 +1196,7 @@ export function RequestQuotePage() {
                       <th className="py-3 px-3 w-12 text-center">Sl. No.</th>
                       <th className="py-3 px-4">Hardware Product</th>
                       <th className="py-3 px-3 w-20">Unit</th>
-                      <th className="py-3 px-3 w-24 text-center">Quantity</th>
+                      <th className="py-3 px-3 w-36 text-center">Quantity</th>
                       <th className="py-3 px-4 w-28 text-right">B2B Rate</th>
                       <th className="py-3 px-4 w-32 text-right">Amount (₹)</th>
                       <th className="py-3 px-3 w-12 text-center">Action</th>
@@ -1219,13 +1228,32 @@ export function RequestQuotePage() {
                             <span className="font-bold text-[#34150F] uppercase">{item.unit || "NOS"}</span>
                           </td>
                           <td className="py-3 px-3 text-center">
-                            <input
-                              type="number"
-                              min={1}
-                              value={item.quantity}
-                              onChange={(e) => handleQtyChange(item.productId, parseInt(e.target.value) || 1)}
-                              className="w-16 px-2 py-1 border border-[#34150F]/20 rounded-lg text-center font-mono font-bold text-xs bg-[#EACEAA]/15 focus:outline-none focus:border-[#34150F]"
-                            />
+                            <div className="inline-flex items-center border border-[#34150F]/20 rounded-xl overflow-hidden bg-[#EACEAA]/15 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#34150F] transition-all active:scale-95 cursor-pointer"
+                                title="Decrease quantity"
+                              >
+                                <Minus size={13} />
+                              </button>
+                              <input
+                                type="number"
+                                min={1}
+                                value={item.quantity}
+                                onChange={(e) => handleQuantityChange(item.productId, parseInt(e.target.value) || 1)}
+                                className="w-12 sm:w-14 text-center font-mono font-bold text-xs bg-white border-x border-[#34150F]/15 py-1 sm:py-1.5 focus:outline-none focus:bg-white text-[#34150F]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-[#34150F] hover:bg-[#34150F] hover:text-[#EACEAA] transition-all active:scale-95 cursor-pointer"
+                                title="Increase quantity"
+                              >
+                                <Plus size={13} />
+                              </button>
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-bold text-[#34150F]">
                             ₹{Number(item.rate || 0).toLocaleString("en-IN")}
