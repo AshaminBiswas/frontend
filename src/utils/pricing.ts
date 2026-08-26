@@ -119,22 +119,10 @@ export function getEffectivePrice(
       isCustomB2BPrice = true;
       tierName = "B2B Contract Rate";
     } else {
-      // ── 2. Fallback: volume-tiered discount off base price ──
-      const b2bRate = Math.round(basePrice * 0.8); // Standard 20% off
-
-      if (qty >= 100) {
-        unitPrice = Math.round(b2bRate * 0.85); // Additional 15% off for 100+ units
-        tierName = "Bulk 100+ Tier";
-      } else if (qty >= 50) {
-        unitPrice = Math.round(b2bRate * 0.9); // Additional 10% off for 50+ units
-        tierName = "Wholesale 50+ Tier";
-      } else if (qty >= 10) {
-        unitPrice = Math.round(b2bRate * 0.95); // Additional 5% off for 10+ units
-        tierName = "Volume 10+ Tier";
-      } else {
-        unitPrice = b2bRate;
-        tierName = "B2B Standard Rate";
-      }
+      // ── 2. Fallback: If admin has not set a custom B2B price, show the standard sale / retail price ──
+      unitPrice = basePrice;
+      isCustomB2BPrice = false;
+      tierName = undefined;
     }
   }
 
