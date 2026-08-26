@@ -456,7 +456,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
 
                     {/* Content */}
                     <div className="p-2 sm:p-4">
-                      <Link to={`/product/${(product as any).apiId || product.id}`}>
+                      <Link to={`/product/${product.slug || (product as any).apiId || product.id}`}>
                         <h3 className="text-[11px] sm:text-sm font-bold text-[#34150F] leading-tight line-clamp-2 hover:text-[#D39858] transition-colors mb-1 min-h-[26px] sm:min-h-[32px]">
                           {product.name}
                         </h3>
@@ -611,7 +611,7 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
-                      <Link to={`/product/${(p as any).apiId || p.id}`}>
+                      <Link to={`/product/${(p as any).slug || (p as any).apiId || p.id}`}>
                         <h4 className="text-xs font-bold text-[#34150F] line-clamp-1 hover:text-[#D39858] transition-colors mb-1">
                           {p.name}
                         </h4>

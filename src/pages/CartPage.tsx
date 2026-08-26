@@ -159,7 +159,7 @@ export function CartPage({ cart, onRemoveFromCart, onChangeQty }: CartPageProps)
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <Link
-                            to={`/product/${item.id}`}
+                            to={`/product/${item.slug || (item as any).apiId || item.id}`}
                             className="hover:text-[#D39858] transition-colors"
                           >
                             <h3 className="text-sm sm:text-base font-bold text-[#34150F] leading-snug line-clamp-2">

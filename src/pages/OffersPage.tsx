@@ -507,7 +507,7 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                       <span className="text-[9px] font-black uppercase text-[#85431E] block mb-1">
                         {product.category}
                       </span>
-                      <Link to={`/product/${product.id}`}>
+                      <Link to={`/product/${product.slug || (product as any).apiId || product.id}`}>
                         <h3 className="text-[11px] sm:text-sm font-bold text-[#34150F] hover:text-[#85431E] transition-colors line-clamp-2 mb-1 min-h-[26px] sm:min-h-[32px]">
                           {product.name}
                         </h3>

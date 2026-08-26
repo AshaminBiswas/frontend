@@ -1,6 +1,8 @@
 export interface Product {
   id: number;
   apiId?: string;
+  slug?: string;
+  sku?: string;
   name: string;
   price: number;
   salePrice?: number | null;

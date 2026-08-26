@@ -90,9 +90,9 @@ export const ProductCard = memo(function ProductCard({
     product.shortDesc ||
     (typeof product.description === "string" ? product.description : "");
 
-  // Navigate to Product Detail View Page (/product/:id)
+  // Navigate to Product Detail View Page (/product/:slug)
   const handleCardClick = () => {
-    const targetId = (product as any).apiId || product.id;
+    const targetId = product.slug || (product as any).apiId || product.id;
     navigate(`/product/${targetId}`);
   };
 

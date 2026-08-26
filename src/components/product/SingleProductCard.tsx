@@ -103,7 +103,7 @@ export function SingleProductCard({
     (typeof product.description === "string" ? product.description : "");
 
   const handleNavigateToDetail = () => {
-    const targetId = (product as any).apiId || product.id;
+    const targetId = product.slug || (product as any).apiId || product.id;
     navigate(`/product/${targetId}`);
   };
 

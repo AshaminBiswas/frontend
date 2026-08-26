@@ -470,7 +470,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
 
                     {/* Product Details */}
                     <div className="p-2 sm:p-4">
-                      <Link to={`/product/${(product as any).apiId || product.id}`}>
+                      <Link to={`/product/${product.slug || (product as any).apiId || product.id}`}>
                         <h3 className="text-[11px] sm:text-sm font-bold text-[#34150F] leading-tight line-clamp-2 hover:text-[#D39858] transition-colors mb-1 min-h-[26px] sm:min-h-[32px]">
                           {product.name}
                         </h3>
@@ -640,7 +640,7 @@ export function NewArrivalsPage({ onAddToCart, onWishlist, wishlist }: NewArriva
                     <p className="text-[9px] font-bold text-[#85431E]/70 uppercase tracking-wider mt-3 mb-1">
                       {product.category}
                     </p>
-                    <Link to={`/product/${(product as any).apiId || product.id}`}>
+                    <Link to={`/product/${product.slug || (product as any).apiId || product.id}`}>
                       <h4 className="text-xs font-bold text-[#34150F] line-clamp-2 hover:text-[#D39858] mb-2">
                         {product.name}
                       </h4>

@@ -123,7 +123,7 @@ export function SearchOverlay({ searchQuery, setSearchQuery, onClose, onAddToCar
                 <div
                   key={p.id}
                   onClick={() => {
-                    navigate(`/product/${p.id}`);
+                    navigate(`/product/${p.slug || p.id}`);
                     onClose();
                     setSearchQuery("");
                   }}

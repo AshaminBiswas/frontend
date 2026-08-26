@@ -232,7 +232,7 @@ export function WishlistPage({
                       </span>
                     )}
 
-                    <Link to={`/product/${product.apiId || product.id}`}>
+                    <Link to={`/product/${product.slug || product.apiId || product.id}`}>
                       <h3 className="text-sm font-bold text-[#34150F] leading-snug line-clamp-2 hover:text-[#D39858] transition-colors mb-2">
                         {product.name}
                       </h3>
