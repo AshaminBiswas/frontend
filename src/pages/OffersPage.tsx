@@ -198,6 +198,9 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
       if (selectedTier === "10_PLUS" && discount < 10) return false;
       if (selectedTier === "PRICE_DROPS" && effective.unitPrice >= effective.originalPrice) return false;
 
+      const isMarked = p.isInOffer === true || (Array.isArray(p.tags) && p.tags.some((t: string) => String(t).toLowerCase().includes("offer")));
+      if (selectedTier === "ALL" && !isMarked && discount <= 0 && !selectedCouponCode) return false;
+
       return true;
     });
   }, [products, search, category, selectedTier, selectedCouponCode, inStockOnly, user, b2bCache, couponProductMap]);
@@ -474,7 +477,8 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
               return (
                 <div
                   key={product.apiId || product.id}
-                  className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[#D39858]/30 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                  onClick={() => navigate(`/product/${product.slug || (product as any).apiId || product.id}`)}
+                  className="bg-[#f5e8d4] rounded-tr-3xl rounded-bl-3xl border border-[#D39858]/30 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer"
                 >
                   <div>
                     {/* Thumbnail + Deal Ribbon */}
@@ -492,7 +496,10 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                       {/* Wishlist Button */}
                       <button
                         type="button"
-                        onClick={() => onWishlist(product)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onWishlist(product);
+                        }}
                         className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-sm shadow flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ${
                           isWishlisted ? "bg-red-50 text-red-500" : "bg-white/85 text-[#34150F] hover:bg-white"
                         }`}
@@ -537,7 +544,10 @@ export function OffersPage({ onAddToCart, onWishlist, wishlist }: OffersPageProp
                   <div className="p-2 sm:p-4 pt-0">
                     <button
                       type="button"
-                      onClick={() => handleAddToCart(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(product);
+                      }}
                       className={`w-full py-1.5 sm:py-2.5 px-2 sm:px-4 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 ${
                         isAdded
                           ? "bg-emerald-700 text-white"

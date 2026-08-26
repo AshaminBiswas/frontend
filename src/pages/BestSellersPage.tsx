@@ -162,10 +162,11 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
     return subscribeToProductSync(loadData);
   }, []);
 
-  // Filter products: prefer those marked isBestseller or return real catalog
+  // Filter products: strictly those marked isBestseller or with bestseller tag
   const bestSellerList = useMemo(() => {
-    const marked = products.filter((p) => p.isBestseller === true || (Array.isArray(p.tags) && p.tags.includes("bestseller")));
-    return marked.length > 0 ? marked : products;
+    return products.filter(
+      (p) => Boolean(p.isBestseller) || Boolean((p as any).isBestsaller) || (Array.isArray(p.tags) && p.tags.includes("bestseller"))
+    );
   }, [products]);
 
   // Extract unique category names
@@ -428,7 +429,8 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
               return (
                 <div
                   key={product.apiId || product.id}
-                  className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                  onClick={() => navigate(`/product/${product.slug || (product as any).apiId || product.id}`)}
+                  className="bg-[#f5e8d4] rounded-tr-2xl rounded-bl-2xl border border-[rgba(52,21,15,0.08)] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer"
                 >
                   <div>
                     {/* Thumbnail + Tags */}
@@ -444,7 +446,10 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                       {/* Wishlist button */}
                       <button
                         type="button"
-                        onClick={() => onWishlist(product)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onWishlist(product);
+                        }}
                         className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-sm shadow flex items-center justify-center transition-transform hover:scale-110 active:scale-95 ${
                           isWishlisted ? "bg-red-50 text-red-500" : "bg-white/80 text-[#34150F] hover:bg-white"
                         }`}
@@ -516,7 +521,10 @@ export function BestSellersPage({ onAddToCart, onWishlist, wishlist }: BestSelle
                   <div className="p-2 sm:p-4 pt-0">
                     <button
                       type="button"
-                      onClick={() => handleAddToCart(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(product);
+                      }}
                       className={`w-full py-1.5 sm:py-2.5 px-2 sm:px-4 rounded-tr-lg rounded-bl-lg sm:rounded-tr-xl sm:rounded-bl-xl font-bold text-[10px] sm:text-xs flex items-center justify-center gap-1.5 transition-all duration-200 shadow-2xs active:scale-95 ${
                         isAdded
                           ? "bg-emerald-600 text-white"

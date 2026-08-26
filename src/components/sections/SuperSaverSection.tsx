@@ -21,8 +21,8 @@ interface SuperSaverSectionProps {
 export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSaverSectionProps) {
   const { ref: sectionRef, visible } = useInView({ threshold: 0.1 });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [offerProducts, setOfferProducts] = useState<Product[]>(DEFAULT_SHOWCASE_PRODUCTS);
-  const [loading, setLoading] = useState(false);
+  const [offerProducts, setOfferProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadOffers = async () => {
@@ -72,13 +72,12 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
         // Sort by highest discount rate
         markedOffers.sort((a, b) => (b.discount || 0) - (a.discount || 0));
 
-        // If marked offers exist, display them; otherwise display top products
-        setOfferProducts(markedOffers.length > 0 ? markedOffers : normalized.slice(0, 10));
+        setOfferProducts(markedOffers);
       } else {
-        setOfferProducts(DEFAULT_SHOWCASE_PRODUCTS);
+        setOfferProducts([]);
       }
     } catch (err) {
-      setOfferProducts(DEFAULT_SHOWCASE_PRODUCTS);
+      setOfferProducts([]);
     } finally {
       setLoading(false);
     }
@@ -97,6 +96,8 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
       scrollRef.current.scrollBy({ left: direction * cardWidth, behavior: "smooth" });
     }
   };
+
+  if (!loading && offerProducts.length === 0) return null;
 
   return (
     <section

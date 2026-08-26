@@ -15,6 +15,7 @@ import { ProductCard } from "../components/product/ProductCard";
 import { ProductReviewSection } from "../components/review/ProductReviewSection";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
 import { useB2BPricing } from "../hooks/useB2BPricing";
+import { normalizeRawProduct } from "../utils/productUtils";
 
 // Empty catalog fallback
 const LOCAL_CATALOG: Product[] = [];
@@ -69,6 +70,7 @@ export function ProductDetailPage({
   const [activeTab, setActiveTab] = useState<"SPECS" | "DESC" | "MANUFACTURER" | "REVIEWS">("SPECS");
   const [added, setAdded] = useState(false);
   const b2bCache = useB2BPricing();
+  const [pairedList, setPairedList] = useState<Product[]>([]);
 
   // 1. Fetch Product by ID or Slug dynamically from Backend API & Live Catalog
   useEffect(() => {
@@ -130,6 +132,16 @@ export function ProductDetailPage({
           setProduct(normalized);
           if (normalized.colours && normalized.colours.length > 0) {
             setSelectedColor(normalized.colours[0]);
+          }
+
+          if (Array.isArray(raw.frequentlyPairedProducts) && raw.frequentlyPairedProducts.length > 0) {
+            setPairedList(raw.frequentlyPairedProducts.map(normalizeRawProduct));
+          } else if (raw.id) {
+            fetchApi<any>(`/products/${raw.id}/paired`).then((pRes) => {
+              if (pRes && pRes.success && Array.isArray(pRes.data) && pRes.data.length > 0) {
+                setPairedList(pRes.data.map(normalizeRawProduct));
+              }
+            }).catch(() => {});
           }
         } else if (foundLocal) {
           setProduct(foundLocal);
@@ -210,11 +222,12 @@ export function ProductDetailPage({
     return [];
   }, [product]);
 
-  // Related Products
+  // Frequently Paired / Related Products
   const relatedProducts = useMemo(() => {
+    if (pairedList.length > 0) return pairedList;
     if (!product) return LOCAL_CATALOG.slice(0, 4);
     return LOCAL_CATALOG.filter((p) => p.id !== product.id).slice(0, 4);
-  }, [product]);
+  }, [pairedList, product]);
 
   if (loading || !product) {
     return (
@@ -254,8 +267,6 @@ export function ProductDetailPage({
       : String(product.dimensions || "20 x 5 x 3.5 cm"),
     "Weight": typeof product.weight === 'object' ? String((product.weight as any).value || "0.450 kg") : (product.weight ? `${product.weight} kg` : "0.450 kg"),
     "Warranty": typeof product.warranty === 'object' ? String((product.warranty as any).name || "2 Years Guarantee") : String(product.warranty || "2 Years Manufacturer Guarantee"),
-    "Load Capacity": typeof (product as any).specification?.LoadCapacity === 'object' ? String((product.specification as any).LoadCapacity.value || "45 kg") : String((product as any).specification?.LoadCapacity || "45 kg static load"),
-    "Cycle Test Rating": typeof (product as any).specification?.CycleTest === 'object' ? String((product.specification as any).CycleTest.value || "200,000") : String((product as any).specification?.CycleTest || "200,000 Opening Cycles Tested"),
   };
 
   const handleAddToCart = () => {
@@ -500,7 +511,7 @@ export function ProductDetailPage({
                   </button>
                 </div>
                 <span className={`text-[9.5px] sm:text-xs font-extrabold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border ${stockInfo.badgeClass}`}>
-                  {stockInfo.label} ({product.stock ?? 0} Available)
+                  {stockInfo.label}
                 </span>
               </div>
             </div>

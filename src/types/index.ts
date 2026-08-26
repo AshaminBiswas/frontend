@@ -1,3 +1,17 @@
+export interface Material {
+  id: string;
+  name: string;
+  slug: string;
+  shortName?: string | null;
+  gradeBadge?: string | null;
+  description?: string | null;
+  tagline?: string | null;
+  specs?: string[];
+  isActive: boolean;
+  position: number;
+  productCount?: number;
+}
+
 export interface Product {
   id: number;
   apiId?: string;
@@ -13,6 +27,10 @@ export interface Product {
   image: string;
   category: string;
   material?: string;
+  materialId?: string | null;
+  materialObj?: Material | null;
+  frequentlyPairedIds?: string[];
+  frequentlyPairedProducts?: Product[];
   description?: string;
   shortDesc?: string;
   [key: string]: any;

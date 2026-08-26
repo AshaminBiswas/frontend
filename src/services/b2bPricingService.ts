@@ -1,4 +1,4 @@
-import { fetchApi } from "./api";
+import { fetchApi, getStoredToken } from "./api";
 
 export interface B2BProductPrice {
   productId: string;
@@ -18,54 +18,52 @@ export interface B2BPricingCache {
 const STORAGE_KEY_PREFIX = "prc_b2b_matrix_";
 
 // In-memory cache for instant synchronous access
-let _memCache: B2BPricingCache | null = null;
+let _memoryCache: Record<string, B2BPricingCache> = {};
+
+// In-flight promise to deduplicate concurrent network calls across the whole page
 let _inflightFetch: Promise<B2BPricingCache | null> | null = null;
 
-/**
- * Synchronously reads the last-known B2B custom pricing cache from localStorage.
- * Enables zero-flicker first-paint display on page loads and refreshes.
- */
-export function readStoredB2BPricing(userId?: string | null): B2BPricingCache | null {
+export function getCachedB2BPricing(userId: string): B2BPricingCache | null {
   if (!userId) return null;
-  if (_memCache && _memCache.userId === userId) {
-    return _memCache;
-  }
+  return _memoryCache[userId] || readStoredB2BPricing(userId);
+}
+
+export function readStoredB2BPricing(userId: string): B2BPricingCache | null {
+  if (!userId) return null;
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${userId}`);
-    if (raw) {
-      const parsed: B2BPricingCache = JSON.parse(raw);
-      if (parsed && parsed.userId === userId && parsed.prices) {
-        _memCache = parsed;
-        return parsed;
-      }
-    }
-  } catch {}
-  return null;
+    if (!raw) return null;
+    const parsed: B2BPricingCache = JSON.parse(raw);
+    _memoryCache[userId] = parsed;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Persists the B2B pricing cache to localStorage and in-memory cache.
- */
-function saveStoredB2BPricing(cache: B2BPricingCache) {
-  _memCache = cache;
+export function writeStoredB2BPricing(userId: string, cache: B2BPricingCache): void {
+  if (!userId) return;
+  _memoryCache[userId] = cache;
   try {
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}${cache.userId}`, JSON.stringify(cache));
-  } catch {}
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}${userId}`, JSON.stringify(cache));
+  } catch {
+    // quota exceeded or private browsing — fail gracefully
+  }
 }
 
-/**
- * Clears the B2B pricing cache (e.g. on logout or user change).
- */
-export function invalidateB2BPricingCache(userId?: string) {
+export function invalidateB2BPricingCache(userId?: string): void {
   if (userId) {
+    delete _memoryCache[userId];
     try {
       localStorage.removeItem(`${STORAGE_KEY_PREFIX}${userId}`);
     } catch {}
-    if (_memCache?.userId === userId) {
-      _memCache = null;
-    }
   } else {
-    _memCache = null;
+    _memoryCache = {};
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith(STORAGE_KEY_PREFIX))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {}
   }
   _inflightFetch = null;
 }
@@ -78,12 +76,22 @@ export function invalidateB2BPricingCache(userId?: string) {
 export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingCache | null> {
   if (!userId) return null;
 
+  // Unauthenticated user — do not send request to protected endpoint
+  const token = getStoredToken();
+  if (!token) {
+    return readStoredB2BPricing(userId);
+  }
+
   // Deduplicate concurrent callers — they all get the same in-flight promise
   if (_inflightFetch) return _inflightFetch;
 
   _inflightFetch = (async () => {
     try {
       const res = await fetchApi<any>(`/b2b-pricing/customer/${userId}`);
+
+      if (!res.success) {
+        return readStoredB2BPricing(userId);
+      }
 
       // Normalise response shape — data may live at res.data or at top-level
       const payload =
@@ -125,7 +133,7 @@ export async function fetchB2BPricingMatrix(userId: string): Promise<B2BPricingC
         prices: priceMap,
       };
 
-      saveStoredB2BPricing(cache);
+      writeStoredB2BPricing(userId, cache);
       return cache;
     } catch {
       return readStoredB2BPricing(userId);

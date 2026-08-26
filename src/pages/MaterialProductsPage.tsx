@@ -13,10 +13,11 @@ import {
   Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
-import { Product } from "../types";
+import { Product, Material } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { getAllProductsApi } from "../services/productService";
 import { getLiveCatalog, subscribeToProductSync } from "../services/productSyncService";
+import { materialService } from "../services/materialService";
 import { ProductCard } from "../components/product/ProductCard";
 import { getEffectivePrice } from "../utils/pricing";
 import { useB2BPricing } from "../hooks/useB2BPricing";
@@ -45,11 +46,38 @@ export function MaterialProductsPage({ onAddToCart, onWishlist, wishlist }: Mate
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [sortOption, setSortOption] = useState<string>("featured");
-
+  const [materialList, setMaterialList] = useState<Material[]>(() => {
+    try {
+      const stored = localStorage.getItem("prc_storefront_active_materials");
+      return stored ? JSON.parse(stored) : (MATERIAL_REGISTRY as any);
+    } catch {
+      return MATERIAL_REGISTRY as any;
+    }
+  });
 
   const currentMaterial = useMemo(() => {
+    const found = materialList.find((m) => m.slug === slug || m.id === slug);
+    if (found) {
+      return {
+        id: found.id,
+        slug: found.slug,
+        name: found.name,
+        shortName: found.shortName || found.name,
+        gradeBadge: found.gradeBadge || "Premium Grade",
+        iconName: ((found as any).iconName as any) || "Shield",
+        tagline: found.tagline || `${found.name} Hardware`,
+        description: found.description || "",
+        specs: found.specs || [],
+      };
+    }
     return resolveMaterialBySlug(slug);
-  }, [slug]);
+  }, [slug, materialList]);
+
+  useEffect(() => {
+    materialService.getActiveMaterials().then((data) => {
+      if (data && data.length > 0) setMaterialList(data);
+    });
+  }, []);
 
   // Load products on mount
   useEffect(() => {
@@ -82,11 +110,11 @@ export function MaterialProductsPage({ onAddToCart, onWishlist, wishlist }: Mate
   // Material item counts map
   const materialCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    MATERIAL_REGISTRY.forEach((m) => {
+    materialList.forEach((m) => {
       map[m.slug] = products.filter((p) => isProductOfMaterial(p, m.slug)).length;
     });
     return map;
-  }, [products]);
+  }, [products, materialList]);
 
   // Filter products by current material ONLY
   const materialProducts = useMemo(() => {
@@ -184,8 +212,8 @@ export function MaterialProductsPage({ onAddToCart, onWishlist, wishlist }: Mate
         
         {/* ── Quick Material Switcher Tabs Bar ── */}
         <div className="w-full flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
-          {MATERIAL_REGISTRY.map((mat) => {
-            const isActive = mat.slug === currentMaterial.slug;
+          {materialList.map((mat) => {
+            const isActive = mat.slug === currentMaterial.slug || mat.id === currentMaterial.id;
             const count = materialCounts[mat.slug] || 0;
 
             return (

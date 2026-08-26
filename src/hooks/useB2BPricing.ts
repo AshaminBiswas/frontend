@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { isB2BUser } from "../utils/pricing";
+import { getStoredToken } from "../services/api";
 import {
   fetchB2BPricingMatrix,
   invalidateB2BPricingCache,
@@ -25,7 +26,7 @@ const POLL_INTERVAL_MS = 20 * 1000; // every 20 seconds
  *  6. Shared in-memory request deduplication — Zero duplicate API calls.
  */
 export function useB2BPricing(): { prices: Record<string, any> } | null {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   // Initialize state SYNCHRONOUSLY from persistent storage to guarantee zero-flicker on first paint & refresh
   const [b2bCache, setB2BCache] = useState<B2BPricingCache | null>(() => {
@@ -37,7 +38,7 @@ export function useB2BPricing(): { prices: Record<string, any> } | null {
 
   // Sync state if user changes
   useEffect(() => {
-    if (!user || !isB2BUser(user)) {
+    if (!isAuthenticated || !user || !isB2BUser(user)) {
       setB2BCache(null);
     } else {
       const stored = readStoredB2BPricing(user.id);
@@ -45,10 +46,11 @@ export function useB2BPricing(): { prices: Record<string, any> } | null {
         setB2BCache(stored);
       }
     }
-  }, [user?.id]);
+  }, [user?.id, isAuthenticated]);
 
   const fetchFresh = useCallback(async (bust = false) => {
-    if (!user || !isB2BUser(user)) {
+    const token = getStoredToken();
+    if (!isAuthenticated || !token || !user || !isB2BUser(user)) {
       setB2BCache(null);
       return;
     }
@@ -57,37 +59,43 @@ export function useB2BPricing(): { prices: Record<string, any> } | null {
     if (cache) {
       setB2BCache(cache);
     }
-  }, [user?.id]);
+  }, [user?.id, isAuthenticated]);
 
   // ── 1. Silent Background Verification on Mount / User change ──────────────
   useEffect(() => {
-    if (!user || !isB2BUser(user)) {
+    const token = getStoredToken();
+    if (!isAuthenticated || !token || !user || !isB2BUser(user)) {
       setB2BCache(null);
       return;
     }
     fetchFresh(false);
-  }, [user?.id, fetchFresh]);
+  }, [user?.id, isAuthenticated, fetchFresh]);
 
   // ── 2. Background polling every 20 seconds ────────────────────────────────
   useEffect(() => {
-    if (!user || !isB2BUser(user)) return;
+    const token = getStoredToken();
+    if (!isAuthenticated || !token || !user || !isB2BUser(user)) return;
 
     if (pollRef.current) clearInterval(pollRef.current);
 
     pollRef.current = setInterval(() => {
       if (document.visibilityState === "visible") {
-        fetchFresh(false);
+        const currentToken = getStoredToken();
+        if (currentToken) {
+          fetchFresh(false);
+        }
       }
     }, POLL_INTERVAL_MS);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [user?.id, fetchFresh]);
+  }, [user?.id, isAuthenticated, fetchFresh]);
 
   // ── 3. Instant re-fetch on tab focus (visibilitychange) ───────────────────
   useEffect(() => {
-    if (!user || !isB2BUser(user)) return;
+    const token = getStoredToken();
+    if (!isAuthenticated || !token || !user || !isB2BUser(user)) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {

@@ -20,8 +20,8 @@ interface BestSellerSectionProps {
 export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSellerSectionProps) {
   const { ref: sectionRef, visible } = useInView({ threshold: 0.1 });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [bestSellers, setBestSellers] = useState<Product[]>(DEFAULT_SHOWCASE_PRODUCTS);
-  const [loading, setLoading] = useState(false);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadBestSellers = () => {
@@ -38,17 +38,19 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
 
           if (rawList.length > 0) {
             const normalized = rawList.map(normalizeRawProduct);
-            const marked = normalized.filter((p) => p.isBestseller === true || (Array.isArray(p.tags) && p.tags.includes("bestseller")));
-            setBestSellers(marked.length > 0 ? marked : normalized.slice(0, 8));
+            const marked = normalized.filter(
+              (p) => Boolean(p.isBestseller) || Boolean((p as any).isBestsaller) || (Array.isArray(p.tags) && p.tags.includes("bestseller"))
+            );
+            setBestSellers(marked);
           } else {
-            setBestSellers(DEFAULT_SHOWCASE_PRODUCTS);
+            setBestSellers([]);
           }
         } else {
-          setBestSellers(DEFAULT_SHOWCASE_PRODUCTS);
+          setBestSellers([]);
         }
       })
       .catch(() => {
-        setBestSellers(DEFAULT_SHOWCASE_PRODUCTS);
+        setBestSellers([]);
       })
       .finally(() => {
         setLoading(false);
@@ -68,6 +70,8 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
       scrollRef.current.scrollBy({ left: direction * cardWidth, behavior: "smooth" });
     }
   };
+
+  if (!loading && bestSellers.length === 0) return null;
 
   return (
     <section

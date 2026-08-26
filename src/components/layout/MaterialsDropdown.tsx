@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Package, Shield, Anchor, Layers, Box, ArrowRight } from "lucide-react";
-import { Product } from "../../types";
+import { Product, Material } from "../../types";
 import { getAllProductsApi } from "../../services/productService";
 import { subscribeToProductSync } from "../../services/productSyncService";
+import { materialService } from "../../services/materialService";
 import { useAuth } from "../../context/AuthContext";
 import { getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
@@ -24,7 +25,15 @@ export function MaterialsDropdown({ onSelectMaterial, onCloseMenu }: MaterialsDr
   const { user } = useAuth();
   const b2bCache = useB2BPricing();
   const [open, setOpen] = useState(false);
-  const [activeSlug, setActiveSlug] = useState<string>("304-grade-steel");
+  const [activeSlug, setActiveSlug] = useState<string>("304-grade-stainless-steel");
+  const [materialList, setMaterialList] = useState<Material[]>(() => {
+    try {
+      const stored = localStorage.getItem("prc_storefront_active_materials");
+      return stored ? JSON.parse(stored) : (MATERIAL_REGISTRY as any);
+    } catch {
+      return MATERIAL_REGISTRY as any;
+    }
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLLIElement>(null);
@@ -32,8 +41,34 @@ export function MaterialsDropdown({ onSelectMaterial, onCloseMenu }: MaterialsDr
 
   // Active material details
   const activeMaterial = useMemo(() => {
+    const found = materialList.find((m) => m.slug === activeSlug || m.id === activeSlug);
+    if (found) {
+      return {
+        id: found.id,
+        slug: found.slug,
+        name: found.name,
+        shortName: found.shortName || found.name,
+        gradeBadge: found.gradeBadge || "Architectural Grade",
+        iconName: ((found as any).iconName as any) || "Shield",
+        tagline: found.tagline || `${found.name} Hardware`,
+        description: found.description || "",
+        specs: found.specs || [],
+      };
+    }
     return resolveMaterialBySlug(activeSlug);
-  }, [activeSlug]);
+  }, [activeSlug, materialList]);
+
+  // Load live active materials on mount & when dropdown opens
+  useEffect(() => {
+    materialService.getActiveMaterials().then((data) => {
+      if (data && data.length > 0) {
+        setMaterialList(data);
+        if (!data.some((m) => m.slug === activeSlug || m.id === activeSlug)) {
+          setActiveSlug(data[0].slug);
+        }
+      }
+    });
+  }, []);
 
   // Load all products on mount & subscribe to real-time admin sync
   useEffect(() => {
@@ -86,11 +121,11 @@ export function MaterialsDropdown({ onSelectMaterial, onCloseMenu }: MaterialsDr
   // Material item count map for badges
   const materialCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    MATERIAL_REGISTRY.forEach((mat) => {
+    materialList.forEach((mat) => {
       map[mat.slug] = products.filter((p) => isProductOfMaterial(p, mat.slug)).length;
     });
     return map;
-  }, [products]);
+  }, [products, materialList]);
 
   // Display top 6 products for currently active material
   const displayProducts = useMemo(() => {
@@ -175,8 +210,8 @@ export function MaterialsDropdown({ onSelectMaterial, onCloseMenu }: MaterialsDr
                   </div>
 
                   <div className="grid grid-cols-1 gap-1">
-                    {MATERIAL_REGISTRY.map((mat) => {
-                      const isActive = activeSlug === mat.slug;
+                    {materialList.map((mat) => {
+                      const isActive = activeSlug === mat.slug || activeSlug === mat.id;
                       const count = materialCounts[mat.slug] || 0;
 
                       return (

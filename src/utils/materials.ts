@@ -67,8 +67,35 @@ export function resolveMaterialBySlug(slugOrId?: string): MaterialMeta {
   if (!slugOrId) return MATERIAL_REGISTRY[0];
   const s = slugOrId.toLowerCase().trim();
 
-  // Match by exact slug
-  const bySlug = MATERIAL_REGISTRY.find((m) => m.slug === s);
+  // Try dynamic cache first
+  try {
+    const stored = localStorage.getItem("prc_storefront_active_materials");
+    if (stored) {
+      const liveList: any[] = JSON.parse(stored);
+      const match = liveList.find(
+        (m) =>
+          m.slug.toLowerCase() === s ||
+          m.id.toLowerCase() === s ||
+          (m.name && m.name.toLowerCase() === s)
+      );
+      if (match) {
+        return {
+          id: match.id || match.name,
+          slug: match.slug,
+          name: match.name,
+          shortName: match.shortName || match.name,
+          gradeBadge: match.gradeBadge || "Premium Grade",
+          iconName: (match.iconName as any) || "Shield",
+          tagline: match.tagline || `${match.name} Hardware`,
+          description: match.description || `${match.name} architectural hardware solutions.`,
+          specs: Array.isArray(match.specs) ? match.specs : [],
+        };
+      }
+    }
+  } catch {}
+
+  // Match by exact slug in static registry
+  const bySlug = MATERIAL_REGISTRY.find((m) => m.slug === s || m.id.toLowerCase() === s);
   if (bySlug) return bySlug;
 
   // Match by id substring
@@ -83,6 +110,16 @@ export function resolveMaterialBySlug(slugOrId?: string): MaterialMeta {
 export function isProductOfMaterial(product: Product, targetMaterialIdOrSlug: string): boolean {
   if (!targetMaterialIdOrSlug) return true;
 
+  const target = targetMaterialIdOrSlug.toLowerCase().trim();
+
+  // Direct foreign key matching
+  if (product.materialId && (product.materialId.toLowerCase() === target || product.materialId === targetMaterialIdOrSlug)) {
+    return true;
+  }
+  if (product.materialObj && (product.materialObj.slug.toLowerCase() === target || product.materialObj.id.toLowerCase() === target)) {
+    return true;
+  }
+
   const meta = resolveMaterialBySlug(targetMaterialIdOrSlug);
   const targetId = meta.id.toLowerCase();
   const matField = (product.material || "").toLowerCase();
@@ -92,9 +129,14 @@ export function isProductOfMaterial(product: Product, targetMaterialIdOrSlug: st
     ? (product as any).specifications.material.toLowerCase()
     : "";
 
+  // Exact name or slug matching in product metadata
+  if (matField.includes(meta.name.toLowerCase()) || matField.includes(meta.slug)) {
+    return true;
+  }
+
   const combined = `${matField} ${specMat} ${nameField} ${descField}`;
 
-  if (targetId.includes("304")) {
+  if (targetId.includes("304") || target.includes("304")) {
     return (
       combined.includes("304") ||
       (combined.includes("stainless") && !combined.includes("316")) ||
@@ -102,7 +144,7 @@ export function isProductOfMaterial(product: Product, targetMaterialIdOrSlug: st
     );
   }
 
-  if (targetId.includes("316")) {
+  if (targetId.includes("316") || target.includes("316")) {
     return (
       combined.includes("316") ||
       combined.includes("marine grade") ||
@@ -110,11 +152,11 @@ export function isProductOfMaterial(product: Product, targetMaterialIdOrSlug: st
     );
   }
 
-  if (targetId.includes("alum")) {
+  if (targetId.includes("alum") || target.includes("alum")) {
     return combined.includes("alum") || combined.includes("extrusion") || combined.includes("track");
   }
 
-  if (targetId.includes("nylon") || targetId.includes("polyamide")) {
+  if (targetId.includes("nylon") || targetId.includes("polyamide") || target.includes("nylon")) {
     return (
       combined.includes("nylon") ||
       combined.includes("polyamide") ||
@@ -126,5 +168,5 @@ export function isProductOfMaterial(product: Product, targetMaterialIdOrSlug: st
     );
   }
 
-  return combined.includes(meta.slug) || combined.includes(targetId);
+  return combined.includes(meta.slug) || combined.includes(targetId) || combined.includes(meta.name.toLowerCase());
 }

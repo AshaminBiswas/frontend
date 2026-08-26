@@ -49,26 +49,104 @@ export function clearStoredTokens() {
   }
 }
 
+export function isTokenExpired(token?: string | null): boolean {
+  const t = token || getStoredToken();
+  if (!t) return true;
+  try {
+    const parts = t.split(".");
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1]));
+      // Buffer by 15 seconds to refresh before actual expiration
+      if (payload.exp && payload.exp * 1000 <= Date.now() + 15000) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+// ─── Proactive Token Refresh Mutex Lock ─────────────────────────────────────
+let refreshPromise: Promise<string | null> | null = null;
+
+export async function getFreshToken(): Promise<string | null> {
+  const token = getStoredToken();
+  const refreshToken = getStoredRefreshToken();
+
+  // Unauthenticated visitor
+  if (!token) return null;
+
+  // Token is still valid
+  if (!isTokenExpired(token)) return token;
+
+  // Expired with no refresh token
+  if (!refreshToken) {
+    clearStoredTokens();
+    return null;
+  }
+
+  // Deduplicate concurrent callers — all concurrent callers await the same refresh promise
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.success && data?.data?.accessToken) {
+        const newAccess = data.data.accessToken;
+        const newRefresh = data.data.refreshToken || refreshToken;
+        setStoredTokens(newAccess, newRefresh);
+        return newAccess;
+      } else {
+        clearStoredTokens();
+        return null;
+      }
+    } catch {
+      clearStoredTokens();
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 export async function fetchApi<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  const token = getStoredToken();
+  const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+
+  const isAuthEndpoint =
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/register") ||
+    endpoint.includes("/auth/refresh-token") ||
+    endpoint.includes("/auth/verify-otp") ||
+    endpoint.includes("/auth/forgot-password") ||
+    endpoint.includes("/auth/reset-password");
+
+  // Proactively ensure fresh access token before firing request
+  let activeToken: string | null = null;
+  if (!isAuthEndpoint) {
+    activeToken = await getFreshToken();
+  }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (activeToken) {
+    headers["Authorization"] = `Bearer ${activeToken}`;
   }
-
-  const isAuthEndpoint =
-    endpoint.includes("/auth/login") ||
-    endpoint.includes("/auth/register") ||
-    endpoint.includes("/auth/refresh-token");
 
   // Dynamic timeout controller (25s for auth cold starts, 20s for general requests)
   const timeoutMs = isAuthEndpoint ? 25000 : 20000;
@@ -85,15 +163,13 @@ export async function fetchApi<T = any>(
 
     const data: ApiResponse<T> = await response.json();
 
-    // Token expired or unauthorized (401) — attempt refresh token logic once if refresh token exists
-    if (!response.ok && response.status === 401 && endpoint !== "/auth/refresh-token" && endpoint !== "/auth/login") {
+    // Fallback if token was revoked server-side while in flight
+    if (!response.ok && response.status === 401 && !isAuthEndpoint) {
       const refreshToken = getStoredRefreshToken();
       if (refreshToken) {
-        const refreshed = await refreshAccessToken(refreshToken);
-        if (refreshed.success && refreshed.data?.accessToken) {
-          setStoredTokens(refreshed.data.accessToken, refreshed.data.refreshToken || refreshToken);
-          // Retry original request with new token
-          headers["Authorization"] = `Bearer ${refreshed.data.accessToken}`;
+        const newAccess = await getFreshToken();
+        if (newAccess) {
+          headers["Authorization"] = `Bearer ${newAccess}`;
           const retryCtrl = new AbortController();
           const retryTimeout = setTimeout(() => retryCtrl.abort(), 15000);
           try {
@@ -104,11 +180,7 @@ export async function fetchApi<T = any>(
             clearTimeout(retryTimeout);
             return { success: false, error: { code: "TIMEOUT", message: "Request timed out" } };
           }
-        } else {
-          clearStoredTokens();
         }
-      } else {
-        clearStoredTokens();
       }
     }
 
@@ -143,18 +215,5 @@ export async function fetchApi<T = any>(
           : error.message || "Failed to connect to PRC server. Please check your connection.",
       },
     };
-  }
-}
-
-async function refreshAccessToken(refreshToken: string): Promise<ApiResponse<{ accessToken: string; refreshToken?: string }>> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
-    return await res.json();
-  } catch {
-    return { success: false };
   }
 }
