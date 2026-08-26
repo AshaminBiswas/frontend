@@ -10,6 +10,7 @@ import { Product } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { isB2BUser } from '../../utils/pricing';
 import { notificationService } from '../../services/notificationService';
+import { getStoredToken } from '../../services/api';
 
 interface HeaderProps {
   cartCount: number;
@@ -43,17 +44,24 @@ export function Header({
   const isB2B = isB2BUser(user);
   const visibleNavLinks = NAV_LINKS.filter((link) => link !== 'B2B / Bulk' || isB2B);
 
-  // Poll unread notification count every 60s for authenticated users
-
-
+  // Poll unread notification count every 60s for authenticated users with valid token
   useEffect(() => {
-    if (!isAuthenticated) { setNotifCount(0); return; }
+    const token = getStoredToken();
+    if (!isAuthenticated || !token) {
+      setNotifCount(0);
+      return;
+    }
     const fetchCount = async () => {
+      const currentToken = getStoredToken();
+      if (!currentToken) {
+        setNotifCount(0);
+        return;
+      }
       try {
         const res = await notificationService.getAll({ limit: 1 });
         if (res.success && res.data) {
           setNotifCount(res.data.unreadCount ?? 0);
-        } else if (res.error?.code === 'HTTP_401') {
+        } else if (res.error?.code === 'HTTP_401' || res.error?.code === 'UNAUTHORIZED') {
           setNotifCount(0);
         }
       } catch {

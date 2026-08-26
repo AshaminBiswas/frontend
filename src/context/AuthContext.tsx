@@ -29,13 +29,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Initialize user state from persistent local storage
+  // Initialize user state from persistent local storage only if token exists
   const [user, setUser] = useState<User | null>(() => getStoredUser());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authModalView, setAuthModalView] = useState<AuthModalView>("login");
   const [pendingEmail, setPendingEmail] = useState<string>("");
   const [pendingPassword, setPendingPassword] = useState<string>("");
+
+  // Sync auth state when tokens are cleared across the application
+  useEffect(() => {
+    const handleAuthCleared = () => {
+      setUser(null);
+    };
+    window.addEventListener("prc_auth_cleared", handleAuthCleared);
+    return () => window.removeEventListener("prc_auth_cleared", handleAuthCleared);
+  }, []);
 
   // Check and restore session on page reload
   useEffect(() => {
@@ -44,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const savedUser = getStoredUser();
 
       if (!token) {
+        clearStoredTokens();
         setUser(null);
         setIsLoading(false);
         return;
@@ -289,7 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && !!getStoredToken(),
         isLoading,
         authModalOpen,
         authModalView,

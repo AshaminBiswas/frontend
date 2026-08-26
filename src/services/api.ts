@@ -19,6 +19,8 @@ export function getStoredRefreshToken(): string | null {
 }
 
 export function getStoredUser(): any | null {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) return null;
   const data = localStorage.getItem(USER_KEY);
   if (!data) return null;
   try {
@@ -42,6 +44,9 @@ export function clearStoredTokens() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("prc_auth_cleared"));
+  }
 }
 
 export async function fetchApi<T = any>(
@@ -80,7 +85,7 @@ export async function fetchApi<T = any>(
 
     const data: ApiResponse<T> = await response.json();
 
-    // Token expired (401) — attempt refresh token logic once if refresh token exists
+    // Token expired or unauthorized (401) — attempt refresh token logic once if refresh token exists
     if (!response.ok && response.status === 401 && endpoint !== "/auth/refresh-token" && endpoint !== "/auth/login") {
       const refreshToken = getStoredRefreshToken();
       if (refreshToken) {
@@ -102,6 +107,8 @@ export async function fetchApi<T = any>(
         } else {
           clearStoredTokens();
         }
+      } else {
+        clearStoredTokens();
       }
     }
 

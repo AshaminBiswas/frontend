@@ -3,6 +3,7 @@ import { Bell, BellOff, Package, Tag, Info, CheckCheck, Check } from 'lucide-rea
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { notificationService, Notification } from '../services/notificationService';
+import { getStoredToken } from '../services/api';
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -34,15 +35,24 @@ export function NotificationsPage() {
   const [marking, setMarking] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) { openAuthModal('login'); navigate('/', { replace: true }); return; }
+    const token = getStoredToken();
+    if (!isAuthenticated || !token) { openAuthModal('login'); navigate('/', { replace: true }); return; }
     load();
   }, [isAuthenticated]);
 
   const load = async () => {
     setLoading(true);
-    const res = await notificationService.getAll({ limit: 50 });
-    if (res.success && res.data) setNotifications(res.data.notifications ?? []);
-    setLoading(false);
+    try {
+      const res = await notificationService.getAll({ limit: 50 });
+      if (res.success && res.data) {
+        setNotifications(res.data.notifications ?? []);
+      } else if (res.error?.code === 'HTTP_401' || res.error?.code === 'UNAUTHORIZED') {
+        openAuthModal('login');
+        navigate('/', { replace: true });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMarkRead = async (id: string) => {
