@@ -128,14 +128,14 @@ html, body {
   display: flex;
   width: max-content;
   will-change: transform;
-  animation: marquee-scroll-left 70s linear infinite;
+  animation: marquee-scroll-left 220s linear infinite;
 }
 
 .animate-marquee-right {
   display: flex;
   width: max-content;
   will-change: transform;
-  animation: marquee-scroll-right 70s linear infinite;
+  animation: marquee-scroll-right 220s linear infinite;
 }
 
 .marquee-container:hover .animate-marquee-left,
@@ -145,10 +145,10 @@ html, body {
 
 @media (max-width: 640px) {
   .animate-marquee-left {
-    animation-duration: 55s;
+    animation-duration: 180s;
   }
   .animate-marquee-right {
-    animation-duration: 55s;
+    animation-duration: 180s;
   }
 }
 

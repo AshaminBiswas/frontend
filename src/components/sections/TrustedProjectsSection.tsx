@@ -154,17 +154,17 @@ interface ProjectChipProps {
 function ProjectChip({ name, tag }: ProjectChipProps) {
   return (
     <div
-      className="group relative inline-flex items-center gap-2.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-[#2A110B]/90 hover:bg-[#3D1810] border border-[#D39858]/25 hover:border-[#D39858] shadow-md hover:shadow-xl hover:shadow-[#D39858]/15 transition-all duration-300 ease-out hover:-translate-y-0.5 select-none cursor-pointer flex-shrink-0"
+      className="group relative inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-4 sm:py-2 rounded-full bg-[#34150F] hover:bg-[#4A1F17] border border-[#85431E]/40 hover:border-[#D39858] shadow-2xs hover:shadow-md hover:shadow-[#34150F]/15 transition-all duration-300 ease-out hover:-translate-y-0.5 select-none cursor-pointer flex-shrink-0"
     >
-      <span className="w-2 h-2 rounded-full bg-[#D39858] group-hover:scale-125 group-hover:bg-[#F2C082] transition-transform duration-300 shadow-xs shadow-[#D39858]/50 flex-shrink-0" />
+      <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-[#D39858] group-hover:scale-125 group-hover:bg-[#F2C082] transition-transform duration-300 shadow-xs shadow-[#D39858]/50 flex-shrink-0" />
       <span
-        className="text-xs sm:text-sm font-bold text-[#F5E6D3] group-hover:text-white tracking-wide whitespace-nowrap transition-colors"
+        className="text-[11px] sm:text-xs md:text-sm font-semibold text-[#FDFDF4] group-hover:text-white tracking-wide whitespace-nowrap transition-colors"
         style={{ fontFamily: "'Nunito', sans-serif" }}
       >
         {name}
       </span>
       {tag && (
-        <span className="text-[10px] sm:text-[11px] font-medium text-[#D39858]/80 group-hover:text-[#F2C082] bg-[#180A06]/60 group-hover:bg-[#180A06] px-2 py-0.5 rounded-full border border-[#D39858]/15 whitespace-nowrap transition-colors">
+        <span className="text-[8px] sm:text-[10px] md:text-[11px] font-medium text-[#EACEAA]/90 group-hover:text-[#F2C082] bg-[#1E0B07] px-1.5 py-0.5 rounded-full border border-[#D39858]/20 whitespace-nowrap transition-colors">
           {tag}
         </span>
       )}
@@ -174,43 +174,24 @@ function ProjectChip({ name, tag }: ProjectChipProps) {
 
 export function TrustedProjectsSection() {
   return (
-    <section className="relative bg-gradient-to-b from-[#1C0905] via-[#240D07] to-[#34150F] py-10 sm:py-14 md:py-18 overflow-hidden border-t border-b border-[#D39858]/15">
-      {/* Background Architectural Accent Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#D39858]/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#85431E]/10 rounded-full blur-3xl pointer-events-none" />
-
+    <section className="relative bg-[#f5e8d4] py-4 sm:py-8 md:py-12 overflow-hidden border-t border-b border-[#34150F]/10">
       {/* Header Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mb-8 sm:mb-12 text-center relative z-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-8 mb-3 sm:mb-6 text-center relative z-10">
         <Reveal>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D39858]/10 border border-[#D39858]/30 mb-3 sm:mb-4">
-            <Sparkles size={14} className="text-[#D39858]" />
-            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-[#D39858]">
-              Landmark Installations &amp; Enterprise Clients
-            </span>
-          </div>
-
           <h2
-            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#EACEAA] tracking-tight mb-2 sm:mb-3"
+            className="text-base xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-[#34150F] tracking-tight leading-tight"
             style={{ fontFamily: "'Gilda Display', serif" }}
           >
             Trusted by India&apos;s Iconic Institutions &amp; Landmark Projects
           </h2>
-
-          <p className="text-xs sm:text-sm md:text-base text-[#D39858]/80 max-w-3xl mx-auto leading-relaxed">
-            From the Parliament House, DMRC Metro Rail, and national stadiums to global IT campuses, healthcare networks, and luxury clubhouses — PRC Hardware powers India&apos;s most prestigious architectural projects.
-          </p>
         </Reveal>
       </div>
 
       {/* ─── Dual-Direction Auto-Scrolling Multi-Track Marquee ─── */}
-      <div className="relative w-full overflow-hidden space-y-3 sm:space-y-4 marquee-container">
-        {/* Left & Right Gradient Fog Masks for Seamless Edge Fade */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-36 bg-gradient-to-r from-[#1C0905] via-[#1C0905]/80 to-transparent z-20" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-36 bg-gradient-to-l from-[#1C0905] via-[#1C0905]/80 to-transparent z-20" />
-
+      <div className="relative w-full overflow-hidden space-y-1.5 sm:space-y-3 marquee-container">
         {/* ═══ TRACK 1: Moving Right-to-Left ═══ */}
-        <div className="flex overflow-hidden py-1">
-          <div className="animate-marquee-left flex gap-3 sm:gap-4 items-center">
+        <div className="flex overflow-hidden py-0.5 sm:py-1">
+          <div className="animate-marquee-left flex gap-1.5 sm:gap-3 items-center">
             {TRACK_1_PROJECTS.map((item, idx) => (
               <ProjectChip key={`t1-a-${idx}`} name={item.name} tag={item.tag} />
             ))}
@@ -222,8 +203,8 @@ export function TrustedProjectsSection() {
         </div>
 
         {/* ═══ TRACK 2: Moving Left-to-Right ═══ */}
-        <div className="flex overflow-hidden py-1">
-          <div className="animate-marquee-right flex gap-3 sm:gap-4 items-center">
+        <div className="flex overflow-hidden py-0.5 sm:py-1">
+          <div className="animate-marquee-right flex gap-1.5 sm:gap-3 items-center">
             {TRACK_2_PROJECTS.map((item, idx) => (
               <ProjectChip key={`t2-a-${idx}`} name={item.name} tag={item.tag} />
             ))}
@@ -235,8 +216,8 @@ export function TrustedProjectsSection() {
         </div>
 
         {/* ═══ TRACK 3: Moving Right-to-Left ═══ */}
-        <div className="flex overflow-hidden py-1">
-          <div className="animate-marquee-left flex gap-3 sm:gap-4 items-center">
+        <div className="flex overflow-hidden py-0.5 sm:py-1">
+          <div className="animate-marquee-left flex gap-1.5 sm:gap-3 items-center">
             {TRACK_3_PROJECTS.map((item, idx) => (
               <ProjectChip key={`t3-a-${idx}`} name={item.name} tag={item.tag} />
             ))}
@@ -249,17 +230,17 @@ export function TrustedProjectsSection() {
       </div>
 
       {/* Subtle Bottom Trust Metric Bar */}
-      <div className="max-w-4xl mx-auto px-4 mt-8 sm:mt-10 pt-6 border-t border-[#D39858]/10 flex flex-wrap items-center justify-around gap-4 text-center text-xs text-[#D39858]/90 font-medium">
-        <div className="flex items-center gap-2">
-          <Building2 size={16} className="text-[#D39858]" />
+      <div className="max-w-4xl mx-auto px-3 mt-3 sm:mt-6 pt-3 sm:pt-4 border-t border-[#34150F]/10 flex flex-wrap items-center justify-around gap-2 sm:gap-4 text-center text-[10px] sm:text-xs text-[#85431E] font-semibold">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#85431E]" />
           <span>150+ Landmark Commercial &amp; Govt Projects</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Landmark size={16} className="text-[#D39858]" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Landmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#85431E]" />
           <span>Central Vista &amp; Parliament Trusted Partner</span>
         </div>
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={16} className="text-[#D39858]" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#85431E]" />
           <span>Grade-A Architectural Specifications</span>
         </div>
       </div>
