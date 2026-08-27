@@ -1,15 +1,12 @@
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Percent } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
 import { Product } from "../../types";
 import { ProductCard } from "../product/ProductCard";
 import { fetchApi } from "../../services/api";
-import { couponService, Coupon } from "../../services/couponService";
 import { subscribeToProductSync } from "../../services/productSyncService";
 import { normalizeRawProduct } from "../../utils/productUtils";
 import { useInView } from "../../hooks/useInView";
-
-import { DEFAULT_SHOWCASE_PRODUCTS } from "../../data/products";
 
 interface SuperSaverSectionProps {
   onAddToCart: (p: Product) => void;
@@ -27,15 +24,13 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
 
   const loadOffers = async () => {
     try {
-      const [pRes, cRes] = await Promise.allSettled([
-        fetchApi<any>("/products?limit=100"),
-        couponService.getPublicCoupons(),
-      ]);
+      // Strictly fetch only products flagged as isInOffer=true
+      const res = await fetchApi<any>("/products?isInOffer=true&limit=20&status=ACTIVE");
 
-      let rawProducts: any[] = [];
-      if (pRes.status === "fulfilled" && pRes.value && pRes.value.success && pRes.value.data) {
-        const d = pRes.value.data;
-        rawProducts = Array.isArray(d.products)
+      let rawList: any[] = [];
+      if (res && res.success && res.data) {
+        const d = res.data;
+        rawList = Array.isArray(d.products)
           ? d.products
           : Array.isArray(d)
           ? d
@@ -44,39 +39,15 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           : [];
       }
 
-      // Collect target product IDs from active public coupons
-      const targetCouponProductIds = new Set<string>();
-      if (cRes.status === "fulfilled" && cRes.value && cRes.value.success && Array.isArray(cRes.value.data)) {
-        cRes.value.data.forEach((coupon: any) => {
-          if (Array.isArray(coupon.applicableProductIds)) {
-            coupon.applicableProductIds.forEach((pid: string) => targetCouponProductIds.add(String(pid)));
-          }
-        });
-      }
-
-      if (rawProducts.length > 0) {
-        const normalized = rawProducts.map(normalizeRawProduct);
-
-        // Filter products with active offers, selective coupon links, or discounted rates
-        const markedOffers = normalized.filter((p) => {
-          const isMarked = p.isInOffer === true;
-          const hasOfferTag = Array.isArray(p.tags) && p.tags.some((t: string) => {
-            const s = String(t).toLowerCase();
-            return s.includes("offer") || s.includes("sale") || s.includes("deal") || s.includes("saver");
-          });
-          const hasDiscount = (p.discount && p.discount > 0) || (p.regularPrice && p.price && p.regularPrice > p.price);
-          const isCouponTarget = targetCouponProductIds.has(String(p.id)) || (p.apiId ? targetCouponProductIds.has(String(p.apiId)) : false);
-          return isMarked || hasOfferTag || hasDiscount || isCouponTarget;
-        });
-
+      if (rawList.length > 0) {
+        const normalized = rawList.map(normalizeRawProduct);
         // Sort by highest discount rate
-        markedOffers.sort((a, b) => (b.discount || 0) - (a.discount || 0));
-
-        setOfferProducts(markedOffers);
+        normalized.sort((a, b) => (b.discount || 0) - (a.discount || 0));
+        setOfferProducts(normalized);
       } else {
         setOfferProducts([]);
       }
-    } catch (err) {
+    } catch {
       setOfferProducts([]);
     } finally {
       setLoading(false);
@@ -88,7 +59,6 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
     return subscribeToProductSync(loadOffers);
   }, []);
 
-  // Native GPU-accelerated smooth 1-card scroll
   const scroll = (direction: number) => {
     if (scrollRef.current) {
       const card = scrollRef.current.querySelector<HTMLElement>(":scope > div");
@@ -97,6 +67,7 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
     }
   };
 
+  // Hide section entirely when loading is done and no products are assigned
   if (!loading && offerProducts.length === 0) return null;
 
   return (
@@ -122,7 +93,6 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           </div>
         </div>
 
-        {/* Clicking View All navigates directly to /offers */}
         <Link
           to="/offers"
           className="group relative inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm font-bold text-[#85431E] hover:text-[#34150F] px-2.5 py-1 sm:px-4 sm:py-2 rounded-full border border-[#85431E]/20 hover:border-[#34150F] transition-all duration-300 ease-out hover:bg-[#34150F]/5 shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
@@ -138,7 +108,6 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         }`}
       >
-        {/* Left Arrow Button */}
         <button
           type="button"
           onClick={() => scroll(-1)}
@@ -148,7 +117,6 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           <ChevronLeft size={20} />
         </button>
 
-        {/* Native GPU-Accelerated Smooth Horizontal Track */}
         <div
           ref={scrollRef}
           className="flex gap-2 sm:gap-5 overflow-x-auto scroll-smooth scrollbar-hide py-2 sm:py-4 px-0.5 sm:px-1"
@@ -162,17 +130,11 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
                 key={p.apiId || p.id}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                style={{
-                  transitionDelay: visible ? `${idx * 45}ms` : "0ms",
-                }}
+                style={{ transitionDelay: visible ? `${idx * 45}ms` : "0ms" }}
                 className={`flex-shrink-0 w-[145px] xs:w-[160px] sm:w-[260px] md:w-[300px] lg:w-[calc(25%-15px)] transition-all duration-500 ease-out ${
                   visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 } ${
-                  isHovered
-                    ? "scale-105 z-20 opacity-100"
-                    : isOtherHovered
-                    ? "scale-95 opacity-40"
-                    : "scale-100"
+                  isHovered ? "scale-105 z-20 opacity-100" : isOtherHovered ? "scale-95 opacity-40" : "scale-100"
                 }`}
               >
                 <ProductCard
@@ -190,7 +152,6 @@ export function SuperSaverSection({ onAddToCart, onWishlist, wishlist }: SuperSa
           })}
         </div>
 
-        {/* Right Arrow Button */}
         <button
           type="button"
           onClick={() => scroll(1)}

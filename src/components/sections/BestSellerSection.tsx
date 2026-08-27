@@ -8,8 +8,6 @@ import { subscribeToProductSync } from "../../services/productSyncService";
 import { normalizeRawProduct } from "../../utils/productUtils";
 import { useInView } from "../../hooks/useInView";
 
-import { DEFAULT_SHOWCASE_PRODUCTS } from "../../data/products";
-
 interface BestSellerSectionProps {
   onAddToCart: (p: Product) => void;
   onWishlist: (productOrId: Product | number | string) => void;
@@ -25,7 +23,8 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
   const [hoveredId, setHoveredId] = useState<number | string | null>(null);
 
   const loadBestSellers = () => {
-    fetchApi<any>("/products?limit=100")
+    // Strictly fetch only products flagged as isBestseller=true
+    fetchApi<any>("/products?isBestseller=true&limit=20&status=ACTIVE")
       .then((res) => {
         if (res && res.success && res.data) {
           const rawList = Array.isArray(res.data.products)
@@ -37,11 +36,7 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
             : [];
 
           if (rawList.length > 0) {
-            const normalized = rawList.map(normalizeRawProduct);
-            const marked = normalized.filter(
-              (p) => Boolean(p.isBestseller) || Boolean((p as any).isBestsaller) || (Array.isArray(p.tags) && p.tags.includes("bestseller"))
-            );
-            setBestSellers(marked);
+            setBestSellers(rawList.map(normalizeRawProduct));
           } else {
             setBestSellers([]);
           }
@@ -62,7 +57,6 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
     return subscribeToProductSync(loadBestSellers);
   }, []);
 
-  // Native GPU-accelerated smooth 1-card scroll
   const scroll = (direction: number) => {
     if (scrollRef.current) {
       const card = scrollRef.current.querySelector<HTMLElement>(":scope > div");
@@ -71,6 +65,7 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
     }
   };
 
+  // Hide section entirely when loading is done and no products are assigned
   if (!loading && bestSellers.length === 0) return null;
 
   return (
@@ -91,7 +86,6 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
           </h2>
         </div>
 
-        {/* Clicking View All navigates directly to /bestsellers */}
         <Link
           to="/bestsellers"
           className="group relative inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs md:text-sm font-bold text-[#85431E] hover:text-[#34150F] px-2.5 py-1 sm:px-4 sm:py-2 rounded-full border border-[#85431E]/20 hover:border-[#34150F] transition-all duration-300 ease-out hover:bg-[#34150F]/5 shadow-2xs hover:shadow-xs active:scale-95 shrink-0"
@@ -107,7 +101,6 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
           visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
         }`}
       >
-        {/* Left Arrow Button */}
         <button
           type="button"
           onClick={() => scroll(-1)}
@@ -117,7 +110,6 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
           <ChevronLeft size={20} />
         </button>
 
-        {/* Native GPU-Accelerated Smooth Horizontal Track */}
         <div
           ref={scrollRef}
           className="flex gap-2 sm:gap-5 overflow-x-auto scroll-smooth scrollbar-hide py-2 sm:py-4 px-0.5 sm:px-1"
@@ -131,17 +123,11 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
                 key={p.apiId || p.id}
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
-                style={{
-                  transitionDelay: visible ? `${idx * 45}ms` : "0ms",
-                }}
+                style={{ transitionDelay: visible ? `${idx * 45}ms` : "0ms" }}
                 className={`flex-shrink-0 w-[145px] xs:w-[160px] sm:w-[260px] md:w-[300px] lg:w-[calc(25%-15px)] transition-all duration-500 ease-out ${
                   visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 } ${
-                  isHovered
-                    ? "scale-105 z-20 opacity-100"
-                    : isOtherHovered
-                    ? "scale-95 opacity-40"
-                    : "scale-100"
+                  isHovered ? "scale-105 z-20 opacity-100" : isOtherHovered ? "scale-95 opacity-40" : "scale-100"
                 }`}
               >
                 <ProductCard
@@ -159,7 +145,6 @@ export function BestSellerSection({ onAddToCart, onWishlist, wishlist }: BestSel
           })}
         </div>
 
-        {/* Right Arrow Button */}
         <button
           type="button"
           onClick={() => scroll(1)}
