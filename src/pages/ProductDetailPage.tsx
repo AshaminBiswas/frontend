@@ -262,10 +262,9 @@ export function ProductDetailPage({
     "Mounting Type": typeof (product as any).attributes?.MountingType === 'object'
       ? String((product as any).attributes.MountingType.name || "Concealed Screw Fastening")
       : String((product as any).attributes?.MountingType || "Concealed Screw Fastening"),
-    "Dimensions (L x W x H)": typeof product.dimensions === 'object' && product.dimensions !== null
-      ? `${(product.dimensions as any).length || 20} x ${(product.dimensions as any).width || 5} x ${(product.dimensions as any).height || 3} ${(product.dimensions as any).unit || "cm"}`
-      : String(product.dimensions || "20 x 5 x 3.5 cm"),
-    "Weight": typeof product.weight === 'object' ? String((product.weight as any).value || "0.450 kg") : (product.weight ? `${product.weight} kg` : "0.450 kg"),
+    "Weight": typeof product.weight === 'object'
+      ? String((product.weight as any).value || "450 g")
+      : (product.weight ? (Number(product.weight) < 10 ? `${Math.round(Number(product.weight) * 1000)} g` : `${product.weight} g`) : "450 g"),
     "Warranty": typeof product.warranty === 'object' ? String((product.warranty as any).name || "2 Years Guarantee") : String(product.warranty || "2 Years Manufacturer Guarantee"),
   };
 

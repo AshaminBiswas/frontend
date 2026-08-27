@@ -7,6 +7,7 @@ import { CubicleHardwareSection } from "../components/sections/CubicleHardwareSe
 import { ValueMoneySection } from "../components/sections/ValueMoneySection";
 import { LockerHardwareSection } from "../components/sections/LockerHardwareSection";
 import { BestSellerSection } from "../components/sections/BestSellerSection";
+import { TrustedProjectsSection } from "../components/sections/TrustedProjectsSection";
 import { TestimonialSection } from "../components/sections/TestimonialSection";
 
 interface HomePageProps {
@@ -64,7 +65,10 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
         />
       </div>
 
-      {/* 9. Testimonials */}
+      {/* 9. Trusted Landmark Clients & Completed Projects */}
+      <TrustedProjectsSection />
+
+      {/* 10. Testimonials */}
       <TestimonialSection />
     </>
   );

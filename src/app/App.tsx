@@ -12,44 +12,40 @@ import { SearchOverlay } from '../components/search/SearchOverlay';
 import { MobileBottomNav } from '../components/layout/MobileBottomNav';
 import { getAllProductsApi } from '../services/productService';
 import { PageSkeleton } from '../components/common/PageSkeleton';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 
-// ─── Code-Split Page Routes with React.lazy() ─────────────────────────────────
+// ─── Code-Split Page Routes with lazyWithRetry() ─────────────────────────────
 
-const HomePage = lazy(() => import('../pages/HomePage').then((m) => ({ default: m.HomePage })));
-const ProductsCatalogPage = lazy(() => import('../pages/ProductsCatalogPage').then((m) => ({ default: m.ProductsCatalogPage })));
-const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
-const CategoriesPage = lazy(() => import('../pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
-const CategoryProductsPage = lazy(() => import('../pages/CategoryProductsPage').then((m) => ({ default: m.CategoryProductsPage })));
-const MaterialProductsPage = lazy(() => import('../pages/MaterialProductsPage').then((m) => ({ default: m.MaterialProductsPage })));
-const CartPage = lazy(() => import('../pages/CartPage').then((m) => ({ default: m.CartPage })));
-const CheckoutPage = lazy(() => import('../pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
-const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
-const ProfilePage = lazy(() => import('../pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
-const AppointmentsPage = lazy(() => import('../pages/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })));
-const RequestQuotePage = lazy(() => import('../pages/RequestQuotePage').then((m) => ({ default: m.RequestQuotePage })));
-const CustomerQuoteApprovalPage = lazy(() => import('../pages/CustomerQuoteApprovalPage').then((m) => ({ default: m.CustomerQuoteApprovalPage })));
+const HomePage = lazyWithRetry(() => import('../pages/HomePage').then((m) => ({ default: m.HomePage })));
+const ProductsCatalogPage = lazyWithRetry(() => import('../pages/ProductsCatalogPage').then((m) => ({ default: m.ProductsCatalogPage })));
+const ProductDetailPage = lazyWithRetry(() => import('../pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
+const CategoriesPage = lazyWithRetry(() => import('../pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
+const CategoryProductsPage = lazyWithRetry(() => import('../pages/CategoryProductsPage').then((m) => ({ default: m.CategoryProductsPage })));
+const MaterialProductsPage = lazyWithRetry(() => import('../pages/MaterialProductsPage').then((m) => ({ default: m.MaterialProductsPage })));
+const CartPage = lazyWithRetry(() => import('../pages/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = lazyWithRetry(() => import('../pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const OrderSuccessPage = lazyWithRetry(() => import('../pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
+const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const AppointmentsPage = lazyWithRetry(() => import('../pages/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })));
+const RequestQuotePage = lazyWithRetry(() => import('../pages/RequestQuotePage').then((m) => ({ default: m.RequestQuotePage })));
+const CustomerQuoteApprovalPage = lazyWithRetry(() => import('../pages/CustomerQuoteApprovalPage').then((m) => ({ default: m.CustomerQuoteApprovalPage })));
 
-
-
-
-
-
-const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
-const WishlistPage = lazy(() => import('../pages/WishlistPage').then((m) => ({ default: m.WishlistPage })));
-const BestSellersPage = lazy(() => import('../pages/BestSellersPage').then((m) => ({ default: m.BestSellersPage })));
-const NewArrivalsPage = lazy(() => import('../pages/NewArrivalsPage').then((m) => ({ default: m.NewArrivalsPage })));
-const OffersPage = lazy(() => import('../pages/OffersPage').then((m) => ({ default: m.OffersPage })));
-const NotificationsPage = lazy(() => import('../pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
-const TrackOrderPage = lazy(() => import('../pages/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage })));
-const AboutPage = lazy(() => import('../pages/AboutPage').then((m) => ({ default: m.AboutPage })));
-const ContactPage = lazy(() => import('../pages/ContactPage').then((m) => ({ default: m.ContactPage })));
-const PolicyPage = lazy(() => import('../pages/PolicyPage').then((m) => ({ default: m.PolicyPage })));
-const PrivacyPolicyPage = lazy(() => import('../pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
-const RefundPolicyPage = lazy(() => import('../pages/RefundPolicyPage').then((m) => ({ default: m.RefundPolicyPage })));
-const ShippingPolicyPage = lazy(() => import('../pages/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage })));
-const TermsOfServicePage = lazy(() => import('../pages/TermsOfServicePage').then((m) => ({ default: m.TermsOfServicePage })));
-const FaqPage = lazy(() => import('../pages/FaqPage').then((m) => ({ default: m.FaqPage })));
-const WarrantyClaimPage = lazy(() => import('../pages/WarrantyClaimPage').then((m) => ({ default: m.WarrantyClaimPage })));
+const NotFoundPage = lazyWithRetry(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const WishlistPage = lazyWithRetry(() => import('../pages/WishlistPage').then((m) => ({ default: m.WishlistPage })));
+const BestSellersPage = lazyWithRetry(() => import('../pages/BestSellersPage').then((m) => ({ default: m.BestSellersPage })));
+const NewArrivalsPage = lazyWithRetry(() => import('../pages/NewArrivalsPage').then((m) => ({ default: m.NewArrivalsPage })));
+const OffersPage = lazyWithRetry(() => import('../pages/OffersPage').then((m) => ({ default: m.OffersPage })));
+const NotificationsPage = lazyWithRetry(() => import('../pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+const TrackOrderPage = lazyWithRetry(() => import('../pages/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage })));
+const AboutPage = lazyWithRetry(() => import('../pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazyWithRetry(() => import('../pages/ContactPage').then((m) => ({ default: m.ContactPage })));
+const PolicyPage = lazyWithRetry(() => import('../pages/PolicyPage').then((m) => ({ default: m.PolicyPage })));
+const PrivacyPolicyPage = lazyWithRetry(() => import('../pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
+const RefundPolicyPage = lazyWithRetry(() => import('../pages/RefundPolicyPage').then((m) => ({ default: m.RefundPolicyPage })));
+const ShippingPolicyPage = lazyWithRetry(() => import('../pages/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage })));
+const TermsOfServicePage = lazyWithRetry(() => import('../pages/TermsOfServicePage').then((m) => ({ default: m.TermsOfServicePage })));
+const FaqPage = lazyWithRetry(() => import('../pages/FaqPage').then((m) => ({ default: m.FaqPage })));
+const WarrantyClaimPage = lazyWithRetry(() => import('../pages/WarrantyClaimPage').then((m) => ({ default: m.WarrantyClaimPage })));
 
 // Error Boundary Component to prevent white screens on reload
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
