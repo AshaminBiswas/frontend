@@ -5,10 +5,13 @@ import {
   Sparkles,
   RotateCcw,
   ExternalLink,
+  ChevronLeft,
   ChevronRight,
   ZoomIn,
   ZoomOut,
+  X,
 } from "lucide-react";
+import { useDraggableScroll } from "../../hooks/useDraggableScroll";
 import { ProjectLocationCluster } from "../../types/project";
 import INDIA_VECTOR from "../../data/india-exact-vector.json";
 
@@ -49,6 +52,15 @@ export function IndiaMap({
   onSelectProject,
 }: IndiaMapProps) {
   const [hoveredCluster, setHoveredCluster] = useState<ProjectLocationCluster | null>(null);
+
+  // Desktop draggable scroll for Quick Hubs rail
+  const {
+    containerRef: hubsRef,
+    isDragging: isDraggingHubs,
+    hasMoved: hasMovedHubs,
+    scrollBy: scrollHubsBy,
+    dragProps: hubsDragProps,
+  } = useDraggableScroll<HTMLDivElement>();
 
   // ─── Zoom & Pan States ───
   const [zoom, setZoom] = useState<number>(1);
@@ -294,45 +306,83 @@ export function IndiaMap({
         </div>
       </div>
 
-      {/* ─── Quick City Filter Chips (Mobile & Desktop) ─── */}
-      <div className="relative z-20 flex items-center gap-2 overflow-x-auto scrollbar-hide pb-3 mb-2">
-        <span className="text-[11px] font-bold text-[#D39858] uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
+      {/* ─── Quick City Filter Chips (Draggable on Desktop & Touch on Mobile) ─── */}
+      <div className="relative group/hubs z-20 flex items-center mb-2 pb-1">
+        <span className="text-[11px] font-bold text-[#D39858] uppercase tracking-wider flex-shrink-0 flex items-center gap-1 mr-2 select-none">
           <MapPin size={12} /> Hubs:
         </span>
+
+        {/* Left Scroll Arrow (Desktop) */}
         <button
           type="button"
-          onClick={handleReset}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex-shrink-0 ${
-            !selectedCity && zoom === 1
-              ? "bg-[#D39858] text-[#34150F]"
-              : "bg-[#34150F] text-[#EACEAA]/80 hover:bg-[#85431E] border border-[#D39858]/20"
+          onClick={() => scrollHubsBy(-180)}
+          className="hidden md:flex absolute left-14 z-20 w-6 h-6 rounded-full bg-[#180805]/95 border border-[#D39858]/50 text-[#EACEAA] hover:scale-110 active:scale-95 transition-all opacity-0 group-hover/hubs:opacity-100 shadow-lg items-center justify-center"
+          aria-label="Scroll hubs left"
+          title="Scroll left"
+        >
+          <ChevronLeft size={13} />
+        </button>
+
+        {/* Draggable Hubs Container */}
+        <div
+          ref={hubsRef}
+          {...hubsDragProps}
+          className={`flex items-center gap-2 overflow-x-auto scrollbar-hide py-1 select-none w-full ${
+            isDraggingHubs ? "cursor-grabbing" : "cursor-grab"
           }`}
         >
-          All India
-        </button>
-        {topHubs.map((hub) => (
           <button
-            key={hub.city}
             type="button"
-            onClick={() => onSelectCity(selectedCity === hub.city ? null : hub.city)}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex-shrink-0 flex items-center gap-1.5 ${
-              selectedCity === hub.city
-                ? "bg-[#D39858] text-[#34150F] shadow-md"
+            onClick={() => {
+              if (hasMovedHubs.current) return;
+              handleReset();
+            }}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex-shrink-0 select-none ${
+              !selectedCity && zoom === 1
+                ? "bg-[#D39858] text-[#34150F]"
                 : "bg-[#34150F] text-[#EACEAA]/80 hover:bg-[#85431E] border border-[#D39858]/20"
             }`}
           >
-            <span>{hub.city}</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+            All India
+          </button>
+          {topHubs.map((hub) => (
+            <button
+              key={hub.city}
+              type="button"
+              onClick={() => {
+                if (hasMovedHubs.current) return;
+                onSelectCity(selectedCity === hub.city ? null : hub.city);
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex-shrink-0 flex items-center gap-1.5 select-none ${
                 selectedCity === hub.city
-                  ? "bg-[#34150F] text-[#EACEAA]"
-                  : "bg-[#D39858]/20 text-[#D39858]"
+                  ? "bg-[#D39858] text-[#34150F] shadow-md"
+                  : "bg-[#34150F] text-[#EACEAA]/80 hover:bg-[#85431E] border border-[#D39858]/20"
               }`}
             >
-              {hub.count}
-            </span>
-          </button>
-        ))}
+              <span>{hub.city}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  selectedCity === hub.city
+                    ? "bg-[#34150F] text-[#EACEAA]"
+                    : "bg-[#D39858]/20 text-[#D39858]"
+                }`}
+              >
+                {hub.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right Scroll Arrow (Desktop) */}
+        <button
+          type="button"
+          onClick={() => scrollHubsBy(180)}
+          className="hidden md:flex absolute right-0 z-20 w-6 h-6 rounded-full bg-[#180805]/95 border border-[#D39858]/50 text-[#EACEAA] hover:scale-110 active:scale-95 transition-all opacity-0 group-hover/hubs:opacity-100 shadow-lg items-center justify-center"
+          aria-label="Scroll hubs right"
+          title="Scroll right"
+        >
+          <ChevronRight size={13} />
+        </button>
       </div>
 
       {/* ─── Main Architectural Zoomable Canvas Container ─── */}
@@ -349,20 +399,20 @@ export function IndiaMap({
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
-        {/* Floating Zoom Navigation Controls (+, -, Reset) */}
-        <div className="absolute top-3 right-3 z-30 flex flex-col items-center gap-1.5 p-1.5 rounded-2xl bg-[#180805]/90 backdrop-blur-md border border-[#D39858]/40 shadow-xl">
+        {/* Floating Zoom Navigation Controls (+, -, Reset) - Bottom on Mobile, Top-Right on Desktop */}
+        <div className="absolute bottom-2 right-2 sm:bottom-auto sm:top-3 sm:right-3 z-30 flex flex-row sm:flex-col items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-[#180805]/90 backdrop-blur-md border border-[#D39858]/40 shadow-xl">
           <button
             type="button"
             onClick={handleZoomIn}
             disabled={zoom >= MAX_ZOOM}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-[#EACEAA] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/15 text-[#EACEAA] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Zoom In"
             aria-label="Zoom in"
           >
-            <ZoomIn size={16} />
+            <ZoomIn size={14} className="sm:w-4 sm:h-4" />
           </button>
 
-          <span className="text-[10px] font-black text-[#D39858] px-1 select-none">
+          <span className="text-[9px] sm:text-[10px] font-black text-[#D39858] px-1 select-none">
             {Math.round(zoom * 100)}%
           </span>
 
@@ -370,23 +420,23 @@ export function IndiaMap({
             type="button"
             onClick={handleZoomOut}
             disabled={zoom <= MIN_ZOOM}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-[#EACEAA] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/15 text-[#EACEAA] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title="Zoom Out"
             aria-label="Zoom out"
           >
-            <ZoomOut size={16} />
+            <ZoomOut size={14} className="sm:w-4 sm:h-4" />
           </button>
 
-          <div className="w-4 h-[1px] bg-[#D39858]/30 my-0.5" />
+          <div className="w-[1px] h-3 sm:w-4 sm:h-[1px] bg-[#D39858]/30 mx-0.5 sm:my-0.5" />
 
           <button
             type="button"
             onClick={handleReset}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-[#EACEAA] transition-colors"
+            className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/15 text-[#EACEAA] transition-colors"
             title="Reset to Full India View"
             aria-label="Reset zoom"
           >
-            <RotateCcw size={14} />
+            <RotateCcw size={13} className="sm:w-3.5 sm:h-3.5" />
           </button>
         </div>
 
@@ -589,31 +639,41 @@ export function IndiaMap({
           </g>
         </svg>
 
-        {/* ─── Interactive City Project Spotlight Card (Floating overlay) ─── */}
+        {/* ─── Interactive City Project Spotlight Card (Compact on Mobile) ─── */}
         {activeCluster && (
-          <div className="absolute bottom-2 left-2 right-2 sm:left-auto sm:right-4 sm:bottom-4 z-30 w-auto sm:w-80 max-w-full p-3.5 sm:p-4 rounded-2xl bg-[#180805]/95 backdrop-blur-md border border-[#D39858] shadow-2xl text-left text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-between pb-2 border-b border-[#D39858]/30 mb-2.5">
-              <div className="flex items-center gap-2">
-                <MapPin size={16} className="text-[#D39858]" />
-                <div>
-                  <h4 className="font-extrabold text-[#EACEAA] text-sm leading-none">
+          <div className="absolute bottom-2 left-2 sm:left-auto sm:right-4 sm:bottom-4 z-30 w-52 sm:w-80 max-w-[calc(100%-145px)] sm:max-w-none p-2 sm:p-4 rounded-xl sm:rounded-2xl bg-[#180805]/95 backdrop-blur-md border border-[#D39858] shadow-2xl text-left text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-center justify-between pb-1 sm:pb-2 border-b border-[#D39858]/30 mb-1 sm:mb-2">
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0 pr-1">
+                <MapPin size={13} className="text-[#D39858] flex-shrink-0" />
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-[#EACEAA] text-[11px] sm:text-sm leading-none truncate">
                     {activeCluster.city}
                   </h4>
-                  <p className="text-[10px] text-[#D39858] mt-0.5">{activeCluster.state}</p>
+                  <p className="text-[8px] sm:text-[10px] text-[#D39858] mt-0.5 truncate">{activeCluster.state}</p>
                 </div>
               </div>
-              <span className="text-[11px] font-extrabold bg-[#D39858] text-[#34150F] px-2 py-0.5 rounded-full">
-                {activeCluster.count} Project{activeCluster.count !== 1 ? "s" : ""}
-              </span>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-[9px] sm:text-[11px] font-extrabold bg-[#D39858] text-[#34150F] px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full">
+                  {activeCluster.count}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onSelectCity(null)}
+                  className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Close popup"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             </div>
 
-            <p className="text-[11px] text-[#EACEAA]/80 mb-2 font-medium">Landmark Installations:</p>
-            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-              {activeCluster.sampleProjects.map((p) => (
+            <p className="hidden sm:block text-[11px] text-[#EACEAA]/80 mb-1.5 font-medium">Landmark Installations:</p>
+            <div className="space-y-1 max-h-16 sm:max-h-36 overflow-y-auto pr-0.5">
+              {activeCluster.sampleProjects.slice(0, 3).map((p) => (
                 <div
                   key={p.id}
                   onClick={() => onSelectProject && onSelectProject(p.id)}
-                  className="flex items-center gap-2 p-1.5 rounded-lg bg-[#34150F]/70 hover:bg-[#85431E]/60 cursor-pointer transition-colors border border-white/5"
+                  className="flex items-center gap-1.5 p-1 rounded-lg bg-[#34150F]/70 hover:bg-[#85431E]/60 cursor-pointer transition-colors border border-white/5"
                 >
                   <img
                     src={
@@ -621,35 +681,38 @@ export function IndiaMap({
                       "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=100&auto=format&fit=crop"
                     }
                     alt={p.name}
-                    className="w-7 h-7 rounded object-cover flex-shrink-0"
+                    className="w-5 h-5 sm:w-7 sm:h-7 rounded object-cover flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#FDFDF4] truncate text-[11px]">{p.name}</p>
-                    <p className="text-[9px] text-[#D39858] truncate">{p.clientName}</p>
+                    <p className="font-bold text-[#FDFDF4] truncate text-[9.5px] sm:text-[11px]">{p.name}</p>
+                    <p className="text-[8px] sm:text-[9px] text-[#D39858] truncate">{p.clientName}</p>
                   </div>
-                  <ChevronRight size={12} className="text-[#EACEAA]/50 flex-shrink-0" />
+                  <ChevronRight size={10} className="text-[#EACEAA]/50 flex-shrink-0" />
                 </div>
               ))}
             </div>
 
-            <div className="pt-2.5 mt-2.5 border-t border-[#D39858]/20 flex items-center justify-between">
+            <div className="pt-1 sm:pt-2 mt-1 sm:mt-2 border-t border-[#D39858]/20 flex items-center justify-between">
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                   `${activeCluster.city}, ${activeCluster.state}, India`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D39858] hover:underline"
+                className="inline-flex items-center gap-1 text-[8.5px] sm:text-[11px] font-bold text-[#D39858] hover:underline"
               >
-                <span>Open in Google Maps</span>
-                <ExternalLink size={11} />
+                <span>Google Maps</span>
+                <ExternalLink size={9} />
               </a>
               <button
                 type="button"
-                onClick={handleReset}
-                className="text-[10px] text-gray-400 hover:text-white"
+                onClick={() => {
+                  const el = document.getElementById("portfolio-grid");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="text-[8.5px] sm:text-[10px] text-[#EACEAA]/80 hover:text-white font-semibold hover:underline"
               >
-                Clear
+                View List ↓
               </button>
             </div>
           </div>
