@@ -19,7 +19,7 @@ interface HomePageProps {
 
 export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }: HomePageProps) {
   return (
-    <>
+    <div className="bg-[#DBBF9E] w-full min-h-screen" style={{ backgroundColor: "#DBBF9E" }}>
       {/* 1. Hero Slider */}
       <HeroSlider />
 
@@ -70,6 +70,6 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
 
       {/* 10. Testimonials */}
       <TestimonialSection />
-    </>
+    </div>
   );
 }
