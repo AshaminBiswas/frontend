@@ -81,7 +81,7 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 10. Testimonials */}
-      <div className="bg-[#F8F1E7]">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
         <TestimonialSection />
       </div>
     </div>

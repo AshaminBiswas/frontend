@@ -113,7 +113,7 @@ export function TestimonialSection() {
       : "opacity-0 -translate-x-6"
     : "opacity-100 translate-x-0";
   return (
-    <section className="bg-[#F8F1E7] py-6 sm:py-10 md:py-14 px-3 sm:px-6 md:px-8 lg:px-16 overflow-hidden border-y border-[#34150F]/10">
+    <section className="bg-[#EED5BC] py-6 sm:py-10 md:py-14 px-3 sm:px-6 md:px-8 lg:px-16 overflow-hidden">
       <Reveal>
         <div className="flex items-center justify-between mb-4 sm:mb-8">
           <div>
