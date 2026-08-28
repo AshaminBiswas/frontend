@@ -103,7 +103,13 @@ export function RequestQuotePage() {
   const [downloadingPdfToken, setDownloadingPdfToken] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState("");
 
-  // Sync user profile data if user changes
+  // Auto-suggestions for pending & under review quotations
+  const [userPendingQuotes, setUserPendingQuotes] = useState<TrackedQuotationSummary[]>([]);
+  const [isTrackingDropdownOpen, setIsTrackingDropdownOpen] = useState(false);
+  const trackingDropdownRef = useRef<HTMLDivElement>(null);
+  const trackingInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync user profile data & fetch pending quotes for instant search suggestions
   useEffect(() => {
     if (user) {
       if (user.firstName && !firstName) setFirstName(user.firstName);
@@ -112,8 +118,58 @@ export function RequestQuotePage() {
       if (user.gstin && !gstNo) setGstNo(user.gstin);
       if (user.email && !email) setEmail(user.email);
       if (user.phone && !phone) setPhone(cleanIndianPhone(user.phone));
+
+      const identifier = user.email || user.gstin || user.phone || "";
+      if (identifier) {
+        quotationService.trackQuotes(identifier).then((res) => {
+          if (res.success && Array.isArray(res.data)) {
+            setUserPendingQuotes(res.data);
+          }
+        }).catch(() => {});
+      }
     }
   }, [user]);
+
+  // Click-outside listener for tracking suggestions dropdown
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        trackingDropdownRef.current &&
+        !trackingDropdownRef.current.contains(e.target as Node) &&
+        trackingInputRef.current &&
+        !trackingInputRef.current.contains(e.target as Node)
+      ) {
+        setIsTrackingDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filtered suggestions for tracking search
+  const trackingSuggestions = useMemo(() => {
+    const pendingQuotes = userPendingQuotes.filter(
+      (q) => q.status === "PENDING" || q.status === "UNDER_REVIEW"
+    );
+    if (!trackingQuery.trim()) {
+      return pendingQuotes.length > 0 ? pendingQuotes : userPendingQuotes;
+    }
+    const qLower = trackingQuery.toLowerCase().trim();
+    return userPendingQuotes.filter((q) =>
+      q.referenceNo?.toLowerCase().includes(qLower) ||
+      q.projectName?.toLowerCase().includes(qLower) ||
+      q.companyName?.toLowerCase().includes(qLower) ||
+      q.status?.toLowerCase().includes(qLower)
+    );
+  }, [trackingQuery, userPendingQuotes]);
+
+  const handleSelectTrackingSuggestion = (quote: TrackedQuotationSummary) => {
+    setTrackingQuery(quote.referenceNo);
+    setIsTrackingDropdownOpen(false);
+    setTrackedQuotes([quote]);
+    setTrackingSearched(true);
+    setTrackingError("");
+  };
 
   // Live product search
   useEffect(() => {
@@ -478,25 +534,72 @@ export function RequestQuotePage() {
                 </p>
               </div>
 
-              <form onSubmit={handleTrackSubmit} className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
-                  <input
-                    type="text"
-                    value={trackingQuery}
-                    onChange={(e) => setTrackingQuery(e.target.value)}
-                    placeholder="Enter Reference No, Email, GSTIN, or Phone..."
-                    className="w-full pl-9 pr-3 py-2 sm:py-3 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isTracking || !trackingQuery.trim()}
-                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {isTracking ? <RefreshCw size={13} className="animate-spin" /> : "Track"}
-                </button>
-              </form>
+              <div className="relative">
+                <form onSubmit={handleTrackSubmit} className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
+                    <input
+                      ref={trackingInputRef}
+                      type="text"
+                      value={trackingQuery}
+                      onChange={(e) => {
+                        setTrackingQuery(e.target.value);
+                        setIsTrackingDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsTrackingDropdownOpen(true)}
+                      placeholder="Enter Reference No, Email, GSTIN, or Phone..."
+                      className="w-full pl-9 pr-3 py-2 sm:py-3 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isTracking || !trackingQuery.trim()}
+                    className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                  >
+                    {isTracking ? <RefreshCw size={13} className="animate-spin" /> : "Track"}
+                  </button>
+                </form>
+
+                {/* Auto-suggestions dropdown on click */}
+                {isTrackingDropdownOpen && trackingSuggestions.length > 0 && (
+                  <div
+                    ref={trackingDropdownRef}
+                    className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-[#34150F]/15 shadow-xl max-h-60 overflow-y-auto z-50 p-2 space-y-1"
+                  >
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-[#85431E] uppercase tracking-wider border-b border-[#34150F]/5 flex items-center justify-between">
+                      <span>{!trackingQuery.trim() ? "Active Quotations (Pending / Under Review)" : `Matching (${trackingSuggestions.length})`}</span>
+                      <span className="text-[9px] text-[#85431E]/60 font-normal">Click to track</span>
+                    </div>
+                    {trackingSuggestions.map((quote) => (
+                      <button
+                        key={quote.id}
+                        type="button"
+                        onClick={() => handleSelectTrackingSuggestion(quote)}
+                        className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[#EACEAA]/20 text-left transition-colors group"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-[#34150F] group-hover:text-[#85431E]">{quote.referenceNo}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
+                              quote.status === "APPROVED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : quote.status === "UNDER_REVIEW"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}>
+                              {quote.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-semibold text-[#85431E] truncate">{quote.projectName}</p>
+                        </div>
+                        <span className="font-mono font-bold text-xs text-[#34150F] shrink-0">
+                          ₹{Number(quote.grandTotal || 0).toLocaleString("en-IN")}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {trackingError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
@@ -730,25 +833,72 @@ export function RequestQuotePage() {
               </p>
             </div>
 
-            <form onSubmit={handleTrackSubmit} className="flex gap-2">
-              <div className="relative flex-1">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
-                <input
-                  type="text"
-                  value={trackingQuery}
-                  onChange={(e) => setTrackingQuery(e.target.value)}
-                  placeholder="Enter Reference No, Email, GSTIN, or Phone..."
-                  className="w-full pl-10 pr-4 py-3 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isTracking || !trackingQuery.trim()}
-                className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all disabled:opacity-50 flex items-center gap-2"
-              >
-                {isTracking ? <RefreshCw size={14} className="animate-spin" /> : "Track"}
-              </button>
-            </form>
+            <div className="relative">
+              <form onSubmit={handleTrackSubmit} className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85431E]/60" />
+                  <input
+                    ref={trackingInputRef}
+                    type="text"
+                    value={trackingQuery}
+                    onChange={(e) => {
+                      setTrackingQuery(e.target.value);
+                      setIsTrackingDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsTrackingDropdownOpen(true)}
+                    placeholder="Enter Reference No, Email, GSTIN, or Phone..."
+                    className="w-full pl-10 pr-4 py-3 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/50 focus:outline-none focus:border-[#34150F]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isTracking || !trackingQuery.trim()}
+                  className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+                >
+                  {isTracking ? <RefreshCw size={14} className="animate-spin" /> : "Track"}
+                </button>
+              </form>
+
+              {/* Auto-suggestions dropdown on click */}
+              {isTrackingDropdownOpen && trackingSuggestions.length > 0 && (
+                <div
+                  ref={trackingDropdownRef}
+                  className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border border-[#34150F]/15 shadow-xl max-h-64 overflow-y-auto z-50 p-2 space-y-1"
+                >
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-[#85431E] uppercase tracking-wider border-b border-[#34150F]/5 flex items-center justify-between">
+                    <span>{!trackingQuery.trim() ? "Active Quotations (Pending / Under Review)" : `Matching (${trackingSuggestions.length})`}</span>
+                    <span className="text-[9px] text-[#85431E]/60 font-normal">Click to track</span>
+                  </div>
+                  {trackingSuggestions.map((quote) => (
+                    <button
+                      key={quote.id}
+                      type="button"
+                      onClick={() => handleSelectTrackingSuggestion(quote)}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-[#EACEAA]/20 text-left transition-colors group"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs text-[#34150F] group-hover:text-[#85431E]">{quote.referenceNo}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
+                            quote.status === "APPROVED"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : quote.status === "UNDER_REVIEW"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}>
+                            {quote.status.replace("_", " ")}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-[#85431E] truncate">{quote.projectName}</p>
+                      </div>
+                      <span className="font-mono font-bold text-xs text-[#34150F] shrink-0">
+                        ₹{Number(quote.grandTotal || 0).toLocaleString("en-IN")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {trackingError && (
               <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">

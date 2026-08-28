@@ -559,11 +559,7 @@ export function UserProfilePage({
   const TABS: { key: ProfileTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { key: "overview", label: "Overview", icon: <User size={15} /> },
     { key: "edit", label: "Edit Profile", icon: <Edit3 size={15} /> },
-    ...(isB2B
-      ? [
-          { key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> },
-        ]
-      : []),
+    { key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> },
     { key: "orders", label: "My Orders", icon: <Package size={15} /> },
     { key: "cart", label: "My Cart", icon: <ShoppingCart size={15} />, badge: cart.reduce((s, i) => s + i.qty, 0) },
     { key: "wishlist", label: "Wishlist", icon: <Heart size={15} />, badge: wishlist.size },
@@ -842,9 +838,9 @@ export function UserProfilePage({
               <div className="space-y-2">
                 {([
                   { icon: <Edit3 size={13} />, label: "Edit My Profile", action: () => switchTab("edit") },
+                  { icon: <Clock size={13} />, label: "My Quotations & Tracking", action: () => switchTab("quotes") },
                   ...(isB2B ? [
                     { icon: <FileSpreadsheet size={13} />, label: "My Purchase Orders (PO)", action: () => switchTab("po") },
-                    { icon: <FileText size={13} />, label: "My Project Quotations", action: () => switchTab("quotes") },
                   ] : []),
                   { icon: <MapPin size={13} />, label: "Manage Addresses", action: () => switchTab("addresses") },
                   { icon: <Lock size={13} />, label: "Change Password", action: () => switchTab("security") },

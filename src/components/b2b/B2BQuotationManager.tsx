@@ -1,13 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FileText, Plus, Search, Eye, CheckCircle2,
   Clock, AlertCircle, RefreshCw, ArrowRight, Building2,
-  ShieldCheck, ExternalLink, QrCode
+  ShieldCheck, ExternalLink, QrCode, LocateFixed
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { isB2BUser } from "../../utils/pricing";
 import { quotationService, TrackedQuotationSummary } from "../../services/quotationService";
+import { QuotationTrackingModal } from "./QuotationTrackingModal";
 
 interface B2BQuotationManagerProps {
   onGoToProfileEdit?: () => void;
@@ -23,6 +24,15 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
   const [errorMsg, setErrorMsg] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+
+  // Tracking Modal State
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [trackingInitialQuery, setTrackingInitialQuery] = useState("");
+
+  const handleOpenTracking = (refQuery = "") => {
+    setTrackingInitialQuery(refQuery);
+    setIsTrackingModalOpen(true);
+  };
 
   // Load user's quotes via email or GSTIN
   const fetchMyQuotes = async () => {
@@ -75,28 +85,47 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
   // If user is not B2B
   if (!isB2B) {
     return (
-      <div className="bg-white rounded-3xl p-8 border border-[#34150F]/10 shadow-sm text-center space-y-4">
-        <div className="w-16 h-16 bg-[#34150F]/10 text-[#34150F] rounded-2xl flex items-center justify-center mx-auto">
-          <Building2 size={32} />
+      <div className="space-y-4">
+        <div className="bg-white rounded-3xl p-8 border border-[#34150F]/10 shadow-sm text-center space-y-4">
+          <div className="w-16 h-16 bg-[#34150F]/10 text-[#34150F] rounded-2xl flex items-center justify-center mx-auto">
+            <Building2 size={32} />
+          </div>
+          <h3 className="text-xl font-bold font-serif text-[#34150F]">Commercial Project Quotations</h3>
+          <p className="text-xs text-[#85431E] max-w-md mx-auto leading-relaxed">
+            Custom bulk quotation requests and volume pricing are available for commercial and trade partners. You can also track an existing RFQ anytime.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => handleOpenTracking()}
+              className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow flex items-center gap-2"
+            >
+              <Clock size={14} />
+              <span>Track Existing Quotation</span>
+            </button>
+            <button
+              type="button"
+              onClick={onGoToProfileEdit}
+              className="bg-[#EACEAA]/30 text-[#34150F] font-bold text-xs px-6 py-3 rounded-xl hover:bg-[#EACEAA]/60 transition-all border border-[#34150F]/15"
+            >
+              Update Profile to B2B Account
+            </button>
+          </div>
         </div>
-        <h3 className="text-xl font-bold font-serif text-[#34150F]">B2B Wholesale Portal Exclusive</h3>
-        <p className="text-xs text-[#85431E] max-w-md mx-auto leading-relaxed">
-          Custom bulk quotation requests and contractor volume pricing are available for verified business accounts with GSTIN.
-        </p>
-        <button
-          type="button"
-          onClick={onGoToProfileEdit}
-          className="bg-[#34150F] text-[#EACEAA] font-bold text-xs px-6 py-3 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow"
-        >
-          Update Profile to B2B Account
-        </button>
+
+        <QuotationTrackingModal
+          isOpen={isTrackingModalOpen}
+          onClose={() => setIsTrackingModalOpen(false)}
+          initialQuery={trackingInitialQuery}
+          userQuotes={quotes}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-4 sm:space-y-6" style={{ fontFamily: "'Nunito', sans-serif" }}>
-      {/* Top Banner & Quick RFQ Trigger */}
+      {/* Top Banner & Quick RFQ / Tracking Action Buttons */}
       <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-[#34150F]/10 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-[#D39858] uppercase tracking-wider">
@@ -107,11 +136,23 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
             Commercial Project Quotations
           </h2>
           <p className="text-[11px] sm:text-xs text-[#85431E] mt-0.5">
-            Manage your requests for quotation (RFQ), estimates, and project scope approvals.
+            Manage your requests for quotation (RFQ), live tracking, estimates, and project scope approvals.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+          {/* Quotation Tracking Button */}
+          <button
+            type="button"
+            onClick={() => handleOpenTracking()}
+            className="bg-[#EACEAA]/40 hover:bg-[#D39858]/25 text-[#34150F] border border-[#34150F]/20 font-bold text-[11px] sm:text-xs px-3.5 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            title="Track Quotation Status"
+          >
+            <Clock size={13} className="text-[#85431E]" />
+            <span>Track Quotation</span>
+          </button>
+
+          {/* Create New RFQ */}
           <Link
             to="/request-quote"
             className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-[11px] sm:text-xs px-3.5 sm:px-5 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
@@ -119,6 +160,7 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
             <Plus size={13} />
             <span>Create New RFQ</span>
           </Link>
+
           <button
             type="button"
             onClick={fetchMyQuotes}
@@ -136,19 +178,28 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
           <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[#85431E]">Total RFQs</span>
           <p className="text-base sm:text-xl font-black text-[#34150F] mt-0.5">{quotes.length}</p>
         </div>
-        <div className="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#34150F]/10 shadow-2xs">
+        <div
+          onClick={() => setSelectedStatus("PENDING")}
+          className="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#34150F]/10 shadow-2xs cursor-pointer hover:border-amber-400 transition-colors"
+        >
           <span className="text-[9px] sm:text-[10px] uppercase font-bold text-amber-700">Pending Review</span>
           <p className="text-base sm:text-xl font-black text-amber-700 mt-0.5">
             {quotes.filter((q) => q.status === "PENDING" || q.status === "UNDER_REVIEW").length}
           </p>
         </div>
-        <div className="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#34150F]/10 shadow-2xs">
+        <div
+          onClick={() => setSelectedStatus("APPROVED")}
+          className="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#34150F]/10 shadow-2xs cursor-pointer hover:border-emerald-400 transition-colors"
+        >
           <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-700">Approved</span>
           <p className="text-base sm:text-xl font-black text-emerald-700 mt-0.5">
             {quotes.filter((q) => q.status === "APPROVED").length}
           </p>
         </div>
-        <div className="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#34150F]/10 shadow-2xs">
+        <div
+          onClick={() => setSelectedStatus("REJECTED")}
+          className="bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#34150F]/10 shadow-2xs cursor-pointer hover:border-rose-400 transition-colors"
+        >
           <span className="text-[9px] sm:text-[10px] uppercase font-bold text-rose-700">Declined</span>
           <p className="text-base sm:text-xl font-black text-rose-700 mt-0.5">
             {quotes.filter((q) => q.status === "REJECTED").length}
@@ -182,7 +233,7 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search quotes..."
+              placeholder="Search quotes by reference or project..."
               className="w-full pl-8 pr-2.5 py-1.5 sm:py-2 bg-[#EACEAA]/10 border border-[#34150F]/15 rounded-lg sm:rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F]"
             />
           </div>
@@ -202,12 +253,21 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
           <p className="text-[11px] sm:text-xs text-[#85431E] max-w-sm mx-auto">
             You haven't submitted any RFQs yet, or no quotes match your active filter.
           </p>
-          <Link
-            to="/request-quote"
-            className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-2xs"
-          >
-            <Plus size={13} /> Submit New Quotation
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={() => handleOpenTracking()}
+              className="inline-flex items-center gap-1.5 bg-[#EACEAA]/30 text-[#34150F] font-bold text-xs px-4 sm:px-5 py-2 rounded-lg sm:rounded-xl hover:bg-[#EACEAA]/60 transition-all border border-[#34150F]/15"
+            >
+              <Clock size={13} /> Track with Reference No
+            </button>
+            <Link
+              to="/request-quote"
+              className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 sm:px-6 py-2 rounded-lg sm:rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-2xs"
+            >
+              <Plus size={13} /> Submit New Quotation
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-2.5 sm:space-y-4">
@@ -229,9 +289,11 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
                       ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                       : q.status === "REJECTED"
                       ? "bg-rose-100 text-rose-800 border border-rose-300"
+                      : q.status === "UNDER_REVIEW"
+                      ? "bg-blue-100 text-blue-800 border border-blue-300"
                       : "bg-amber-100 text-amber-800 border border-amber-300"
                   }`}>
-                    {q.status}
+                    {q.status.replace("_", " ")}
                   </span>
                   {q.hasDigitalSignature && (
                     <span className="text-[9px] sm:text-[10px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-0.5">
@@ -270,6 +332,10 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
                     <span className="text-emerald-700 font-bold flex items-center gap-1">
                       <CheckCircle2 size={12} /> Finalized with B2B volume rates
                     </span>
+                  ) : q.status === "UNDER_REVIEW" ? (
+                    <span className="text-blue-700 font-bold flex items-center gap-1">
+                      <Clock size={12} /> Estimator actively verifying custom pricing
+                    </span>
                   ) : q.statusReason ? (
                     <span className="text-amber-800 italic">Note: {q.statusReason}</span>
                   ) : (
@@ -278,21 +344,23 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  {q.status === "APPROVED" && q.accessToken ? (
+                  {/* Track Status Button triggers live tracking modal */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenTracking(q.referenceNo)}
+                    className="bg-[#EACEAA]/30 hover:bg-[#EACEAA]/60 text-[#34150F] font-bold text-[10.5px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <Clock size={12} />
+                    <span>Track Status</span>
+                  </button>
+
+                  {q.status === "APPROVED" && q.accessToken && (
                     <Link
                       to={`/quote/${q.accessToken}`}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10.5px] sm:text-xs px-3 sm:px-4 py-1.5 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1"
                     >
                       <Eye size={12} />
                       <span>View & Accept</span>
-                    </Link>
-                  ) : (
-                    <Link
-                      to="/request-quote"
-                      className="bg-[#EACEAA]/30 hover:bg-[#EACEAA]/60 text-[#34150F] font-bold text-[10.5px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl transition-all flex items-center gap-1"
-                    >
-                      <Clock size={12} />
-                      <span>Track Status</span>
                     </Link>
                   )}
                 </div>
@@ -301,7 +369,14 @@ export function B2BQuotationManager({ onGoToProfileEdit }: B2BQuotationManagerPr
           ))}
         </div>
       )}
+
+      {/* Reusable Universal Quotation Tracking Modal */}
+      <QuotationTrackingModal
+        isOpen={isTrackingModalOpen}
+        onClose={() => setIsTrackingModalOpen(false)}
+        initialQuery={trackingInitialQuery}
+        userQuotes={quotes}
+      />
     </div>
   );
 }
-
