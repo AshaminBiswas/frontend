@@ -26,17 +26,17 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 2. Upcoming Slider */}
-      <div className="bg-[#EED5BC] border-b border-[#34150F]/10">
+      <div className="bg-[#EED5BC]">
         <UpcomingSlider />
       </div>
 
       {/* 3. Shop by Aesthetic */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] py-2 sm:py-4">
         <ShopByAestheticSection onSelectCategory={onSelectCategory} />
       </div>
 
       {/* 4. Super Saver Offers */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-3 sm:py-5">
+      <div className="bg-[#EED5BC] py-3 sm:py-5">
         <SuperSaverSection
           onAddToCart={onAddToCart}
           onWishlist={onWishlist}
@@ -46,12 +46,12 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 5. Cubicle Hardware Collection */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] py-2 sm:py-4">
         <CubicleHardwareSection onSelectCategory={onSelectCategory} />
       </div>
 
       {/* 6. Value for Money */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-3 sm:py-5">
+      <div className="bg-[#EED5BC] py-3 sm:py-5">
         <ValueMoneySection
           onAddToCart={onAddToCart}
           onWishlist={onWishlist}
@@ -61,12 +61,12 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 7. Locker Hardware Collection */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] py-2 sm:py-4">
         <LockerHardwareSection onSelectCategory={onSelectCategory} />
       </div>
 
       {/* 8. Best Sellers */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-3 sm:py-5">
+      <div className="bg-[#EED5BC] py-3 sm:py-5">
         <BestSellerSection
           onAddToCart={onAddToCart}
           onWishlist={onWishlist}
@@ -76,12 +76,12 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 9. Trusted Landmark Clients & Completed Projects */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] py-2 sm:py-4">
         <TrustedProjectsSection />
       </div>
 
       {/* 10. Testimonials */}
-      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] py-2 sm:py-4">
         <TestimonialSection />
       </div>
     </div>
