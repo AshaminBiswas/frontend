@@ -81,7 +81,7 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 10. Testimonials */}
-      <div className="bg-[#34150F] border-t border-[#EACEAA]/10">
+      <div className="bg-[#F8F1E7]">
         <TestimonialSection />
       </div>
     </div>
