@@ -27,6 +27,7 @@ export const ALL_CATEGORIES = [
   "Residential & Clubhouses",
   "Hotels & Hospitality",
   "Gym & Fitness",
+  "Industrial & Logistics",
 ];
 
 export function ProjectFilterBar({
