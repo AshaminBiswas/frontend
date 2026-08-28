@@ -26,12 +26,12 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 2. Upcoming Slider */}
-      <div className="bg-[#D2B28F] border-b border-[#34150F]/10">
+      <div className="bg-[#EED5BC] border-b border-[#34150F]/10">
         <UpcomingSlider />
       </div>
 
       {/* 3. Shop by Aesthetic */}
-      <div className="bg-[#FAF4ED] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
         <ShopByAestheticSection onSelectCategory={onSelectCategory} />
       </div>
 
@@ -46,12 +46,12 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 5. Cubicle Hardware Collection */}
-      <div className="bg-[#F5ECE0] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
         <CubicleHardwareSection onSelectCategory={onSelectCategory} />
       </div>
 
       {/* 6. Value for Money */}
-      <div className="bg-[#E6CAA8] border-y border-[#34150F]/8 py-3 sm:py-5">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-3 sm:py-5">
         <ValueMoneySection
           onAddToCart={onAddToCart}
           onWishlist={onWishlist}
@@ -61,12 +61,12 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 7. Locker Hardware Collection */}
-      <div className="bg-[#F8F2EA] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
         <LockerHardwareSection onSelectCategory={onSelectCategory} />
       </div>
 
       {/* 8. Best Sellers */}
-      <div className="bg-[#DFC19E] border-y border-[#34150F]/8 py-3 sm:py-5">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-3 sm:py-5">
         <BestSellerSection
           onAddToCart={onAddToCart}
           onWishlist={onWishlist}
@@ -76,7 +76,7 @@ export function HomePage({ onAddToCart, onWishlist, wishlist, onSelectCategory }
       </div>
 
       {/* 9. Trusted Landmark Clients & Completed Projects */}
-      <div className="bg-[#F2E5D5] border-y border-[#34150F]/8 py-2 sm:py-4">
+      <div className="bg-[#EED5BC] border-y border-[#34150F]/8 py-2 sm:py-4">
         <TrustedProjectsSection />
       </div>
 

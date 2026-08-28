@@ -175,7 +175,7 @@ function ProjectChip({ name, tag }: ProjectChipProps) {
 
 export function TrustedProjectsSection() {
   return (
-    <section className="relative bg-[#f5e8d4] py-4 sm:py-8 md:py-12 overflow-hidden border-t border-b border-[#34150F]/10">
+    <section className="relative bg-[#EED5BC] py-4 sm:py-8 md:py-12 overflow-hidden border-t border-b border-[#34150F]/10">
       {/* Header Container */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-8 mb-3 sm:mb-6 text-center relative z-10">
         <Reveal>
