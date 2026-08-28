@@ -120,6 +120,7 @@ export function Header({
               if (link === 'Best Sellers') route = '/bestsellers';
               if (link === 'New Arrivals') route = '/new-arrivals';
               if (link === 'Offers') route = '/offers';
+              if (link === 'Our Projects') route = '/projects';
               return (
                 <li key={link}>
                   <Link
@@ -311,6 +312,7 @@ export function Header({
               if (link === 'Best Sellers') route = '/bestsellers';
               if (link === 'New Arrivals') route = '/new-arrivals';
               if (link === 'Offers') route = '/offers';
+              if (link === 'Our Projects') route = '/projects';
               return (
                 <li key={link}>
                   <Link

@@ -43,6 +43,7 @@ const PolicyPage = lazyWithRetry(() => import('../pages/PolicyPage').then((m) =>
 const PrivacyPolicyPage = lazyWithRetry(() => import('../pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
 const RefundPolicyPage = lazyWithRetry(() => import('../pages/RefundPolicyPage').then((m) => ({ default: m.RefundPolicyPage })));
 const ShippingPolicyPage = lazyWithRetry(() => import('../pages/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage })));
+const ProjectsPage = lazyWithRetry(() => import('../pages/ProjectsPage').then((m) => ({ default: m.ProjectsPage })));
 const TermsOfServicePage = lazyWithRetry(() => import('../pages/TermsOfServicePage').then((m) => ({ default: m.TermsOfServicePage })));
 const FaqPage = lazyWithRetry(() => import('../pages/FaqPage').then((m) => ({ default: m.FaqPage })));
 const WarrantyClaimPage = lazyWithRetry(() => import('../pages/WarrantyClaimPage').then((m) => ({ default: m.WarrantyClaimPage })));
@@ -164,6 +165,9 @@ function AppContent() {
 
 
               {/* Navigation routes */}
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/our-projects" element={<ProjectsPage />} />
+              <Route path="/clients" element={<ProjectsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/track-order" element={<TrackOrderPage />} />
               <Route path="/track-order/:orderId" element={<TrackOrderPage />} />

@@ -1,5 +1,6 @@
 import React from "react";
-import { Building2, Landmark, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Building2, Landmark, CheckCircle2, ShieldCheck, Sparkles, MapPin, ArrowRight } from "lucide-react";
 import { Reveal } from "../common/Reveal";
 
 // ─── Complete Dataset of Trusted Clients & Landmark Completed Projects ───────
@@ -227,6 +228,18 @@ export function TrustedProjectsSection() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Interactive Map & Portfolio CTA */}
+      <div className="text-center mt-4 sm:mt-6 relative z-20">
+        <Link
+          to="/projects"
+          className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-[#34150F] hover:bg-[#4A1F17] text-[#EACEAA] text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all duration-300 active:scale-95 border border-[#85431E]/40 group"
+        >
+          <MapPin size={15} className="text-[#D39858]" />
+          <span>Explore Interactive India Map &amp; Completed Projects</span>
+          <ArrowRight size={15} className="text-[#D39858] group-hover:translate-x-1 transition-transform" />
+        </Link>
       </div>
 
       {/* Subtle Bottom Trust Metric Bar */}
