@@ -109,11 +109,11 @@ export const projectService = {
 
       const queryStr = qs.toString() ? `?${qs.toString()}` : "";
       const res = await fetchApi<GetProjectsResponse>(`/projects${queryStr}`);
-      if (res.success && res.data && res.data.projects?.length > 0) {
+      if (res.success && res.data && Array.isArray(res.data.projects)) {
         return res.data;
       }
     } catch {
-      // Backend not yet deployed or returning 404, seamlessly use rich static dataset
+      // Backend offline or cold-starting, use static fallback
     }
     return filterStaticProjects(params);
   },
@@ -142,11 +142,11 @@ export const projectService = {
   async getMapLocations(): Promise<ProjectLocationsSummary> {
     try {
       const res = await fetchApi<ProjectLocationsSummary>("/projects/map/locations");
-      if (res.success && res.data && res.data.clusters?.length > 0) {
+      if (res.success && res.data && Array.isArray(res.data.clusters)) {
         return res.data;
       }
     } catch {
-      // Backend not yet deployed or returning 404, seamlessly use static map locations
+      // Backend offline or cold-starting, use static fallback
     }
     return getStaticMapLocations();
   },
@@ -157,7 +157,7 @@ export const projectService = {
   async getCategories(): Promise<ProjectCategoryCount[]> {
     try {
       const res = await fetchApi<ProjectCategoryCount[]>("/projects/categories");
-      if (res.success && res.data && res.data.length > 0) {
+      if (res.success && res.data && Array.isArray(res.data)) {
         return res.data;
       }
     } catch {

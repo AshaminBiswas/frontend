@@ -23,6 +23,51 @@ import { ProjectDetailModal } from "../components/projects/ProjectDetailModal";
 
 const ITEMS_PER_PAGE = 10;
 
+// Smooth count-up animated number component using easeOutCubic
+function AnimatedNumber({
+  value,
+  duration = 1800,
+  suffix = "",
+}: {
+  value: number;
+  duration?: number;
+  suffix?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTime: number | null = null;
+    let animationFrameId: number;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+
+      // Ease-out cubic formula for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(easeOut * value);
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [value, duration]);
+
+  return (
+    <span>
+      {displayValue}
+      {suffix}
+    </span>
+  );
+}
+
 // Helper to generate smart pagination range with ellipses
 function getPageNumbers(currentPage: number, totalPages: number): (number | "ellipsis")[] {
   if (totalPages <= 7) {
@@ -57,6 +102,9 @@ export function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [clusters, setClusters] = useState<ProjectLocationCluster[]>([]);
   const [panIndiaCount, setPanIndiaCount] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [totalDatabaseProjects, setTotalDatabaseProjects] = useState<number>(0);
+  const [totalDatabaseCities, setTotalDatabaseCities] = useState<number>(0);
 
   // Filters State
   const [search, setSearch] = useState("");
@@ -69,20 +117,31 @@ export function ProjectsPage() {
   // Modal State
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  // Load Map Locations Summary
+  // Load Map Locations & Categories Summary
   useEffect(() => {
-    async function loadMapData() {
+    async function loadInitialData() {
       try {
-        const data = await projectService.getMapLocations();
-        if (data) {
-          setClusters(data.clusters || []);
-          setPanIndiaCount(data.panIndiaCount || 0);
+        const [mapData, catData] = await Promise.all([
+          projectService.getMapLocations(),
+          projectService.getCategories(),
+        ]);
+
+        if (mapData) {
+          setClusters(mapData.clusters || []);
+          setPanIndiaCount(mapData.panIndiaCount || 0);
+          if (mapData.totalProjects) setTotalDatabaseProjects(mapData.totalProjects);
+          if (mapData.totalCities) setTotalDatabaseCities(mapData.totalCities);
+        }
+
+        if (catData && catData.length > 0) {
+          const categoryNames = catData.map((c) => c.category).filter(Boolean);
+          setCategories(["ALL", ...categoryNames]);
         }
       } catch (err) {
-        console.error("Failed to load map data:", err);
+        console.error("Failed to load initial project metadata:", err);
       }
     }
-    loadMapData();
+    loadInitialData();
   }, []);
 
   // Load Projects with Filters
@@ -137,6 +196,22 @@ export function ProjectsPage() {
     return Array.from(citySet).sort();
   }, [clusters]);
 
+  // Dynamic stats calculation (always reflects newly added projects in real-time)
+  const totalProjectsMetric = useMemo(() => {
+    if (totalDatabaseProjects > 0) return totalDatabaseProjects;
+    const fromClusters = clusters.reduce((acc, c) => acc + c.count, 0) + panIndiaCount;
+    return Math.max(fromClusters, projects.length, 130);
+  }, [totalDatabaseProjects, clusters, panIndiaCount, projects.length]);
+
+  const totalCitiesMetric = useMemo(() => {
+    if (totalDatabaseCities > 0) return totalDatabaseCities;
+    return Math.max(clusters.length, 25);
+  }, [totalDatabaseCities, clusters.length]);
+
+  const panIndiaMetric = useMemo(() => {
+    return Math.max(panIndiaCount, 15);
+  }, [panIndiaCount]);
+
   // ─── Pagination Calculations (10 Cards per Page) ───
   const totalPages = Math.ceil(projects.length / ITEMS_PER_PAGE) || 1;
 
@@ -178,26 +253,34 @@ export function ProjectsPage() {
 
           {/* National Footprint Trust Metrics (Responsive 2x2 on mobile, 4 in a row on desktop) */}
           <div className="pt-4 sm:pt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 max-w-3xl mx-auto">
-            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center">
-              <p className="text-xl sm:text-3xl font-extrabold text-[#D39858]">130+</p>
+            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center hover:border-[#D39858]/60 transition-all shadow-sm">
+              <p className="text-xl sm:text-3xl font-extrabold text-[#D39858] tabular-nums">
+                <AnimatedNumber value={totalProjectsMetric} suffix="+" duration={1800} />
+              </p>
               <p className="text-[10px] sm:text-[11px] font-semibold text-[#EACEAA]/70 uppercase tracking-wider mt-0.5">
                 Completed Projects
               </p>
             </div>
-            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center">
-              <p className="text-xl sm:text-3xl font-extrabold text-[#D39858]">25+</p>
+            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center hover:border-[#D39858]/60 transition-all shadow-sm">
+              <p className="text-xl sm:text-3xl font-extrabold text-[#D39858] tabular-nums">
+                <AnimatedNumber value={totalCitiesMetric} suffix="+" duration={1600} />
+              </p>
               <p className="text-[10px] sm:text-[11px] font-semibold text-[#EACEAA]/70 uppercase tracking-wider mt-0.5">
                 Cities Covered
               </p>
             </div>
-            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center">
-              <p className="text-xl sm:text-3xl font-extrabold text-[#D39858]">15+</p>
+            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center hover:border-[#D39858]/60 transition-all shadow-sm">
+              <p className="text-xl sm:text-3xl font-extrabold text-[#D39858] tabular-nums">
+                <AnimatedNumber value={panIndiaMetric} suffix="+" duration={1500} />
+              </p>
               <p className="text-[10px] sm:text-[11px] font-semibold text-[#EACEAA]/70 uppercase tracking-wider mt-0.5">
                 Pan India Chains
               </p>
             </div>
-            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center">
-              <p className="text-xl sm:text-3xl font-extrabold text-emerald-400">100%</p>
+            <div className="p-2.5 sm:p-3.5 rounded-2xl bg-[#34150F]/80 border border-[#D39858]/30 text-center hover:border-[#D39858]/60 transition-all shadow-sm">
+              <p className="text-xl sm:text-3xl font-extrabold text-emerald-400 tabular-nums">
+                <AnimatedNumber value={100} suffix="%" duration={1700} />
+              </p>
               <p className="text-[10px] sm:text-[11px] font-semibold text-[#EACEAA]/70 uppercase tracking-wider mt-0.5">
                 Grade-A Quality
               </p>
@@ -232,6 +315,7 @@ export function ProjectsPage() {
             selectedCity={selectedCity || "ALL"}
             onCityChange={(city) => setSelectedCity(city === "ALL" ? null : city)}
             cities={uniqueCities}
+            categories={categories.length > 0 ? categories : undefined}
             totalResults={projects.length}
             onResetFilters={handleResetFilters}
           />

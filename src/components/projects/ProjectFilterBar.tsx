@@ -10,6 +10,7 @@ interface ProjectFilterBarProps {
   selectedCity: string;
   onCityChange: (city: string) => void;
   cities: string[];
+  categories?: string[];
   totalResults: number;
   onResetFilters: () => void;
 }
@@ -36,11 +37,18 @@ export function ProjectFilterBar({
   selectedCity,
   onCityChange,
   cities,
+  categories = ALL_CATEGORIES,
   totalResults,
   onResetFilters,
 }: ProjectFilterBarProps) {
   const hasActiveFilters =
     Boolean(search.trim()) || selectedCategory !== "ALL" || selectedCity !== "ALL";
+
+  // Ensure "ALL" is always the first category pill
+  const categoryList = React.useMemo(() => {
+    const list = categories.includes("ALL") ? categories : ["ALL", ...categories];
+    return Array.from(new Set(list));
+  }, [categories]);
 
   // Desktop click-and-drag scroll hook
   const { containerRef, isDragging, hasMoved, scrollBy, dragProps } =
@@ -113,7 +121,7 @@ export function ProjectFilterBar({
             isDragging ? "cursor-grabbing" : "cursor-grab"
           }`}
         >
-          {ALL_CATEGORIES.map((cat) => {
+          {categoryList.map((cat) => {
             const isSelected = selectedCategory === cat;
             const label = cat === "ALL" ? "All Categories" : cat;
             return (

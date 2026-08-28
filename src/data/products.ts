@@ -86,7 +86,7 @@ export const CATEGORY_OPTIONS = [
   { label: 'Urinal Hardwares', slug: 'urinal-hardwares' },
 ];
 
-export const NAV_LINKS = ['By Category', 'Products', 'By Materials', 'Best Sellers', 'New Arrivals', 'Offers', 'Our Projects', 'B2B / Bulk'];
+export const NAV_LINKS = ['By Category', 'Products', 'By Materials', 'Best Sellers', 'New Arrivals', 'Offers', 'B2B / Bulk'];
 
 export const AESTHETIC_SECTION_1 = [
   {
