@@ -100,6 +100,32 @@ export function SubmitPoPage() {
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [quoteSearchError, setQuoteSearchError] = useState("");
 
+  // Option 2: Custom PO Line Items State
+  const [lineItems, setLineItems] = useState<CustomerPoItem[]>([
+    {
+      productName: "",
+      sku: "",
+      quantity: 10,
+      unit: "PCS",
+      targetRate: 0,
+      totalPrice: 0,
+      specifications: "",
+    },
+  ]);
+
+  // Option 3 / General Attached Files State
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+
+  // Submission States
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState<{
+    poSubmissionId: string;
+    id: string;
+    message: string;
+  } | null>(null);
+
   // Function to load active approved quotes for the customer
   const loadApprovedQuotes = async (query = "") => {
     const q = (query || quoteLookupInput || user?.email || user?.gstin || user?.phone || "").trim();
