@@ -4,11 +4,9 @@ import {
   Building2,
   FileText,
   Upload,
-  Layers,
   CheckCircle2,
   AlertCircle,
   Plus,
-  Trash2,
   ArrowLeft,
   Paperclip,
   Clock,
@@ -42,7 +40,7 @@ import {
   TrackedQuotationSummary,
 } from "../services/quotationService";
 
-export type PoSubmissionMode = "QUOTATION" | "PO_FORM" | "CUSTOM_PDF_UPLOAD";
+export type PoSubmissionMode = "QUOTATION" | "CUSTOM_PDF_UPLOAD";
 
 const GSTIN_REGEX = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 const PHONE_REGEX = /^[6-9]\d{9}$/;
@@ -68,7 +66,7 @@ export function SubmitPoPage() {
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const initialQuoteNumber = queryParams.get("quoteNumber") || "";
   const initialQuoteId = queryParams.get("quoteId") || "";
-  const initialMode = (queryParams.get("mode") as PoSubmissionMode) || (initialQuoteNumber ? "QUOTATION" : "PO_FORM");
+  const initialMode = (queryParams.get("mode") as PoSubmissionMode) || "QUOTATION";
 
   // Active Submission Mode Tab
   const [activeMode, setActiveMode] = useState<PoSubmissionMode>(initialMode);
@@ -219,55 +217,6 @@ export function SubmitPoPage() {
     }
   }, [user?.email, user?.gstin, user?.phone, initialQuoteNumber]);
 
-  // Line item helpers
-  const handleAddItem = () => {
-    setLineItems((prev) => [
-      ...prev,
-      {
-        productName: "",
-        sku: "",
-        quantity: 1,
-        unit: "PCS",
-        targetRate: 0,
-        totalPrice: 0,
-        specifications: "",
-      },
-    ]);
-  };
-
-  const handleRemoveItem = (index: number) => {
-    setLineItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleItemChange = (index: number, field: keyof CustomerPoItem, value: any) => {
-    setLineItems((prev) => {
-      const updated = [...prev];
-      const current = { ...updated[index], [field]: value };
-
-      if (field === "quantity" || field === "targetRate") {
-        const qty = field === "quantity" ? Number(value) || 0 : current.quantity;
-        const rate = field === "targetRate" ? Number(value) || 0 : current.targetRate;
-        current.totalPrice = Math.round(qty * rate);
-      }
-
-      updated[index] = current;
-      return updated;
-    });
-  };
-
-  // Financial calculations for Custom PO Form
-  const estimatedSubtotal = useMemo(() => {
-    return lineItems.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
-  }, [lineItems]);
-
-  const estimatedGst = useMemo(() => {
-    return Math.round(estimatedSubtotal * 0.18);
-  }, [estimatedSubtotal]);
-
-  const estimatedGrandTotal = useMemo(() => {
-    return estimatedSubtotal + estimatedGst;
-  }, [estimatedSubtotal, estimatedGst]);
-
   // File Upload Handlers
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -324,20 +273,12 @@ export function SubmitPoPage() {
 
     // Specific Mode Validations
     if (activeMode === "QUOTATION" && !quoteNumberInput.trim() && !linkedQuote) {
-      setSubmitError("Please enter and verify your Quotation Reference Number before submitting.");
+      setSubmitError("Please select or enter an approved Quotation Reference Number before submitting.");
       return;
     }
 
-    if (activeMode === "CUSTOM_PO_FORM") {
-      const validItems = lineItems.filter((it) => it.productName.trim().length > 0);
-      if (validItems.length === 0) {
-        setSubmitError("Please add at least one line item with product name and quantity.");
-        return;
-      }
-    }
-
     if (activeMode === "CUSTOM_PDF_UPLOAD" && uploadedFiles.length === 0) {
-      setSubmitError("Please attach at least one signed Purchase Order document (PDF, Scanned copy, or Excel).");
+      setSubmitError("Please attach at least one signed Purchase Order document (PDF, Scanned copy, Word, or Excel).");
       return;
     }
 
@@ -352,7 +293,7 @@ export function SubmitPoPage() {
         customerPoNumber: customerPoNumber.trim() || undefined,
         quoteId: quoteIdInput || linkedQuote?.id || undefined,
         quoteNumber: quoteNumberInput.trim() || linkedQuote?.referenceNo || undefined,
-        subject: `[${activeMode === "QUOTATION" ? "Quote PO" : activeMode === "CUSTOM_PDF_UPLOAD" ? "Direct Upload PO" : "Form PO"}] Order from ${companyName || customerName}`,
+        subject: `[${activeMode === "QUOTATION" ? "Quote PO" : "Direct Upload PO"}] Order from ${companyName || customerName}`,
         notes: notes.trim() || undefined,
         billingAddress: billingAddress.trim() || undefined,
         shippingAddress: (sameAsBilling ? billingAddress : shippingAddress).trim() || undefined,
@@ -470,7 +411,8 @@ export function SubmitPoPage() {
           <form onSubmit={handleSubmitPo} className="space-y-6">
             
             {/* ─── 3 SUBMISSION CHANNEL TABS ─────────────────────────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* ─── 2 SUBMISSION CHANNEL TABS ─────────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               
               {/* Option 1: Quotation-linked PO */}
               <button
@@ -500,35 +442,7 @@ export function SubmitPoPage() {
                 </div>
               </button>
 
-              {/* Option 2: Custom PO Form Builder */}
-              <button
-                type="button"
-                onClick={() => setActiveMode("PO_FORM")}
-                className={`p-4 sm:p-5 rounded-2xl text-left border transition-all duration-200 relative overflow-hidden flex flex-col justify-between ${
-                  activeMode === "PO_FORM"
-                    ? "bg-[#34150F] text-[#EACEAA] border-[#34150F] shadow-lg ring-2 ring-[#D39858]"
-                    : "bg-white text-[#34150F] border-[#34150F]/15 hover:border-[#34150F]/40 shadow-xs"
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-2">
-                  <div className={`p-2.5 rounded-xl ${activeMode === "PO_FORM" ? "bg-[#D39858]/20 text-[#D39858]" : "bg-[#EACEAA]/40 text-[#85431E]"}`}>
-                    <Layers size={20} />
-                  </div>
-                  {activeMode === "PO_FORM" && (
-                    <span className="bg-[#D39858] text-[#34150F] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                      Active Mode
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm sm:text-base">Option 2: Custom PO Form</h3>
-                  <p className={`text-[11px] mt-1 leading-snug ${activeMode === "PO_FORM" ? "text-[#EACEAA]/80" : "text-[#85431E]"}`}>
-                    Interactive line-item composer with custom SKUs, quantities, and expected rates.
-                  </p>
-                </div>
-              </button>
-
-              {/* Option 3: Direct PO Document Upload */}
+              {/* Option 2: Direct PO Document Upload */}
               <button
                 type="button"
                 onClick={() => setActiveMode("CUSTOM_PDF_UPLOAD")}
@@ -549,7 +463,7 @@ export function SubmitPoPage() {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm sm:text-base">Option 3: Upload Your PO</h3>
+                  <h3 className="font-extrabold text-sm sm:text-base">Option 2: Upload Your PO</h3>
                   <p className={`text-[11px] mt-1 leading-snug ${activeMode === "CUSTOM_PDF_UPLOAD" ? "text-[#EACEAA]/80" : "text-[#85431E]"}`}>
                     Direct upload of your signed company PO document (PDF, Excel, Word, or Scans).
                   </p>
@@ -807,148 +721,6 @@ export function SubmitPoPage() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* OPTION 2: CUSTOM LINE ITEMS BUILDER */}
-            {activeMode === "PO_FORM" && (
-              <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-4 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between border-b border-[#34150F]/10 pb-3">
-                  <div>
-                    <h3 className="font-extrabold text-base text-[#34150F] flex items-center gap-2" style={{ fontFamily: "'Gilda Display', serif" }}>
-                      <Layers size={18} className="text-[#85431E]" /> Custom PO Line Items ({lineItems.length})
-                    </h3>
-                    <p className="text-xs text-[#85431E]">
-                      Add the specific hardware fittings, quantities, and target prices for your order.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleAddItem}
-                    className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
-                  >
-                    <Plus size={14} /> Add Line Item
-                  </button>
-                </div>
-
-                {/* Line items list / table */}
-                <div className="space-y-3 overflow-x-auto">
-                  {lineItems.map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-3 sm:p-4 bg-[#EACEAA]/10 rounded-xl sm:rounded-2xl border border-[#34150F]/10 space-y-3 relative group"
-                    >
-                      <div className="flex items-center justify-between text-xs font-extrabold text-[#85431E]">
-                        <span>Item #{index + 1}</span>
-                        {lineItems.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(index)}
-                            className="text-rose-600 hover:text-rose-800 p-1 transition-colors"
-                            title="Remove Item"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-                        <div className="sm:col-span-5 space-y-1">
-                          <label className="text-[10.5px] font-bold text-[#34150F]">Product Name / Description *</label>
-                          <input
-                            type="text"
-                            required
-                            value={item.productName}
-                            onChange={(e) => handleItemChange(index, "productName", e.target.value)}
-                            placeholder="e.g. SS304 Privacy Indicator Bolt Lock"
-                            className="w-full px-3 py-2 bg-white border border-[#34150F]/15 rounded-lg text-xs text-[#34150F] focus:outline-none focus:border-[#34150F]"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2 space-y-1">
-                          <label className="text-[10.5px] font-bold text-[#34150F]">SKU / Model</label>
-                          <input
-                            type="text"
-                            value={item.sku || ""}
-                            onChange={(e) => handleItemChange(index, "sku", e.target.value)}
-                            placeholder="PRC-CB-304"
-                            className="w-full px-3 py-2 bg-white border border-[#34150F]/15 rounded-lg text-xs font-mono text-[#34150F] focus:outline-none focus:border-[#34150F]"
-                          />
-                        </div>
-
-                        <div className="sm:col-span-2 space-y-1">
-                          <label className="text-[10.5px] font-bold text-[#34150F]">Quantity *</label>
-                          <div className="flex gap-1">
-                            <input
-                              type="number"
-                              min="1"
-                              required
-                              value={item.quantity}
-                              onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                              className="w-full px-2.5 py-2 bg-white border border-[#34150F]/15 rounded-lg text-xs font-bold text-[#34150F] focus:outline-none focus:border-[#34150F]"
-                            />
-                            <select
-                              value={item.unit}
-                              onChange={(e) => handleItemChange(index, "unit", e.target.value)}
-                              className="px-1.5 py-2 bg-white border border-[#34150F]/15 rounded-lg text-[11px] font-bold text-[#34150F] focus:outline-none focus:border-[#34150F]"
-                            >
-                              <option value="PCS">PCS</option>
-                              <option value="SETS">SETS</option>
-                              <option value="METERS">MTR</option>
-                              <option value="BOXES">BOX</option>
-                              <option value="KGS">KGS</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-3 space-y-1">
-                          <label className="text-[10.5px] font-bold text-[#34150F]">Target Rate (₹)</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.targetRate || ""}
-                              onChange={(e) => handleItemChange(index, "targetRate", e.target.value)}
-                              placeholder="₹ Rate"
-                              className="w-full px-2.5 py-2 bg-white border border-[#34150F]/15 rounded-lg text-xs font-bold text-[#34150F] focus:outline-none focus:border-[#34150F]"
-                            />
-                            <span className="text-[11px] font-extrabold text-[#34150F] shrink-0 font-mono">
-                              = ₹{(item.totalPrice || 0).toLocaleString("en-IN")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10.5px] font-bold text-[#85431E]">Specifications / Finish / Notes</label>
-                        <input
-                          type="text"
-                          value={item.specifications || ""}
-                          onChange={(e) => handleItemChange(index, "specifications", e.target.value)}
-                          placeholder="e.g. Satin Matt Finish, 12mm Board Compatibility, Anti-Corrosion Grade"
-                          className="w-full px-3 py-1.5 bg-white/80 border border-[#34150F]/10 rounded-lg text-[11px] text-[#34150F] focus:outline-none focus:border-[#34150F]"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Total Summary Footer */}
-                <div className="p-4 bg-[#34150F]/5 rounded-2xl border border-[#34150F]/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="space-y-0.5">
-                    <span className="text-[11px] text-[#85431E] font-bold">Estimated Order Amount</span>
-                    <div className="text-[10px] text-[#85431E]/70">
-                      Subtotal: ₹{estimatedSubtotal.toLocaleString("en-IN")} + GST (18%): ₹{estimatedGst.toLocaleString("en-IN")}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-[#85431E] block uppercase tracking-wider font-extrabold">Estimated Total</span>
-                    <span className="text-base sm:text-lg font-black text-[#34150F] font-mono">
-                      ₹{estimatedGrandTotal.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                </div>
               </div>
             )}
 
