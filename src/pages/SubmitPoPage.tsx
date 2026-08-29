@@ -36,7 +36,11 @@ import {
   CustomerPoItem,
   CustomerPoSubmissionPayload,
 } from "../services/poSubmissionService";
-import { quotationService, QuotationDetail } from "../services/quotationService";
+import {
+  quotationService,
+  QuotationDetail,
+  TrackedQuotationSummary,
+} from "../services/quotationService";
 
 export type PoSubmissionMode = "QUOTATION" | "PO_FORM" | "CUSTOM_PDF_UPLOAD";
 
@@ -87,94 +91,107 @@ export function SubmitPoPage() {
   const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH" | "URGENT">("MEDIUM");
 
   // Option 1: Quotation Linked PO State
+  const [approvedQuotes, setApprovedQuotes] = useState<TrackedQuotationSummary[]>([]);
+  const [loadingApprovedQuotes, setLoadingApprovedQuotes] = useState(false);
+  const [quoteLookupInput, setQuoteLookupInput] = useState(initialQuoteNumber);
   const [quoteNumberInput, setQuoteNumberInput] = useState(initialQuoteNumber);
   const [quoteIdInput, setQuoteIdInput] = useState(initialQuoteId);
   const [linkedQuote, setLinkedQuote] = useState<QuotationDetail | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [quoteSearchError, setQuoteSearchError] = useState("");
 
-  // Option 2: Custom PO Line Items State
-  const [lineItems, setLineItems] = useState<CustomerPoItem[]>([
-    {
-      productName: "",
-      sku: "",
-      quantity: 10,
-      unit: "PCS",
-      targetRate: 0,
-      totalPrice: 0,
-      specifications: "",
-    },
-  ]);
-
-  // Option 3 / General Attached Files State
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [dragActive, setDragActive] = useState(false);
-
-  // Submission States
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState<{
-    poSubmissionId: string;
-    id: string;
-    message: string;
-  } | null>(null);
-
-  // Sync user profile changes
-  useEffect(() => {
-    if (user) {
-      if (!customerName) setCustomerName(`${user.firstName || ""} ${user.lastName || ""}`.trim());
-      if (!companyName && user.companyName) setCompanyName(user.companyName);
-      if (!customerEmail && user.email) setCustomerEmail(user.email);
-      if (!customerPhone && user.phone) setCustomerPhone(cleanIndianPhone(user.phone));
-      if (!gstin && user.gstin) setGstin(user.gstin);
-    }
-  }, [user]);
-
-  // Load quote automatically if quoteNumber query exists
-  useEffect(() => {
-    if (initialQuoteNumber) {
-      handleLookupQuote(initialQuoteNumber);
-    }
-  }, [initialQuoteNumber]);
-
-  // Handle Lookup Quote
-  const handleLookupQuote = async (queryToSearch: string) => {
-    const q = (queryToSearch || quoteNumberInput).trim();
-    if (!q) {
-      setQuoteSearchError("Please enter a valid Quotation Reference Number (e.g. PRC-QT-2026-0001)");
-      return;
-    }
-    setLoadingQuote(true);
+  // Function to load active approved quotes for the customer
+  const loadApprovedQuotes = async (query = "") => {
+    const q = (query || quoteLookupInput || user?.email || user?.gstin || user?.phone || "").trim();
+    if (!q) return;
+    setLoadingApprovedQuotes(true);
     setQuoteSearchError("");
     try {
       const res = await quotationService.trackQuotes(q);
-      if (res.success && res.data && res.data.length > 0) {
-        const found = res.data[0];
-        // If we have access token or id, fetch full details
-        const detailRes = await quotationService.getQuoteByToken(found.accessToken || found.id);
-        if (detailRes.success && detailRes.data) {
-          setLinkedQuote(detailRes.data);
-          setQuoteNumberInput(detailRes.data.referenceNo || detailRes.data.quoteNumber);
-          setQuoteIdInput(detailRes.data.id);
-          if (detailRes.data.companyName && !companyName) setCompanyName(detailRes.data.companyName);
-          if (detailRes.data.firstName && !customerName) {
-            setCustomerName(`${detailRes.data.firstName} ${detailRes.data.lastName || ""}`.trim());
+      if (res.success && Array.isArray(res.data)) {
+        // Filter strictly for quotations approved by Admin
+        const approvedOnly = res.data.filter((quote) => quote.status === "APPROVED");
+        setApprovedQuotes(approvedOnly);
+
+        if (initialQuoteNumber) {
+          const matched = approvedOnly.find(
+            (item) => item.referenceNo === initialQuoteNumber || item.id === initialQuoteNumber
+          );
+          if (matched) {
+            handleSelectQuote(matched);
           }
-          if (detailRes.data.email && !customerEmail) setCustomerEmail(detailRes.data.email);
-          if (detailRes.data.phone && !customerPhone) setCustomerPhone(cleanIndianPhone(detailRes.data.phone));
-          if (detailRes.data.gstNo && !gstin) setGstin(detailRes.data.gstNo);
-        } else {
-          setQuoteSearchError("Quotation found, but could not load detailed items.");
+        } else if (approvedOnly.length === 1 && !linkedQuote) {
+          handleSelectQuote(approvedOnly[0]);
         }
       } else {
-        setQuoteSearchError("No quotation found matching this reference number. You can also submit via Custom Form or Document Upload.");
+        setApprovedQuotes([]);
       }
     } catch (err: any) {
-      setQuoteSearchError(err.message || "Failed to lookup quotation.");
+      console.warn("Could not load approved quotes:", err);
+    } finally {
+      setLoadingApprovedQuotes(false);
+    }
+  };
+
+  // Select an approved quote and auto-fill details
+  const handleSelectQuote = async (quote: TrackedQuotationSummary | QuotationDetail) => {
+    setLoadingQuote(true);
+    setQuoteSearchError("");
+    try {
+      const tokenOrId = (quote as any).accessToken || quote.id;
+      let quoteData: any = quote;
+
+      if (tokenOrId) {
+        const detailRes = await quotationService.getQuoteByToken(tokenOrId);
+        if (detailRes.success && detailRes.data) {
+          quoteData = detailRes.data;
+        }
+      }
+
+      setLinkedQuote(quoteData);
+      setQuoteNumberInput(quoteData.referenceNo || quoteData.quoteNumber);
+      setQuoteIdInput(quoteData.id);
+
+      if (quoteData.companyName) setCompanyName(quoteData.companyName);
+      if (quoteData.firstName) {
+        setCustomerName(`${quoteData.firstName} ${quoteData.lastName || ""}`.trim());
+      } else if (quoteData.clientName) {
+        setCustomerName(quoteData.clientName);
+      }
+      if (quoteData.email) setCustomerEmail(quoteData.email);
+      if (quoteData.phone) setCustomerPhone(cleanIndianPhone(quoteData.phone));
+      if (quoteData.gstNo) setGstin(quoteData.gstNo);
+
+      // Pre-fill payment terms with advance %
+      const advPercent = quoteData.advancePercentage || 30;
+      setPaymentTerms(`Advance payment of ${advPercent}% against Proforma Invoice`);
+
+      // Pre-fill line items from quote
+      if (Array.isArray(quoteData.items) && quoteData.items.length > 0) {
+        const mappedItems: CustomerPoItem[] = quoteData.items.map((it: any) => ({
+          productName: it.productNameSnapshot || it.product?.name || "Hardware Fitting",
+          sku: it.product?.sku || "",
+          quantity: it.quantity || 1,
+          unit: it.unit || "PCS",
+          targetRate: Number(it.rate || 0),
+          totalPrice: Number(it.amount || 0) || Math.round((Number(it.quantity) || 1) * (Number(it.rate) || 0)),
+          specifications: `Approved rate for Quote: ${quoteData.referenceNo || quoteData.quoteNumber}`,
+        }));
+        setLineItems(mappedItems);
+      }
+    } catch (err: any) {
+      setQuoteSearchError(err.message || "Failed to fetch full quotation items.");
     } finally {
       setLoadingQuote(false);
     }
   };
+
+  // Auto-load approved quotes when user data is available
+  useEffect(() => {
+    if (user?.email || user?.gstin || user?.phone || initialQuoteNumber) {
+      loadApprovedQuotes(initialQuoteNumber || user?.email || user?.gstin || "");
+    }
+  }, [user?.email, user?.gstin, user?.phone, initialQuoteNumber]);
 
   // Line item helpers
   const handleAddItem = () => {
@@ -519,37 +536,50 @@ export function SubmitPoPage() {
 
             {/* OPTION 1: LINKED QUOTATION SELECTOR */}
             {activeMode === "QUOTATION" && (
-              <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-4 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between border-b border-[#34150F]/10 pb-3">
+              <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-5 animate-in fade-in duration-200">
+                <div className="flex flex-wrap items-center justify-between border-b border-[#34150F]/10 pb-3 gap-2">
                   <div>
                     <h3 className="font-extrabold text-base text-[#34150F] flex items-center gap-2" style={{ fontFamily: "'Gilda Display', serif" }}>
-                      <FileText size={18} className="text-[#85431E]" /> Link Existing Quotation
+                      <FileText size={18} className="text-[#85431E]" /> Option 1: PO from Approved Quotation
                     </h3>
                     <p className="text-xs text-[#85431E]">
-                      Enter your quotation reference number to auto-attach pre-approved project pricing and terms.
+                      Select an active quotation approved by PRC Admin. All pricing, approved line items, and terms will be linked automatically.
                     </p>
                   </div>
+
+                  {linkedQuote && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <CheckCircle2 size={13} /> Quotation Linked & Verified
+                    </span>
+                  )}
                 </div>
 
+                {/* Lookup / Filter Bar */}
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <div className="relative flex-1">
                     <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#85431E]/50" />
                     <input
                       type="text"
-                      value={quoteNumberInput}
-                      onChange={(e) => setQuoteNumberInput(e.target.value)}
-                      placeholder="Enter Quotation Ref (e.g. PRC-QT-2026-0001 or QT-9281)"
+                      value={quoteLookupInput}
+                      onChange={(e) => setQuoteLookupInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          loadApprovedQuotes(quoteLookupInput);
+                        }
+                      }}
+                      placeholder="Search approved quotations by Ref (e.g. PRC-QT-2026-0001), email, or GSTIN..."
                       className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-[#EACEAA]/15 border border-[#34150F]/20 rounded-xl text-xs sm:text-sm text-[#34150F] focus:outline-none focus:border-[#34150F]"
                     />
                   </div>
                   <button
                     type="button"
-                    disabled={loadingQuote || !quoteNumberInput.trim()}
-                    onClick={() => handleLookupQuote(quoteNumberInput)}
+                    disabled={loadingApprovedQuotes || !quoteLookupInput.trim()}
+                    onClick={() => loadApprovedQuotes(quoteLookupInput)}
                     className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-5 py-2.5 sm:py-3 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
-                    {loadingQuote ? <RefreshCw size={14} className="animate-spin" /> : <Search size={14} />}
-                    <span>Lookup Quote</span>
+                    {loadingApprovedQuotes ? <RefreshCw size={14} className="animate-spin" /> : <Search size={14} />}
+                    <span>Find Approved Quotes</span>
                   </button>
                 </div>
 
@@ -560,38 +590,193 @@ export function SubmitPoPage() {
                   </div>
                 )}
 
+                {/* Approved Quotations Selection List */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-black text-[#85431E] uppercase tracking-wider">
+                    <span>Active Approved Quotations ({approvedQuotes.length})</span>
+                    {loadingApprovedQuotes && (
+                      <span className="text-[11px] font-normal normal-case flex items-center gap-1 text-[#85431E]">
+                        <RefreshCw size={11} className="animate-spin" /> Refreshing quotes...
+                      </span>
+                    )}
+                  </div>
+
+                  {loadingApprovedQuotes ? (
+                    <div className="p-8 text-center bg-[#EACEAA]/10 rounded-2xl border border-[#34150F]/10 space-y-2">
+                      <div className="w-6 h-6 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin mx-auto" />
+                      <p className="text-xs text-[#85431E] font-bold">Loading approved quotations...</p>
+                    </div>
+                  ) : approvedQuotes.length === 0 ? (
+                    <div className="p-6 text-center bg-[#EACEAA]/10 rounded-2xl border border-[#34150F]/10 space-y-3">
+                      <FileText size={28} className="text-[#85431E]/40 mx-auto" />
+                      <div className="max-w-md mx-auto space-y-1">
+                        <p className="text-xs font-bold text-[#34150F]">No Active Approved Quotations Found</p>
+                        <p className="text-[11px] text-[#85431E]/80">
+                          Quotations submitted through the portal must first be approved by the PRC Admin team before you can place an official PO against them.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                        <Link
+                          to="/request-quote"
+                          className="inline-flex items-center gap-1 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-2xs"
+                        >
+                          Request B2B Quote →
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setActiveMode("PO_FORM")}
+                          className="inline-flex items-center gap-1 bg-white border border-[#34150F]/20 text-[#34150F] font-bold text-xs px-4 py-2 rounded-xl hover:bg-[#EACEAA]/30 transition-all"
+                        >
+                          Use Custom PO Form Instead
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {approvedQuotes.map((q) => {
+                        const isSelected = linkedQuote?.id === q.id || linkedQuote?.referenceNo === q.referenceNo;
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => handleSelectQuote(q)}
+                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 space-y-2.5 relative ${
+                              isSelected
+                                ? "bg-[#34150F]/5 border-[#34150F] ring-2 ring-[#D39858] shadow-md"
+                                : "bg-white border-[#34150F]/15 hover:border-[#34150F]/40 hover:shadow-xs"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-mono font-black text-sm text-[#34150F]">
+                                  {q.referenceNo}
+                                </span>
+                                <p className="text-xs font-bold text-[#85431E] truncate max-w-[220px]">
+                                  {q.projectName || "Standard Commercial Project"}
+                                </p>
+                              </div>
+                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200">
+                                ✓ APPROVED
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5 text-[11px] bg-[#FAF5EE] p-2 rounded-xl border border-[#34150F]/6">
+                              <div>
+                                <span className="text-[9px] text-[#85431E] block">Items</span>
+                                <span className="font-bold text-[#34150F]">{q.itemCount || q.items?.length || 0} Products</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-[#85431E] block">Grand Total</span>
+                                <span className="font-bold text-[#34150F] font-mono">₹{Number(q.grandTotal || 0).toLocaleString("en-IN")}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-[#85431E] block">Advance</span>
+                                <span className="font-bold text-[#34150F] font-mono">{q.advancePercentage || 30}%</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[10px] text-[#85431E]/70">
+                                Approved on {new Date(q.updatedAt || q.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                              <span className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
+                                isSelected
+                                  ? "bg-[#34150F] text-[#EACEAA]"
+                                  : "bg-[#EACEAA]/30 text-[#85431E] hover:bg-[#EACEAA]/60"
+                              }`}>
+                                {isSelected ? "✓ Selected" : "Select Quote →"}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected Quotation Detailed Dossier */}
                 {linkedQuote && (
-                  <div className="bg-[#EACEAA]/20 p-4 sm:p-5 rounded-2xl border border-[#34150F]/15 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#34150F]/10 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-extrabold text-sm text-[#34150F]">
-                          {linkedQuote.referenceNo || linkedQuote.quoteNumber}
-                        </span>
-                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                          {linkedQuote.status}
+                  <div className="bg-[#EACEAA]/20 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#34150F]/20 space-y-4 animate-in fade-in zoom-in-98 duration-200">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#34150F]/15 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-base sm:text-lg text-[#34150F]">
+                            {linkedQuote.referenceNo || linkedQuote.quoteNumber}
+                          </span>
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200">
+                            ✓ ACTIVE APPROVED DOSSIER
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-[#85431E] mt-0.5">
+                          Project: {linkedQuote.projectName || "Standard Hardware Fitting"}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#85431E] block font-bold">Approved Order Value</span>
+                        <span className="text-base sm:text-lg font-black font-mono text-[#34150F]">
+                          ₹{Number(linkedQuote.grandTotal || 0).toLocaleString("en-IN")}
                         </span>
                       </div>
-                      <span className="text-xs font-extrabold text-[#34150F]">
-                        Total Value: ₹{Number(linkedQuote.grandTotal || 0).toLocaleString("en-IN")}
-                      </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    {/* Line Items Table from Approved Quote */}
+                    {Array.isArray(linkedQuote.items) && linkedQuote.items.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-xs font-extrabold text-[#34150F] block">
+                          Approved Line Items ({linkedQuote.items.length})
+                        </span>
+                        <div className="overflow-x-auto rounded-xl border border-[#34150F]/10 bg-white">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-[#FAF5EE] border-b border-[#34150F]/10 text-[10.5px] font-bold text-[#85431E] uppercase">
+                                <th className="p-2.5">#</th>
+                                <th className="p-2.5">Product Description</th>
+                                <th className="p-2.5">SKU</th>
+                                <th className="p-2.5 text-right">Quantity</th>
+                                <th className="p-2.5 text-right">Approved Rate (₹)</th>
+                                <th className="p-2.5 text-right">Total Amount (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#34150F]/6">
+                              {linkedQuote.items.map((it: any, idx: number) => (
+                                <tr key={it.id || idx} className="hover:bg-[#EACEAA]/10 transition-colors">
+                                  <td className="p-2.5 text-slate-500 font-mono">{idx + 1}</td>
+                                  <td className="p-2.5 font-bold text-[#34150F]">
+                                    {it.productNameSnapshot || it.product?.name || "Hardware Product"}
+                                  </td>
+                                  <td className="p-2.5 text-slate-500 font-mono">{it.product?.sku || "-"}</td>
+                                  <td className="p-2.5 text-right font-bold text-[#34150F]">{it.quantity} {it.unit || "PCS"}</td>
+                                  <td className="p-2.5 text-right font-mono text-[#34150F]">₹{Number(it.rate || 0).toLocaleString("en-IN")}</td>
+                                  <td className="p-2.5 text-right font-mono font-bold text-[#34150F]">
+                                    ₹{(Number(it.amount || 0) || Math.round(Number(it.quantity || 1) * Number(it.rate || 0))).toLocaleString("en-IN")}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Financial Breakdown Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-3 rounded-xl border border-[#34150F]/10">
                       <div>
-                        <span className="text-[#85431E]/70 text-[10px] block">Project Name</span>
-                        <span className="font-bold text-[#34150F]">{linkedQuote.projectName || "Standard Project"}</span>
+                        <span className="text-[#85431E]/70 text-[10px] block font-bold">Basic Subtotal</span>
+                        <span className="font-bold text-[#34150F] font-mono">₹{Number(linkedQuote.basicPrice || 0).toLocaleString("en-IN")}</span>
                       </div>
                       <div>
-                        <span className="text-[#85431E]/70 text-[10px] block">Advance Required</span>
-                        <span className="font-bold text-[#34150F]">{linkedQuote.advancePercentage || 30}%</span>
+                        <span className="text-[#85431E]/70 text-[10px] block font-bold">GST Tax (18%)</span>
+                        <span className="font-bold text-[#34150F] font-mono">₹{Number(linkedQuote.gstAmount || 0).toLocaleString("en-IN")}</span>
                       </div>
                       <div>
-                        <span className="text-[#85431E]/70 text-[10px] block">Basic Subtotal</span>
-                        <span className="font-bold text-[#34150F]">₹{Number(linkedQuote.basicPrice || 0).toLocaleString("en-IN")}</span>
+                        <span className="text-[#85431E]/70 text-[10px] block font-bold">Advance Required</span>
+                        <span className="font-bold text-[#34150F] font-mono">{linkedQuote.advancePercentage || 30}%</span>
                       </div>
                       <div>
-                        <span className="text-[#85431E]/70 text-[10px] block">GST Tax</span>
-                        <span className="font-bold text-[#34150F]">₹{Number(linkedQuote.gstAmount || 0).toLocaleString("en-IN")}</span>
+                        <span className="text-[#85431E]/70 text-[10px] block font-bold">Advance Payable</span>
+                        <span className="font-bold text-amber-900 font-mono">
+                          ₹{Math.round(Number(linkedQuote.grandTotal || 0) * ((linkedQuote.advancePercentage || 30) / 100)).toLocaleString("en-IN")}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -943,107 +1128,111 @@ export function SubmitPoPage() {
               </div>
             </div>
 
-            {/* ─── FILE ATTACHMENTS & DOCUMENT DROPZONE ─────────────────────── */}
-            <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-4">
-              <div className="border-b border-[#34150F]/10 pb-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-extrabold text-base text-[#34150F] flex items-center gap-2" style={{ fontFamily: "'Gilda Display', serif" }}>
-                    <Paperclip size={18} className="text-[#85431E]" /> Attach Purchase Order & Technical Drawings
-                  </h3>
-                  <p className="text-xs text-[#85431E]">
-                    Upload your signed company Purchase Order, BOQ spreadsheet, or architectural drawings (PDF, XLSX, DOCX, PNG, JPG up to 25MB).
-                  </p>
+            {/* ─── FILE ATTACHMENTS (ONLY FOR OPTION 2 & OPTION 3) ─────────────────── */}
+            {activeMode !== "QUOTATION" && (
+              <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-4 animate-in fade-in duration-200">
+                <div className="border-b border-[#34150F]/10 pb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-base text-[#34150F] flex items-center gap-2" style={{ fontFamily: "'Gilda Display', serif" }}>
+                      <Paperclip size={18} className="text-[#85431E]" /> Attach Purchase Order & Technical Drawings
+                    </h3>
+                    <p className="text-xs text-[#85431E]">
+                      Upload your signed company Purchase Order, BOQ spreadsheet, or architectural drawings (PDF, XLSX, DOCX, PNG, JPG up to 25MB).
+                    </p>
+                  </div>
+                  {activeMode === "CUSTOM_PDF_UPLOAD" && (
+                    <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-300">
+                      Mandatory for Option 3
+                    </span>
+                  )}
                 </div>
-                {activeMode === "CUSTOM_PDF_UPLOAD" && (
-                  <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-300">
-                    Mandatory for Option 3
-                  </span>
+
+                {/* Drag & drop container */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragActive(true);
+                  }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={handleFileDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 ${
+                    dragActive
+                      ? "border-[#34150F] bg-[#EACEAA]/30"
+                      : "border-[#34150F]/25 bg-[#EACEAA]/10 hover:bg-[#EACEAA]/20 hover:border-[#34150F]/50"
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
+                    className="hidden"
+                  />
+                  <div className="space-y-2 max-w-sm mx-auto">
+                    <div className="w-12 h-12 bg-[#34150F]/10 text-[#34150F] rounded-full flex items-center justify-center mx-auto">
+                      <FileUp size={24} />
+                    </div>
+                    <h4 className="font-extrabold text-xs sm:text-sm text-[#34150F]">
+                      Drag & Drop your PO files here, or <span className="text-[#85431E] underline">Browse</span>
+                    </h4>
+                    <p className="text-[10px] sm:text-[11px] text-[#85431E]/70">
+                      Supports signed PO (PDF), Excel BOQ, Word, DWG or image files (Up to 10 files, max 25MB each)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Uploaded files preview list */}
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[11px] font-bold text-[#85431E] block">
+                      Attached Files ({uploadedFiles.length})
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {uploadedFiles.map((file, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2.5 bg-[#EACEAA]/20 rounded-xl border border-[#34150F]/15 text-xs"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <Paperclip size={14} className="text-[#85431E] shrink-0" />
+                            <span className="font-bold text-[#34150F] truncate">{file.name}</span>
+                            <span className="text-[10px] text-[#85431E]/70 shrink-0">
+                              ({(file.size / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFile(idx);
+                            }}
+                            className="text-rose-600 hover:text-rose-800 p-1 transition-colors"
+                            title="Remove file"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              {/* Drag & drop container */}
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={handleFileDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 ${
-                  dragActive
-                    ? "border-[#34150F] bg-[#EACEAA]/30"
-                    : "border-[#34150F]/25 bg-[#EACEAA]/10 hover:bg-[#EACEAA]/20 hover:border-[#34150F]/50"
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip"
-                  className="hidden"
-                />
-                <div className="space-y-2 max-w-sm mx-auto">
-                  <div className="w-12 h-12 bg-[#34150F]/10 text-[#34150F] rounded-full flex items-center justify-center mx-auto">
-                    <FileUp size={24} />
-                  </div>
-                  <h4 className="font-extrabold text-xs sm:text-sm text-[#34150F]">
-                    Drag & Drop your PO files here, or <span className="text-[#85431E] underline">Browse</span>
-                  </h4>
-                  <p className="text-[10px] sm:text-[11px] text-[#85431E]/70">
-                    Supports signed PO (PDF), Excel BOQ, Word, DWG or image files (Up to 10 files, max 25MB each)
-                  </p>
-                </div>
-              </div>
-
-              {/* Uploaded files preview list */}
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2 pt-1">
-                  <span className="text-[11px] font-bold text-[#85431E] block">
-                    Attached Files ({uploadedFiles.length})
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {uploadedFiles.map((file, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-2.5 bg-[#EACEAA]/20 rounded-xl border border-[#34150F]/15 text-xs"
-                      >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <Paperclip size={14} className="text-[#85431E] shrink-0" />
-                          <span className="font-bold text-[#34150F] truncate">{file.name}</span>
-                          <span className="text-[10px] text-[#85431E]/70 shrink-0">
-                            ({(file.size / 1024).toFixed(1)} KB)
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFile(idx);
-                          }}
-                          className="text-rose-600 hover:text-rose-800 p-1 transition-colors"
-                          title="Remove file"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes / Special Instructions */}
-              <div className="space-y-1 text-xs pt-2">
-                <label className="font-bold text-[#34150F]">Special Project Notes / Packing & Tagging Instructions</label>
-                <textarea
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Specify floor-wise packaging requirements, site delivery timings, contact gatekeeper name, or scope details..."
-                  className="w-full px-3.5 py-2.5 bg-[#EACEAA]/10 border border-[#34150F]/20 rounded-xl text-xs text-[#34150F] focus:outline-none focus:border-[#34150F] resize-none"
-                />
-              </div>
+            {/* Special Notes & Packing Instructions */}
+            <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-2">
+              <label className="font-bold text-xs text-[#34150F] block">
+                Special Project Remarks & Instructions (Optional)
+              </label>
+              <textarea
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Specify floor-wise packaging requirements, site delivery timings, contact gatekeeper name, or project scope notes..."
+                className="w-full px-3.5 py-2.5 bg-[#EACEAA]/10 border border-[#34150F]/20 rounded-xl text-xs text-[#34150F] focus:outline-none focus:border-[#34150F] resize-none"
+              />
             </div>
 
             {/* Error Banner */}
