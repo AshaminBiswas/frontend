@@ -133,6 +133,8 @@ export function UserProfilePage({
   const [purchaseOrders, setPurchaseOrders] = useState<CustomerPurchaseOrder[]>([]);
   const [ordersFilter, setOrdersFilter] = useState<"ALL" | "RETAIL">("ALL");
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [poSearchQuery, setPoSearchQuery] = useState("");
+  const [poStatusFilter, setPoStatusFilter] = useState<string>("ALL");
 
   /* ── Notifications ── */
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -190,8 +192,10 @@ export function UserProfilePage({
 
   // Fetch standard orders & purchase orders when tab selected
   useEffect(() => {
-    if (activeTab !== "orders") return;
+    if (activeTab !== "orders" && activeTab !== "po") return;
     setOrdersLoading(true);
+
+    const userEmail = user?.email || "";
 
     Promise.all([
       fetchApi("/orders/my").then((res) => {
@@ -199,18 +203,25 @@ export function UserProfilePage({
         if (res.success && res.data?.orders) return res.data.orders;
         return [];
       }).catch(() => []),
+      fetchApi<any>(`/po-management/my-pos?email=${encodeURIComponent(userEmail)}`).then((res) => {
+        if (res.success && Array.isArray(res.data?.items)) return res.data.items;
+        if (res.success && Array.isArray(res.data)) return res.data;
+        return [];
+      }).catch(() => []),
       fetchApi<any>("/purchase-orders/my").then((res) => {
         if (res.success && Array.isArray(res.data)) return res.data;
         if (res.success && Array.isArray(res.data?.items)) return res.data.items;
         return [];
       }).catch(() => []),
-    ]).then(([fetchedOrders, fetchedPos]) => {
+    ]).then(([fetchedOrders, fetchedPoSubmissions, legacyPos]) => {
       setOrders(fetchedOrders);
-      setPurchaseOrders(fetchedPos);
+      const combined = [...fetchedPoSubmissions, ...legacyPos];
+      const uniquePos = Array.from(new Map(combined.map((item) => [item.poSubmissionId || item.id, item])).values());
+      setPurchaseOrders(uniquePos);
     }).finally(() => {
       setOrdersLoading(false);
     });
-  }, [activeTab]);
+  }, [activeTab, user?.email]);
 
   // Fetch addresses when tab selected
   useEffect(() => {
@@ -560,6 +571,7 @@ export function UserProfilePage({
     { key: "overview", label: "Overview", icon: <User size={15} /> },
     { key: "edit", label: "Edit Profile", icon: <Edit3 size={15} /> },
     { key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> },
+    { key: "po" as ProfileTab, label: "Purchase Orders (PO)", icon: <FileSpreadsheet size={15} />, badge: purchaseOrders.length > 0 ? purchaseOrders.length : undefined },
     { key: "orders", label: "My Orders", icon: <Package size={15} /> },
     { key: "cart", label: "My Cart", icon: <ShoppingCart size={15} />, badge: cart.reduce((s, i) => s + i.qty, 0) },
     { key: "wishlist", label: "Wishlist", icon: <Heart size={15} />, badge: wishlist.size },
@@ -864,7 +876,246 @@ export function UserProfilePage({
           </div>
         )}
 
-        {/* ═══════════════ PURCHASE ORDERS (PO INTAKE & STATUS - B2B ONLY) ═══════════════ */}
+        {/* ═══════════════ PURCHASE ORDERS (PO INTAKE & STATUS) ═══════════════ */}
+        {activeTab === "po" && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Top Header Card */}
+            <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-5 sm:p-6 shadow-sm border border-[#34150F]/6 flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-1">
+                <h3 className="font-black text-[#34150F] text-sm sm:text-base uppercase tracking-widest flex items-center gap-2" style={{ fontFamily: "'Gilda Display', serif" }}>
+                  <FileSpreadsheet size={18} className="text-[#D39858]" /> Commercial Purchase Orders (PO)
+                </h3>
+                <p className="text-xs text-[#85431E]">
+                  Track the technical review, commercial approval, and proforma invoice issuance for your purchase orders.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate("/submit-po");
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold px-4 py-2.5 rounded-tr-xl rounded-bl-xl text-xs hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md active:scale-95"
+                >
+                  <Plus size={14} /> Submit New PO
+                </button>
+              </div>
+            </div>
+
+            {/* Search & Status Filter Bar */}
+            <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-3 sm:p-4 shadow-sm border border-[#34150F]/6 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="relative w-full sm:w-80">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#85431E]/50" />
+                <input
+                  type="text"
+                  value={poSearchQuery}
+                  onChange={(e) => setPoSearchQuery(e.target.value)}
+                  placeholder="Search by PO ID, Customer PO #, or subject..."
+                  className="w-full bg-[#EACEAA]/20 text-[#34150F] placeholder-[#85431E]/50 pl-9 pr-3 py-2 rounded-xl text-xs border border-[#34150F]/15 focus:outline-none focus:border-[#D39858]"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                {[
+                  { key: "ALL", label: "All POs" },
+                  { key: "NEW", label: "New" },
+                  { key: "UNDER_REVIEW", label: "Under Review" },
+                  { key: "PROCESSING", label: "Processing" },
+                  { key: "COMPLETED", label: "Completed" },
+                ].map((st) => (
+                  <button
+                    key={st.key}
+                    type="button"
+                    onClick={() => setPoStatusFilter(st.key)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${
+                      poStatusFilter === st.key
+                        ? "bg-[#34150F] text-[#EACEAA] shadow-2xs"
+                        : "bg-[#EACEAA]/30 text-[#85431E] hover:bg-[#EACEAA]/50"
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Content List */}
+            {ordersLoading ? (
+              <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-12 text-center shadow-sm border border-[#34150F]/6 space-y-3">
+                <div className="w-8 h-8 border-3 border-[#D39858] border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs font-bold text-[#85431E]">Loading your Purchase Orders...</p>
+              </div>
+            ) : (() => {
+              const filteredPos = purchaseOrders.filter((po) => {
+                const matchesQuery = !poSearchQuery.trim() ||
+                  (po.poSubmissionId && po.poSubmissionId.toLowerCase().includes(poSearchQuery.toLowerCase())) ||
+                  (po.poNumber && po.poNumber.toLowerCase().includes(poSearchQuery.toLowerCase())) ||
+                  (po.customerPoNumber && po.customerPoNumber.toLowerCase().includes(poSearchQuery.toLowerCase())) ||
+                  (po.quotationNumber && po.quotationNumber.toLowerCase().includes(poSearchQuery.toLowerCase())) ||
+                  (po.subject && po.subject.toLowerCase().includes(poSearchQuery.toLowerCase()));
+
+                const matchesStatus = poStatusFilter === "ALL" || po.status === poStatusFilter;
+                return matchesQuery && matchesStatus;
+              });
+
+              if (filteredPos.length === 0) {
+                return (
+                  <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-8 sm:p-12 text-center shadow-sm border border-[#34150F]/6 space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-[#EACEAA]/40 flex items-center justify-center mx-auto text-[#85431E]">
+                      <FileSpreadsheet size={32} />
+                    </div>
+                    <div className="space-y-1 max-w-sm mx-auto">
+                      <h4 className="font-black text-[#34150F] text-sm">No Purchase Orders Found</h4>
+                      <p className="text-xs text-[#85431E]">
+                        {poSearchQuery || poStatusFilter !== "ALL"
+                          ? "No POs match your current search or status filter."
+                          : "You have not submitted any Purchase Orders yet. You can submit via quotation, custom form, or document upload."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        navigate("/submit-po");
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold px-5 py-2.5 rounded-tr-xl rounded-bl-xl text-xs hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-md"
+                    >
+                      <Plus size={14} /> Submit Purchase Order Now
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {filteredPos.map((po) => {
+                    const poRefId = po.poSubmissionId || po.poNumber || po.id;
+                    const dateStr = po.receivedAt || po.submittedAt || po.createdAt;
+                    const totalVal = po.metadata?.totalEstimatedValue || po.totalAmount;
+                    const lineItemsCount = po.metadata?.lineItems?.length || po.items?.length || 0;
+                    const attachmentsList = po.attachments || [];
+
+                    return (
+                      <div
+                        key={po.id || poRefId}
+                        className="bg-white rounded-tr-2xl rounded-bl-2xl p-4 sm:p-5 shadow-sm border border-[#34150F]/10 hover:border-[#D39858]/50 transition-all space-y-3"
+                      >
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#34150F]/8 pb-2.5">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-black text-sm text-[#34150F]">
+                                {poRefId}
+                              </span>
+                              {po.customerPoNumber && (
+                                <span className="inline-flex items-center gap-1 bg-[#34150F]/10 text-[#34150F] text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-[#34150F]/15">
+                                  Client PO: {po.customerPoNumber}
+                                </span>
+                              )}
+                              {po.source && (
+                                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                                  {po.source === "QUOTATION"
+                                    ? "📋 Quotation Linked"
+                                    : po.source === "PO_FORM"
+                                    ? "📝 Custom Form"
+                                    : po.source === "CUSTOM_PDF_UPLOAD"
+                                    ? "📤 Direct Upload"
+                                    : "📧 Inbound Email"}
+                                </span>
+                              )}
+                            </div>
+                            {dateStr && (
+                              <p className="text-[11px] text-[#85431E]/70 flex items-center gap-1">
+                                <Clock size={11} /> Submitted on {new Date(dateStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <span
+                              className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider border ${
+                                po.status === "COMPLETED" || po.status === "DELIVERED"
+                                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                  : po.status === "PROCESSING" || po.status === "INVOICED"
+                                  ? "bg-purple-100 text-purple-800 border-purple-300"
+                                  : po.status === "UNDER_REVIEW" || po.status === "NEW"
+                                  ? "bg-amber-100 text-amber-800 border-amber-300"
+                                  : po.status === "CANCELLED" || po.status === "REJECTED"
+                                  ? "bg-rose-100 text-rose-800 border-rose-300"
+                                  : "bg-blue-100 text-blue-800 border-blue-300"
+                              }`}
+                            >
+                              {String(po.status || "UNDER_REVIEW").replace(/_/g, " ")}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Subject & Summary */}
+                        {po.subject && (
+                          <p className="text-xs font-bold text-[#34150F]">
+                            {po.subject}
+                          </p>
+                        )}
+
+                        {/* Metrics bar */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs bg-[#FAF5EE] p-2.5 rounded-xl border border-[#34150F]/6">
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Scope / Items</span>
+                            <span className="font-bold text-[#34150F]">
+                              {lineItemsCount > 0 ? `${lineItemsCount} Line Item(s)` : "Document Attachment"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Estimated Value</span>
+                            <span className="font-bold text-[#34150F] font-mono">
+                              {totalVal ? `₹${Number(totalVal).toLocaleString("en-IN")}` : "Under Quotation Review"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Attached Docs</span>
+                            <span className="font-bold text-[#34150F]">
+                              {attachmentsList.length > 0 ? `${attachmentsList.length} File(s)` : "None"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Attachments links */}
+                        {attachmentsList.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <span className="text-[10.5px] font-bold text-[#85431E] block">Uploaded Documents:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {attachmentsList.map((att: any, attIdx: number) => {
+                                const downloadUrl = att.storageUrl?.startsWith("http")
+                                  ? att.storageUrl
+                                  : `${API_BASE_URL}/po-management/attachments/${att.id}/download`;
+
+                                return (
+                                  <a
+                                    key={att.id || attIdx}
+                                    href={downloadUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#EACEAA]/30 hover:bg-[#D39858]/20 text-[#34150F] rounded-lg text-[11px] font-bold border border-[#34150F]/15 transition-colors"
+                                  >
+                                    <Download size={11} className="text-[#D39858]" />
+                                    <span>{att.fileName || `Attachment #${attIdx + 1}`}</span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* ═══════════════ B2B QUOTATIONS (EXCLUSIVE) ═══════════════ */}
         {activeTab === "quotes" && (
           <B2BQuotationManager onGoToProfileEdit={() => switchTab("edit")} />
