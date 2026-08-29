@@ -29,6 +29,7 @@ const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage').then((m) 
 const AppointmentsPage = lazyWithRetry(() => import('../pages/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })));
 const RequestQuotePage = lazyWithRetry(() => import('../pages/RequestQuotePage').then((m) => ({ default: m.RequestQuotePage })));
 const CustomerQuoteApprovalPage = lazyWithRetry(() => import('../pages/CustomerQuoteApprovalPage').then((m) => ({ default: m.CustomerQuoteApprovalPage })));
+const SubmitPoPage = lazyWithRetry(() => import('../pages/SubmitPoPage').then((m) => ({ default: m.SubmitPoPage })));
 
 const NotFoundPage = lazyWithRetry(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const WishlistPage = lazyWithRetry(() => import('../pages/WishlistPage').then((m) => ({ default: m.WishlistPage })));
@@ -159,6 +160,10 @@ function AppContent() {
               <Route path="/request-quote" element={<RequestQuotePage />} />
               <Route path="/quote/:token" element={<CustomerQuoteApprovalPage />} />
               <Route path="/quotation/view/:token" element={<CustomerQuoteApprovalPage />} />
+              <Route path="/submit-po" element={<SubmitPoPage />} />
+              <Route path="/purchase-orders/create" element={<SubmitPoPage />} />
+              <Route path="/purchase-order/submit" element={<SubmitPoPage />} />
+              <Route path="/po-submission" element={<SubmitPoPage />} />
 
 
 

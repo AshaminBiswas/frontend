@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User as UserIcon, ShoppingCart, Menu, X, LogIn, Bell, Heart, Building2, Sparkles } from 'lucide-react';
+import { Search, User as UserIcon, ShoppingCart, Menu, X, LogIn, Bell, Heart, Building2, Sparkles, FileText } from 'lucide-react';
 import { NAV_LINKS } from '../../data/products';
 import { CategoryDropdown } from './CategoryDropdown';
 import { ProductsDropdown } from './ProductsDropdown';
@@ -148,6 +148,23 @@ export function Header({
                 </li>
               );
             })}
+
+            {/* Direct Link to Submit PO */}
+            <li>
+              <Link
+                to="/submit-po"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center justify-between text-sm font-semibold px-5 py-3.5 text-[#EACEAA]/90 hover:text-[#D39858] hover:bg-[#EACEAA]/5 border-b border-[#EACEAA]/6 transition-all duration-200"
+              >
+                <span className="flex items-center gap-2">
+                  <FileText size={16} className="text-[#D39858]" />
+                  <span>Submit Purchase Order (PO)</span>
+                </span>
+                <span className="bg-[#D39858]/20 text-[#D39858] text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border border-[#D39858]/30">
+                  Direct PO
+                </span>
+              </Link>
+            </li>
           </ul>
         </nav>
 

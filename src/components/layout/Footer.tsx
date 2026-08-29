@@ -14,6 +14,7 @@ export function Footer() {
   const quickLinks = [
     { label: 'About Us', to: '/about' },
     { label: 'Our Projects', to: '/projects' },
+    { label: 'Submit Purchase Order (PO)', to: '/submit-po' },
     { label: 'Contact Us', to: '/contact' },
     { label: 'Products', to: '/products' },
     { label: "FAQ's", to: '/faq' },
