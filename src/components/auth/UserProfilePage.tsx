@@ -1025,6 +1025,11 @@ export function UserProfilePage({
                                     : "📧 Inbound Email"}
                                 </span>
                               )}
+                              {(po.metadata?.quoteNumber || po.quotationNumber) && (
+                                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-blue-200">
+                                  Linked Quote: {po.metadata?.quoteNumber || po.quotationNumber}
+                                </span>
+                              )}
                             </div>
                             {dateStr && (
                               <p className="text-[11px] text-[#85431E]/70 flex items-center gap-1">

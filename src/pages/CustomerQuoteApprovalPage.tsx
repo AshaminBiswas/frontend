@@ -628,17 +628,17 @@ export function CustomerQuoteApprovalPage() {
               {quote.customerResponse === "accepted" && (
                 <div className="pt-1.5 flex flex-wrap items-center gap-2">
                   <Link
-                    to={`/purchase-orders/create?quoteNumber=${encodeURIComponent(quote.referenceNo)}&quoteId=${encodeURIComponent(quote.id)}`}
+                    to={`/submit-po?quoteNumber=${encodeURIComponent(quote.referenceNo)}&quoteId=${encodeURIComponent(quote.id)}`}
                     className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-2.5 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
                   >
                     <FileText size={13} />
-                    <span>Submit PO →</span>
+                    <span>Submit PO against Quotation →</span>
                   </Link>
                   <Link
-                    to="/purchase-orders"
+                    to="/profile?tab=po"
                     className="bg-[#EACEAA]/40 hover:bg-[#D39858]/30 text-[#34150F] font-bold text-xs px-3.5 py-2.5 rounded-lg sm:rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-1.5"
                   >
-                    <span>View All POs</span>
+                    <span>View Submitted POs</span>
                   </Link>
                 </div>
               )}
