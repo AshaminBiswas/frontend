@@ -564,10 +564,10 @@ export function SubmitPoPage() {
                         </Link>
                         <button
                           type="button"
-                          onClick={() => setActiveMode("PO_FORM")}
+                          onClick={() => setActiveMode("CUSTOM_PDF_UPLOAD")}
                           className="inline-flex items-center gap-1 bg-white border border-[#34150F]/20 text-[#34150F] font-bold text-xs px-4 py-2 rounded-xl hover:bg-[#EACEAA]/30 transition-all"
                         >
-                          Use Custom PO Form Instead
+                          Upload Signed PO Document Instead
                         </button>
                       </div>
                     </div>
@@ -926,8 +926,8 @@ export function SubmitPoPage() {
               </div>
             </div>
 
-            {/* ─── FILE ATTACHMENTS (ONLY FOR OPTION 2 & OPTION 3) ─────────────────── */}
-            {activeMode !== "QUOTATION" && (
+            {/* ─── FILE ATTACHMENTS (OPTION 2: DIRECT UPLOAD) ─────────────────── */}
+            {activeMode === "CUSTOM_PDF_UPLOAD" && (
               <div className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-[#34150F]/15 shadow-xs space-y-4 animate-in fade-in duration-200">
                 <div className="border-b border-[#34150F]/10 pb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -938,10 +938,90 @@ export function SubmitPoPage() {
                       Upload your signed company Purchase Order, BOQ spreadsheet, or architectural drawings (PDF, XLSX, DOCX, PNG, JPG up to 25MB).
                     </p>
                   </div>
-                  {activeMode === "CUSTOM_PDF_UPLOAD" && (
-                    <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-300">
-                      Mandatory for Option 3
-                    </span>
+                  <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-300">
+                    Mandatory for Option 2
+                  </span>
+                </div>
+
+                {/* Optional Quotation Linker for Uploaded PO */}
+                <div className="p-4 bg-[#FAF5EE] rounded-2xl border border-[#34150F]/15 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-[#34150F] flex items-center gap-1.5">
+                        <FileText size={14} className="text-[#85431E]" /> Link with an Approved Quotation (Optional)
+                      </span>
+                      <p className="text-[11px] text-[#85431E]/80">
+                        If this uploaded PO is in response to a quotation generated on the portal, link it here to automatically update its status to Converted.
+                      </p>
+                    </div>
+                    {linkedQuote && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLinkedQuote(null);
+                          setQuoteNumberInput("");
+                          setQuoteIdInput("");
+                        }}
+                        className="text-[11px] text-rose-600 hover:text-rose-800 font-bold underline"
+                      >
+                        Remove Link
+                      </button>
+                    )}
+                  </div>
+
+                  {linkedQuote ? (
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="font-mono font-bold text-emerald-900">
+                            Linked to Quote: {linkedQuote.referenceNo || linkedQuote.quoteNumber}
+                          </span>
+                          <span className="text-[11px] text-emerald-700 block">
+                            {linkedQuote.projectName || "Commercial Project"} • Value: ₹{Number(linkedQuote.grandTotal || 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
+                        Linked
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {approvedQuotes.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <span className="text-[11px] font-bold text-[#85431E] self-center">Quick Select:</span>
+                          {approvedQuotes.slice(0, 4).map((q) => (
+                            <button
+                              key={q.id}
+                              type="button"
+                              onClick={() => handleSelectQuote(q)}
+                              className="text-[11px] font-mono font-bold px-2.5 py-1 bg-white hover:bg-[#34150F] hover:text-[#EACEAA] text-[#34150F] rounded-lg border border-[#34150F]/20 transition-all shadow-2xs"
+                            >
+                              + {q.referenceNo} (₹{Number(q.grandTotal || 0).toLocaleString("en-IN")})
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={quoteNumberInput}
+                          onChange={(e) => setQuoteNumberInput(e.target.value)}
+                          placeholder="Or type Quote Ref No (e.g. PRC-QT-2026-0001)"
+                          className="w-full px-3 py-2 bg-white border border-[#34150F]/20 rounded-xl text-xs font-mono text-[#34150F] focus:outline-none focus:border-[#34150F]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSearchQuote(quoteNumberInput)}
+                          disabled={loadingQuote || !quoteNumberInput.trim()}
+                          className="bg-[#34150F] hover:bg-[#D39858] disabled:opacity-50 text-[#EACEAA] hover:text-[#34150F] text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-2xs shrink-0"
+                        >
+                          {loadingQuote ? "Checking..." : "Verify & Link"}
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
