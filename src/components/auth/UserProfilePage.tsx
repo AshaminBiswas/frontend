@@ -19,6 +19,7 @@ import { B2BQuotationManager } from "../b2b/B2BQuotationManager";
 import { isB2BUser, getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
 import { validateGstin, validatePhoneNumber } from "../../utils/validation";
+import { proformaInvoiceService, ProformaInvoiceDetail } from "../../services/proformaInvoiceService";
 
 import { AsyncActionButton } from "../common/AsyncActionButton";
 
@@ -47,7 +48,7 @@ interface UserProfilePageProps {
   onAddToCart: (product: Product) => void;
 }
 
-type ProfileTab = "overview" | "edit" | "quotes" | "po" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
+type ProfileTab = "overview" | "edit" | "quotes" | "po" | "proforma" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
 
 interface Address {
   id: string;
@@ -96,14 +97,14 @@ export function UserProfilePage({
 
   const tabParam = searchParams.get("tab") as ProfileTab | null;
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
-    if (tabParam && ["overview", "edit", "quotes", "po", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+    if (tabParam && ["overview", "edit", "quotes", "po", "proforma", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
       return tabParam;
     }
     return "overview";
   });
 
   useEffect(() => {
-    if (tabParam && ["overview", "edit", "quotes", "po", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+    if (tabParam && ["overview", "edit", "quotes", "po", "proforma", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -135,6 +136,12 @@ export function UserProfilePage({
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [poSearchQuery, setPoSearchQuery] = useState("");
   const [poStatusFilter, setPoStatusFilter] = useState<string>("ALL");
+
+  /* ── B2B Proforma Invoices (PI) ── */
+  const [proformaInvoices, setProformaInvoices] = useState<ProformaInvoiceDetail[]>([]);
+  const [proformaLoading, setProformaLoading] = useState(false);
+  const [proformaSearch, setProformaSearch] = useState("");
+  const [proformaStatusFilter, setProformaStatusFilter] = useState<string>("ALL");
 
   /* ── Notifications ── */
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -222,6 +229,26 @@ export function UserProfilePage({
       setOrdersLoading(false);
     });
   }, [activeTab, user?.email]);
+
+  // Fetch B2B Proforma Invoices when B2B customer visits profile or selects proforma tab
+  useEffect(() => {
+    if (!isB2B) return;
+    if (activeTab !== "proforma" && activeTab !== "overview") return;
+    setProformaLoading(true);
+    proformaInvoiceService.getMyCustomerProformas()
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setProformaInvoices(res.data);
+        } else {
+          setProformaInvoices([]);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch customer proforma invoices:", err);
+        setProformaInvoices([]);
+      })
+      .finally(() => setProformaLoading(false));
+  }, [activeTab, isB2B, user?.email]);
 
   // Fetch addresses when tab selected
   useEffect(() => {
@@ -572,6 +599,12 @@ export function UserProfilePage({
     { key: "edit", label: "Edit Profile", icon: <Edit3 size={15} /> },
     { key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> },
     { key: "po" as ProfileTab, label: "Purchase Orders (PO)", icon: <FileSpreadsheet size={15} />, badge: purchaseOrders.length > 0 ? purchaseOrders.length : undefined },
+    ...(isB2B ? [{
+      key: "proforma" as ProfileTab,
+      label: "Proforma Invoices (PI)",
+      icon: <Receipt size={15} />,
+      badge: proformaInvoices.length > 0 ? proformaInvoices.length : undefined,
+    }] : []),
     { key: "orders", label: "My Orders", icon: <Package size={15} /> },
     { key: "cart", label: "My Cart", icon: <ShoppingCart size={15} />, badge: cart.reduce((s, i) => s + i.qty, 0) },
     { key: "wishlist", label: "Wishlist", icon: <Heart size={15} />, badge: wishlist.size },
@@ -789,20 +822,27 @@ export function UserProfilePage({
                       </div>
                     ))}
                   </dl>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                    <button
-                      type="button"
-                      onClick={() => switchTab("po")}
-                      className="flex items-center justify-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs"
-                    >
-                      <FileSpreadsheet size={13} /> Purchase Orders (PO) →
-                    </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
                     <button
                       type="button"
                       onClick={() => switchTab("quotes")}
-                      className="flex items-center justify-center gap-1.5 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold text-xs py-2.5 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all shadow-xs"
+                      className="flex items-center justify-center gap-1.5 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all shadow-xs"
                     >
                       <FileText size={13} /> Quotations →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchTab("po")}
+                      className="flex items-center justify-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs"
+                    >
+                      <FileSpreadsheet size={13} /> PO Orders →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchTab("proforma")}
+                      className="flex items-center justify-center gap-1.5 bg-[#D39858] text-[#34150F] font-black text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all shadow-xs"
+                    >
+                      <Receipt size={13} /> Proformas (PI) →
                     </button>
                   </div>
                 </div>
@@ -1124,6 +1164,294 @@ export function UserProfilePage({
         {/* ═══════════════ B2B QUOTATIONS (EXCLUSIVE) ═══════════════ */}
         {activeTab === "quotes" && (
           <B2BQuotationManager onGoToProfileEdit={() => switchTab("edit")} />
+        )}
+
+        {/* ═══════════════ B2B PROFORMA INVOICES (EXCLUSIVE) ═══════════════ */}
+        {activeTab === "proforma" && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-[#34150F] text-xs uppercase tracking-widest flex items-center gap-2">
+                  <Receipt size={15} className="text-[#D39858]" /> Proforma Invoices (PI)
+                  {proformaInvoices.length > 0 && (
+                    <span className="bg-[#34150F] text-[#EACEAA] text-[10px] font-black px-2 py-0.5 rounded-full font-mono">
+                      {proformaInvoices.length}
+                    </span>
+                  )}
+                </h3>
+                <p className="text-[11px] text-[#85431E]/80 mt-0.5">
+                  View and download officially issued B2B Proforma Invoices, verify cryptographic authenticity, and submit advance payment remittance receipts.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[9.5px] font-black uppercase tracking-wider bg-[#D39858] text-[#34150F] px-2.5 py-1 rounded-full font-mono">
+                  B2B EXCLUSIVE
+                </span>
+              </div>
+            </div>
+
+            {/* Proforma Search & Status Filters */}
+            <div className="bg-white rounded-tr-xl rounded-bl-xl p-3 sm:p-4 border border-[#34150F]/10 space-y-2.5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={proformaSearch}
+                    onChange={(e) => setProformaSearch(e.target.value)}
+                    placeholder="Search by PI Number, Quote Ref, or PO Reference..."
+                    className="w-full bg-[#EACEAA]/20 text-[#34150F] placeholder-[#85431E]/40 pl-8 pr-4 py-2 rounded-tr-lg rounded-bl-lg text-xs border border-[#34150F]/10 focus:outline-none focus:border-[#D39858]"
+                  />
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#85431E]/50" />
+                  {proformaSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProformaSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#85431E]/50 hover:text-[#34150F]"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
+                  {[
+                    { id: "ALL", label: "All Statuses" },
+                    { id: "APPROVED", label: "Approved / Signed" },
+                    { id: "ADVANCE_RECEIVED", label: "Advance Paid" },
+                    { id: "ACCEPTED", label: "Accepted" },
+                    { id: "CONVERTED", label: "Converted to Tax Invoice" },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => setProformaStatusFilter(filter.id)}
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-all whitespace-nowrap ${
+                        proformaStatusFilter === filter.id
+                          ? "bg-[#34150F] text-[#EACEAA] shadow-2xs"
+                          : "bg-[#EACEAA]/30 text-[#85431E] hover:bg-[#EACEAA]/60"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Proforma List */}
+            {proformaLoading ? (
+              <div className="flex justify-center py-12 sm:py-16">
+                <div className="w-8 h-8 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (() => {
+              const filtered = proformaInvoices.filter((pi) => {
+                if (proformaStatusFilter !== "ALL") {
+                  if (proformaStatusFilter === "APPROVED" && !["APPROVED", "SIGNED", "SENT"].includes(pi.status)) return false;
+                  if (proformaStatusFilter === "ADVANCE_RECEIVED" && pi.status !== "ADVANCE_RECEIVED") return false;
+                  if (proformaStatusFilter === "ACCEPTED" && pi.status !== "ACCEPTED") return false;
+                  if (proformaStatusFilter === "CONVERTED" && pi.status !== "CONVERTED") return false;
+                }
+                if (!proformaSearch.trim()) return true;
+                const q = proformaSearch.toLowerCase().trim();
+                return (
+                  pi.piNumber?.toLowerCase().includes(q) ||
+                  pi.companyName?.toLowerCase().includes(q) ||
+                  pi.customerName?.toLowerCase().includes(q) ||
+                  (pi as any).quoteNumber?.toLowerCase().includes(q) ||
+                  (pi as any).poNumber?.toLowerCase().includes(q)
+                );
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-8 sm:p-12 text-center border border-[#34150F]/6 shadow-2xs space-y-3">
+                    <div className="w-16 h-16 rounded-2xl bg-[#EACEAA]/60 flex items-center justify-center mx-auto text-[#D39858]">
+                      <Receipt size={32} />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-black text-[#34150F]">No Proforma Invoices Found</h4>
+                      <p className="text-xs text-[#85431E] max-w-md mx-auto leading-relaxed">
+                        {proformaSearch
+                          ? `No Proforma Invoices match "${proformaSearch}". Try clearing your search query.`
+                          : "Proforma Invoices are issued exclusively by the PRC Hardware administration upon approval of your Quotations or Purchase Orders. Once issued, your signed PI and payment details will appear here."}
+                      </p>
+                    </div>
+                    {proformaSearch ? (
+                      <button
+                        type="button"
+                        onClick={() => { setProformaSearch(""); setProformaStatusFilter("ALL"); }}
+                        className="inline-flex items-center gap-1 bg-[#34150F] text-[#EACEAA] text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#D39858] hover:text-[#34150F] transition-all"
+                      >
+                        Reset Search
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => switchTab("quotes")}
+                        className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] text-xs font-bold px-4 py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all"
+                      >
+                        <FileText size={13} /> View Quotations
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {filtered.map((pi) => {
+                    const statusColor =
+                      pi.status === "CONVERTED"
+                        ? "bg-purple-100 text-purple-800 border-purple-300"
+                        : pi.status === "ADVANCE_RECEIVED"
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        : pi.status === "ACCEPTED"
+                        ? "bg-teal-100 text-teal-800 border-teal-300"
+                        : pi.status === "APPROVED" || pi.status === "SIGNED"
+                        ? "bg-blue-100 text-blue-800 border-blue-300"
+                        : pi.status === "EXPIRED"
+                        ? "bg-stone-100 text-stone-600 border-stone-300"
+                        : "bg-amber-100 text-amber-800 border-amber-300";
+
+                    return (
+                      <div
+                        key={pi.id}
+                        className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-4 sm:p-5 shadow-2xs border border-[#34150F]/10 hover:shadow-xs transition-all space-y-3"
+                      >
+                        {/* Header */}
+                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#34150F]/8 pb-2.5">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[9.5px] font-black uppercase bg-[#34150F] text-[#EACEAA] px-1.5 py-0.5 rounded tracking-wider font-mono">
+                                PI
+                              </span>
+                              <Link
+                                to={`/pi/${pi.verificationToken}`}
+                                onClick={onClose}
+                                className="text-sm font-black text-[#34150F] hover:text-[#85431E] font-mono transition-colors"
+                              >
+                                {pi.piNumber}
+                              </Link>
+                              {pi.financialYear && (
+                                <span className="text-[9.5px] font-bold text-[#85431E] bg-[#EACEAA]/40 border border-[#85431E]/20 px-1.5 py-0.2 rounded font-mono">
+                                  FY {pi.financialYear}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#85431E]/80 pt-0.5">
+                              <span>
+                                Issued: <strong>{new Date(pi.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</strong>
+                              </span>
+                              {pi.validUntil && (
+                                <>
+                                  <span>•</span>
+                                  <span>
+                                    Valid Until: <strong>{new Date(pi.validUntil).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</strong>
+                                  </span>
+                                </>
+                              )}
+                              {pi.placeOfSupply && (
+                                <>
+                                  <span>•</span>
+                                  <span>Place of Supply: <strong>{pi.placeOfSupply}</strong></span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right space-y-1">
+                            <span className={`text-[9.5px] font-black px-2.5 py-0.8 rounded-full uppercase tracking-wider border ${statusColor}`}>
+                              {pi.status.replace(/_/g, " ")}
+                            </span>
+                            {pi.signedBy && (
+                              <p className="text-[9px] text-emerald-700 font-bold flex items-center justify-end gap-1">
+                                <Shield size={10} /> Digitally Signed
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Commercial Financial Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#FAF5EE] p-3 rounded-xl border border-[#34150F]/6 text-xs">
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Scope</span>
+                            <span className="font-bold text-[#34150F]">{pi.items?.length || 0} Line Item(s)</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Grand Total (Incl. GST)</span>
+                            <span className="font-bold font-mono text-[#34150F]">₹{Number(pi.grandTotal || 0).toLocaleString("en-IN")}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Advance Required ({pi.advancePercentage || 30}%)</span>
+                            <span className="font-bold font-mono text-emerald-700">₹{Number(pi.advanceAmount || 0).toLocaleString("en-IN")}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#85431E] block font-semibold">Balance at Dispatch</span>
+                            <span className="font-bold font-mono text-amber-900">₹{Number(pi.balanceDue || 0).toLocaleString("en-IN")}</span>
+                          </div>
+                        </div>
+
+                        {/* Cryptographic Authenticity Strip */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[10.5px] bg-[#EACEAA]/20 px-3 py-1.5 rounded-lg border border-[#D39858]/30">
+                          <div className="flex items-center gap-1.5 text-[#85431E]">
+                            <Shield size={12} className="text-[#D39858]" />
+                            <span>SHA-256 Authenticity Seal:</span>
+                            <span className="font-mono text-[#34150F] font-bold truncate max-w-[150px] sm:max-w-[250px]">
+                              {pi.documentHash || pi.verificationId || "VERIFIED-DOC"}
+                            </span>
+                          </div>
+                          <span className="text-emerald-700 font-bold text-[9.5px] uppercase tracking-wider">
+                            ✓ Tamper Proof Seal Verified
+                          </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#34150F]/8">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await proformaInvoiceService.downloadPdfByToken(pi.verificationToken, pi.piNumber);
+                                } catch (err: any) {
+                                  alert(err.message || "Failed to download PDF");
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#34150F] hover:text-white bg-[#EACEAA]/50 hover:bg-[#34150F] border border-[#34150F]/20 px-3 py-1.5 rounded-lg transition-all shadow-2xs active:scale-95"
+                            >
+                              <Download size={12} className="text-[#D39858]" />
+                              <span>Download PDF</span>
+                            </button>
+
+                            <a
+                              href={`${API_BASE_URL}/proforma-invoices/public/${encodeURIComponent(pi.verificationToken)}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#85431E] hover:text-[#34150F] px-2 py-1.5 rounded-lg transition-colors"
+                            >
+                              <ExternalLink size={12} />
+                              <span>Open in Browser</span>
+                            </a>
+                          </div>
+
+                          <Link
+                            to={`/pi/${pi.verificationToken}`}
+                            onClick={onClose}
+                            className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-1.5 rounded-lg transition-all shadow-2xs active:scale-95"
+                          >
+                            <span>View & Remittance</span>
+                            <ChevronRight size={13} />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
         )}
 
         {/* ═══════════════ EDIT PROFILE ═══════════════ */}

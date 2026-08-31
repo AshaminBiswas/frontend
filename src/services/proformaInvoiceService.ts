@@ -101,6 +101,13 @@ export const proformaInvoiceService = {
   },
 
   /**
+   * Authenticated B2B Customer: Get all issued Proforma Invoices for current logged-in customer profile
+   */
+  getMyCustomerProformas: async (): Promise<ApiResponse<ProformaInvoiceDetail[]>> => {
+    return fetchApi<ProformaInvoiceDetail[]>('/proforma-invoices/customer/my-proformas');
+  },
+
+  /**
    * Public: Get Proforma Invoice by access token
    */
   getByToken: async (token: string): Promise<ApiResponse<ProformaInvoiceDetail>> => {
