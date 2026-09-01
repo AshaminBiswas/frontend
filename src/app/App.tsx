@@ -30,6 +30,7 @@ const AppointmentsPage = lazyWithRetry(() => import('../pages/AppointmentsPage')
 const RequestQuotePage = lazyWithRetry(() => import('../pages/RequestQuotePage').then((m) => ({ default: m.RequestQuotePage })));
 const CustomerQuoteApprovalPage = lazyWithRetry(() => import('../pages/CustomerQuoteApprovalPage').then((m) => ({ default: m.CustomerQuoteApprovalPage })));
 const CustomerProformaViewPage = lazyWithRetry(() => import('../pages/CustomerProformaViewPage').then((m) => ({ default: m.CustomerProformaViewPage })));
+const VerifyProformaInvoicePage = lazyWithRetry(() => import('../pages/VerifyProformaInvoicePage').then((m) => ({ default: m.VerifyProformaInvoicePage })));
 const SubmitPoPage = lazyWithRetry(() => import('../pages/SubmitPoPage').then((m) => ({ default: m.SubmitPoPage })));
 
 const NotFoundPage = lazyWithRetry(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
@@ -163,6 +164,8 @@ function AppContent() {
               <Route path="/quotation/view/:token" element={<CustomerQuoteApprovalPage />} />
               <Route path="/pi/:token" element={<CustomerProformaViewPage />} />
               <Route path="/proforma/:token" element={<CustomerProformaViewPage />} />
+              {/* QR Code Scan Verification Route — must match the URL embedded in each PI QR code */}
+              <Route path="/verify/pi/:token" element={<VerifyProformaInvoicePage />} />
               <Route path="/submit-po" element={<SubmitPoPage />} />
               <Route path="/purchase-orders/create" element={<SubmitPoPage />} />
               <Route path="/purchase-order/submit" element={<SubmitPoPage />} />
