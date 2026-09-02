@@ -148,6 +148,22 @@ export const proformaInvoiceService = {
   },
 
   /**
+   * Public: Upload Payment Screenshot or PDF receipt
+   */
+  uploadPaymentReceipt: async (
+    token: string,
+    file: File
+  ): Promise<ApiResponse<{ receiptUrl: string }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/proforma-invoices/public/${encodeURIComponent(token)}/upload-receipt`, {
+      method: 'POST',
+      body: formData,
+    });
+    return res.json();
+  },
+
+  /**
    * Public: Download Proforma Invoice PDF Direct URL
    */
   getPdfDownloadUrl: (token: string): string => {

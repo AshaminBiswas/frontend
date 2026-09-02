@@ -338,12 +338,12 @@ export function VerifyProformaInvoicePage() {
 
         {/* ── Footer Disclaimer ──────────────────────────────────────────────── */}
         <div className="text-center text-xs text-[#85431E] space-y-1">
-          <p className="font-semibold">Pacific Products and Solutions</p>
+          <p className="font-semibold">PRC Hardware</p>
           <p>H-3, J.R. Complex, Gate No. 4, Mela Ram Farm, Mandoli, Delhi 110093</p>
           <p>
             <a href="tel:+919818592113" className="underline">+91 98185 92113</a>
             {' · '}
-            <a href="mailto:billing@pacifichardware.com" className="underline">billing@pacifichardware.com</a>
+            <a href="mailto:billing@prchardware.com" className="underline">billing@prchardware.com</a>
           </p>
           <p className="text-[10px] text-[#34150F]/50 pt-1">
             Secured by PRC Hardware Digital Trust Infrastructure · GSTIN: 07AADFP3948F1Z1

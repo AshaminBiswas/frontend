@@ -4,7 +4,8 @@ import {
   Building2, CheckCircle2, XCircle, Printer, Download,
   Clock, AlertCircle, ArrowLeft, ShieldCheck, QrCode,
   FileText, Send, RefreshCw, Copy, Check, Sparkles,
-  CreditCard, Landmark, Phone, Mail, MapPin, Calendar, HelpCircle
+  CreditCard, Landmark, Phone, Mail, MapPin, Calendar, HelpCircle,
+  Upload, Image, Trash2, Paperclip
 } from "lucide-react";
 import {
   proformaInvoiceService,
@@ -27,6 +28,9 @@ export function CustomerProformaViewPage() {
   const [advanceRef, setAdvanceRef] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [feedbackComments, setFeedbackComments] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState("");
   const [feedbackError, setFeedbackError] = useState("");
@@ -65,6 +69,42 @@ export function CustomerProformaViewPage() {
     fetchPI();
   }, [token]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setFeedbackError("File size must be less than 10MB.");
+      return;
+    }
+
+    // Validate type
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowed.includes(file.mimetype.toLowerCase())) {
+      setFeedbackError("Please upload an Image (PNG, JPG, WEBP) or a PDF receipt document.");
+      return;
+    }
+
+    setFeedbackError("");
+    setReceiptFile(file);
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setReceiptPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setReceiptPreview(null);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  };
+
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !pi) return;
@@ -84,10 +124,25 @@ export function CustomerProformaViewPage() {
     setFeedbackSuccess("");
 
     try {
+      let uploadedReceiptUrl: string | undefined = undefined;
+
+      // Upload receipt file if attached
+      if (receiptFile) {
+        setUploadingReceipt(true);
+        const uploadRes = await proformaInvoiceService.uploadPaymentReceipt(token, receiptFile);
+        if (uploadRes.success && uploadRes.data?.receiptUrl) {
+          uploadedReceiptUrl = uploadRes.data.receiptUrl;
+        } else {
+          throw new Error(uploadRes.error?.message || "Failed to upload payment receipt file. Please try again.");
+        }
+        setUploadingReceipt(false);
+      }
+
       const payload: ProformaFeedbackPayload = {
         action: feedbackAction,
         feedbackComments: feedbackComments.trim(),
         advancePaymentRef: advanceRef.trim() || undefined,
+        paymentReceiptUrl: uploadedReceiptUrl,
         contactPhone: contactPhone.trim() || undefined,
         customerName: pi.customerName,
       };
@@ -95,15 +150,18 @@ export function CustomerProformaViewPage() {
       const res = await proformaInvoiceService.submitFeedback(token, payload);
       if (res.success && res.data) {
         setPi(res.data);
-        setFeedbackSuccess(res.message || "Feedback submitted successfully. PRC Hardware commercial desk has been notified.");
+        setFeedbackSuccess(res.message || "Feedback & advance payment details submitted successfully. PRC Hardware commercial desk has been notified.");
         setFeedbackComments("");
         setAdvanceRef("");
+        setReceiptFile(null);
+        setReceiptPreview(null);
       } else {
         setFeedbackError(res.error?.message || "Failed to submit response. Please try again.");
       }
     } catch (err: any) {
       setFeedbackError(err?.message || "Network error while submitting feedback. Please try again.");
     } finally {
+      setUploadingReceipt(false);
       setSubmittingFeedback(false);
     }
   };
@@ -188,11 +246,11 @@ export function CustomerProformaViewPage() {
   const isInterstate = Number(pi.igst || 0) > 0;
   const bank = pi.bankDetails || {
     bankName: "HDFC Bank Ltd.",
-    accountName: "Pacific Products and Solutions",
+    accountName: "PRC Hardware",
     accountNumber: "50200012345678",
     ifsc: "HDFC0001234",
     branch: "Mandoli Industrial Area, Delhi",
-    upiId: "pacificproducts@hdfcbank",
+    upiId: "",
   };
 
   const getStatusBadge = (st: string) => {
@@ -323,6 +381,14 @@ export function CustomerProformaViewPage() {
                 {downloadingPdf ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
                 <span>Download Official PDF</span>
               </button>
+
+              <a
+                href="#payment-receipt-upload"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#85431E] hover:bg-[#6b3517] text-[#EACEAA] px-4 py-2 text-xs font-bold rounded-lg transition-all shadow-md shrink-0 cursor-pointer"
+              >
+                <Upload size={14} />
+                <span>Upload Payment Receipt</span>
+              </a>
             </div>
           </div>
 
@@ -486,10 +552,12 @@ export function CustomerProformaViewPage() {
                     <span className="text-slate-500">IFSC Code:</span>
                     <span className="font-mono font-bold text-[#34150F]">{bank.ifsc}</span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-500">UPI / VPA:</span>
-                    <span className="font-mono font-medium text-slate-800">{bank.upiId}</span>
-                  </div>
+                  {bank.upiId ? (
+                    <div className="flex justify-between py-1">
+                      <span className="text-slate-500">UPI / VPA:</span>
+                      <span className="font-mono font-medium text-slate-800">{bank.upiId}</span>
+                    </div>
+                  ) : null}
                 </div>
                 <p className="text-[11px] text-slate-500 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
                   💡 Kindly mention PI number <strong>{pi.piNumber}</strong> in the transfer remarks for expedited clearance.
@@ -555,7 +623,7 @@ export function CustomerProformaViewPage() {
             </div>
 
             {/* ── Customer Feedback & Acceptance Form ──────────────────────── */}
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-md space-y-5">
+            <div id="payment-receipt-upload" className="bg-white p-6 sm:p-8 rounded-2xl border border-[rgba(52,21,15,0.12)] shadow-md space-y-5 scroll-mt-6">
               <div className="border-b border-slate-100 pb-3">
                 <h3 className="text-lg font-bold text-[#34150F] flex items-center gap-2" style={{ fontFamily: "'Gilda Display', serif" }}>
                   <Send size={18} className="text-[#85431E]" />
@@ -635,9 +703,9 @@ export function CustomerProformaViewPage() {
                   </div>
                 </div>
 
-                {/* Conditional UTR Reference Field */}
+                {/* Conditional UTR Reference & Receipt Upload Field */}
                 {(feedbackAction === 'PAYMENT_SUBMITTED' || feedbackAction === 'ACCEPT') && (
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Advance Payment Transaction Reference (UTR / IMPS / NEFT Ref No.) {feedbackAction === 'PAYMENT_SUBMITTED' ? <span className="text-red-500">*</span> : <span className="text-slate-400 font-normal">(Optional if paid)</span>}
@@ -649,6 +717,61 @@ export function CustomerProformaViewPage() {
                         placeholder="e.g. HDFC123456789012 or UPI Ref 4123456789"
                         className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-[#85431E] bg-white font-mono"
                       />
+                    </div>
+
+                    {/* Payment Screenshot or PDF Receipt Upload */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Upload Payment Screenshot or Bank Receipt (Image / PDF):
+                      </label>
+                      <p className="text-[11px] text-slate-500 mb-2">
+                        Attach a screenshot of your bank / UPI transfer or bank payment receipt (PNG, JPG, WEBP, or PDF, max 10MB) for immediate clearance.
+                      </p>
+
+                      {!receiptFile ? (
+                        <label className="border-2 border-dashed border-slate-300 hover:border-[#85431E] rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-white transition-colors">
+                          <Upload size={20} className="text-[#85431E]" />
+                          <span className="text-xs font-bold text-slate-700">Click to Select Payment Screenshot / PDF Receipt</span>
+                          <span className="text-[10px] text-slate-400">Supports PNG, JPG, WEBP, PDF up to 10MB</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="bg-white p-3 rounded-xl border border-slate-300 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            {receiptPreview ? (
+                              <img
+                                src={receiptPreview}
+                                alt="Receipt Preview"
+                                className="w-12 h-12 object-cover rounded-lg border border-slate-200 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 shrink-0">
+                                <FileText size={20} />
+                              </div>
+                            )}
+                            <div className="overflow-hidden">
+                              <div className="text-xs font-bold text-slate-800 truncate">{receiptFile.name}</div>
+                              <div className="text-[10px] text-slate-500">
+                                {(receiptFile.size / 1024).toFixed(1)} KB • {receiptFile.type || 'Document'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleRemoveFile}
+                            className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                            title="Remove file"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
