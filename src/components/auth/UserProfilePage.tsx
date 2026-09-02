@@ -1439,9 +1439,18 @@ export function UserProfilePage({
                           <Link
                             to={`/pi/${pi.verificationToken}`}
                             onClick={onClose}
-                            className="inline-flex items-center gap-1.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-1.5 rounded-lg transition-all shadow-2xs active:scale-95"
+                            className={`inline-flex items-center gap-1.5 font-bold text-xs px-4 py-1.5 rounded-lg transition-all shadow-2xs active:scale-95 ${
+                              pi.status === "ADVANCE_RECEIVED" || pi.status === "APPROVED"
+                                ? "bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F]"
+                                : "bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-white shadow-emerald-900/20"
+                            }`}
                           >
-                            <span>View & Remittance</span>
+                            <Upload size={12} />
+                            <span>
+                              {pi.status === "ADVANCE_RECEIVED" || pi.status === "APPROVED"
+                                ? "View Commercial PI"
+                                : "Upload Payment Receipt & UTR"}
+                            </span>
                             <ChevronRight size={13} />
                           </Link>
                         </div>

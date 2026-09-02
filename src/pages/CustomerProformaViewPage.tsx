@@ -80,8 +80,18 @@ export function CustomerProformaViewPage() {
     }
 
     // Validate type
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowed.includes(file.mimetype.toLowerCase())) {
+    const fileType = (file.type || '').toLowerCase();
+    const fileName = (file.name || '').toLowerCase();
+    const isImageOrPdf =
+      fileType.startsWith('image/') ||
+      fileType === 'application/pdf' ||
+      fileName.endsWith('.pdf') ||
+      fileName.endsWith('.png') ||
+      fileName.endsWith('.jpg') ||
+      fileName.endsWith('.jpeg') ||
+      fileName.endsWith('.webp');
+
+    if (!isImageOrPdf) {
       setFeedbackError("Please upload an Image (PNG, JPG, WEBP) or a PDF receipt document.");
       return;
     }
@@ -89,7 +99,7 @@ export function CustomerProformaViewPage() {
     setFeedbackError("");
     setReceiptFile(file);
 
-    if (file.type.startsWith('image/')) {
+    if (fileType.startsWith('image/') && !fileName.endsWith('.pdf')) {
       const reader = new FileReader();
       reader.onload = () => {
         setReceiptPreview(reader.result as string);
