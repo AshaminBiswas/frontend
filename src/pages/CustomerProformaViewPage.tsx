@@ -713,12 +713,12 @@ export function CustomerProformaViewPage() {
                   </div>
                 </div>
 
-                {/* Conditional UTR Reference & Receipt Upload Field */}
-                {(feedbackAction === 'PAYMENT_SUBMITTED' || feedbackAction === 'ACCEPT') && (
+                {/* Conditional UTR Reference & Receipt Upload Field (Only in Advance Payment Initiated) */}
+                {feedbackAction === 'PAYMENT_SUBMITTED' && (
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Advance Payment Transaction Reference (UTR / IMPS / NEFT Ref No.) {feedbackAction === 'PAYMENT_SUBMITTED' ? <span className="text-red-500">*</span> : <span className="text-slate-400 font-normal">(Optional if paid)</span>}
+                        Advance Payment Transaction Reference (UTR / IMPS / NEFT Ref No.) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -726,6 +726,7 @@ export function CustomerProformaViewPage() {
                         onChange={(e) => setAdvanceRef(e.target.value)}
                         placeholder="e.g. HDFC123456789012 or UPI Ref 4123456789"
                         className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-[#85431E] bg-white font-mono"
+                        required
                       />
                     </div>
 
