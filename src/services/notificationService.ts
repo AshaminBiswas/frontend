@@ -19,4 +19,9 @@ export const notificationService = {
   },
   markRead: (id: string) => fetchApi(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllRead: () => fetchApi('/notifications/read-all', { method: 'PATCH' }),
+  bulkDelete: (ids: string[]) =>
+    fetchApi<{ deletedCount: number; ids: string[] }>('/notifications/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
 };
