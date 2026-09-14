@@ -119,4 +119,15 @@ export const authService = {
       }),
     });
   },
+
+  // 11. Admin Change User Password (POST /users/:id/change-password)
+  async adminChangeUserPassword(
+    userId: string,
+    payload: { newPassword: string; mustChangePassword?: boolean; sendNotificationEmail?: boolean }
+  ): Promise<ApiResponse> {
+    return fetchApi(`/users/${userId}/change-password`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
 };
