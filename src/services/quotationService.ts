@@ -150,6 +150,28 @@ export interface VerificationResult {
   message: string;
 }
 
+export interface PublicDocumentVerificationResult {
+  valid: boolean;
+  message: string;
+  document?: {
+    documentType: string;
+    documentNumber: string;
+    companyName: string;
+    partyName: string;
+    date: string;
+    currency: string;
+    maskedAmount: string;
+    status: string;
+    verifiedAt: string;
+  };
+  quotation?: any;
+  proformaInvoice?: any;
+  order?: any;
+  invoice?: any;
+  packingList?: any;
+  pdfDownloadUrl?: string;
+}
+
 export const quotationService = {
   /**
    * Submit B2B RFQ Quotation
@@ -265,5 +287,11 @@ export const quotationService = {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(blobUrl);
+  },
+  /**
+   * Universal Public Document Verification (Quotation, PI, SO, Invoice, Packing List)
+   */
+  async verifyPublicDocument(token: string): Promise<ApiResponse<PublicDocumentVerificationResult>> {
+    return fetchApi<PublicDocumentVerificationResult>(`/verify/${encodeURIComponent(token.trim())}`);
   },
 };

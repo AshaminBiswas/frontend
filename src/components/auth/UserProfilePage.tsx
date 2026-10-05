@@ -7,7 +7,7 @@ import {
   Lock, Eye, EyeOff, ArrowLeft, MapPin, Plus, Trash2,
   ShoppingCart, Minus, Truck, Download, Receipt, ExternalLink,
   FileSpreadsheet, Upload, Search, LocateFixed, Navigation,
-  MessageSquare, Pencil, Check, Clock,
+  MessageSquare, Pencil, Check, Clock, Boxes, RefreshCw, Copy,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { authService } from "../../services/authService";
@@ -20,6 +20,8 @@ import { isB2BUser, getEffectivePrice } from "../../utils/pricing";
 import { useB2BPricing } from "../../hooks/useB2BPricing";
 import { validateGstin, validatePhoneNumber } from "../../utils/validation";
 import { proformaInvoiceService, ProformaInvoiceDetail } from "../../services/proformaInvoiceService";
+import { b2bOrderService } from "../../services/b2bOrderService";
+import { B2BOrder, B2BOrderStatus } from "../../types/b2bOrder";
 
 import { AsyncActionButton } from "../common/AsyncActionButton";
 
@@ -48,7 +50,7 @@ interface UserProfilePageProps {
   onAddToCart: (product: Product) => void;
 }
 
-type ProfileTab = "overview" | "edit" | "quotes" | "po" | "proforma" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews";
+type ProfileTab = "overview" | "edit" | "quotes" | "po" | "proforma" | "security" | "orders" | "addresses" | "cart" | "wishlist" | "notifications" | "reviews" | "b2b-orders";
 
 interface Address {
   id: string;
@@ -80,6 +82,60 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-red-100 text-red-700 border-red-200",
 };
 
+const getB2bStatusBadge = (status: B2BOrderStatus) => {
+  switch (status) {
+    case "pending_approval":
+      return {
+        bg: "bg-amber-100 text-amber-900 border-amber-300",
+        label: "Pending Approval",
+        sublabel: "Stock Reserved",
+      };
+    case "confirmed":
+      return {
+        bg: "bg-emerald-100 text-emerald-900 border-emerald-300",
+        label: "Confirmed",
+        sublabel: "Stock Deducted",
+      };
+    case "processing":
+      return {
+        bg: "bg-blue-100 text-blue-900 border-blue-300",
+        label: "Processing",
+        sublabel: "In Fulfillment",
+      };
+    case "ready":
+      return {
+        bg: "bg-indigo-100 text-indigo-900 border-indigo-300",
+        label: "Ready for Dispatch",
+        sublabel: "Packed",
+      };
+    case "completed":
+      return {
+        bg: "bg-emerald-800 text-white border-emerald-900",
+        label: "Completed",
+        sublabel: "Fulfilled",
+      };
+    case "cancelled":
+      return {
+        bg: "bg-rose-100 text-rose-900 border-rose-300",
+        label: "Cancelled",
+        sublabel: "Stock Restored",
+      };
+    case "rejected":
+      return {
+        bg: "bg-zinc-200 text-zinc-800 border-zinc-300",
+        label: "Rejected",
+        sublabel: "Reservation Released",
+      };
+    default:
+      return {
+        bg: "bg-zinc-100 text-zinc-700 border-zinc-200",
+        label: status,
+        sublabel: "",
+      };
+  }
+};
+
+
 export function UserProfilePage({
   onClose,
   cart,
@@ -97,14 +153,14 @@ export function UserProfilePage({
 
   const tabParam = searchParams.get("tab") as ProfileTab | null;
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
-    if (tabParam && ["overview", "edit", "quotes", "po", "proforma", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+    if (tabParam && ["overview", "edit", "quotes", "po", "proforma", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security", "b2b-orders"].includes(tabParam)) {
       return tabParam;
     }
     return "overview";
   });
 
   useEffect(() => {
-    if (tabParam && ["overview", "edit", "quotes", "po", "proforma", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security"].includes(tabParam)) {
+    if (tabParam && ["overview", "edit", "quotes", "po", "proforma", "orders", "addresses", "cart", "wishlist", "notifications", "reviews", "security", "b2b-orders"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -132,10 +188,19 @@ export function UserProfilePage({
   /* ── Orders & Purchase Orders ── */
   const [orders, setOrders] = useState<any[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<CustomerPurchaseOrder[]>([]);
-  const [ordersFilter, setOrdersFilter] = useState<"ALL" | "RETAIL">("ALL");
+  const [ordersFilter, setOrdersFilter] = useState<"ALL" | "RETAIL" | "B2B">("ALL");
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [poSearchQuery, setPoSearchQuery] = useState("");
   const [poStatusFilter, setPoStatusFilter] = useState<string>("ALL");
+
+  /* ── B2B Commercial Orders ── */
+  const [b2bOrders, setB2bOrders] = useState<B2BOrder[]>([]);
+  const [b2bOrdersLoading, setB2bOrdersLoading] = useState(false);
+  const [selectedB2bOrder, setSelectedB2bOrder] = useState<B2BOrder | null>(null);
+  const [cancellingB2bOrderId, setCancellingB2bOrderId] = useState<string | null>(null);
+  const [b2bCancelReason, setB2bCancelReason] = useState("");
+  const [b2bCancellingLoading, setB2bCancellingLoading] = useState(false);
+  const [b2bStatusFilter, setB2bStatusFilter] = useState<string>("ALL");
 
   /* ── B2B Proforma Invoices (PI) ── */
   const [proformaInvoices, setProformaInvoices] = useState<ProformaInvoiceDetail[]>([]);
@@ -197,14 +262,15 @@ export function UserProfilePage({
     }
   }, [user]);
 
-  // Fetch standard orders & purchase orders when tab selected
+  // Fetch standard orders, purchase orders & B2B orders when tab selected
   useEffect(() => {
-    if (activeTab !== "orders" && activeTab !== "po") return;
+    if (activeTab !== "orders" && activeTab !== "po" && activeTab !== "b2b-orders" && activeTab !== "overview") return;
     setOrdersLoading(true);
+    setB2bOrdersLoading(true);
 
     const userEmail = user?.email || "";
 
-    Promise.all([
+    const fetches: Promise<any>[] = [
       fetchApi("/orders/my").then((res) => {
         if (res.success && Array.isArray(res.data)) return res.data;
         if (res.success && res.data?.orders) return res.data.orders;
@@ -220,15 +286,58 @@ export function UserProfilePage({
         if (res.success && Array.isArray(res.data?.items)) return res.data.items;
         return [];
       }).catch(() => []),
-    ]).then(([fetchedOrders, fetchedPoSubmissions, legacyPos]) => {
+    ];
+
+    if (isB2B) {
+      fetches.push(
+        b2bOrderService.getMyB2BOrders().then((res) => {
+          if (res.success && res.data?.items) return res.data.items;
+          return [];
+        }).catch(() => [])
+      );
+    }
+
+    Promise.all(fetches).then(([fetchedOrders, fetchedPoSubmissions, legacyPos, fetchedB2bOrders]) => {
       setOrders(fetchedOrders);
       const combined = [...fetchedPoSubmissions, ...legacyPos];
       const uniquePos = Array.from(new Map(combined.map((item) => [item.poSubmissionId || item.id, item])).values());
       setPurchaseOrders(uniquePos);
+      if (fetchedB2bOrders) {
+        setB2bOrders(fetchedB2bOrders);
+      }
     }).finally(() => {
       setOrdersLoading(false);
+      setB2bOrdersLoading(false);
     });
-  }, [activeTab, user?.email]);
+  }, [activeTab, user?.email, isB2B]);
+
+  // Customer B2B Order self-cancellation
+  const handleCancelB2bOrder = async (orderId: string) => {
+    if (!b2bCancelReason.trim()) {
+      setErrorMsg("Please provide a reason for cancelling this order.");
+      return;
+    }
+    setB2bCancellingLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await b2bOrderService.cancelMyB2BOrder(orderId, b2bCancelReason.trim());
+      if (res.success) {
+        setSuccessMsg("Order cancelled successfully. All reserved inventory has been released.");
+        setCancellingB2bOrderId(null);
+        setB2bCancelReason("");
+        const refresh = await b2bOrderService.getMyB2BOrders();
+        if (refresh.success && refresh.data?.items) {
+          setB2bOrders(refresh.data.items);
+        }
+      } else {
+        setErrorMsg(res.error?.message || "Failed to cancel order.");
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Network error while cancelling order.");
+    } finally {
+      setB2bCancellingLoading(false);
+    }
+  };
 
   // Fetch B2B Proforma Invoices when B2B customer visits profile or selects proforma tab
   useEffect(() => {
@@ -599,12 +708,20 @@ export function UserProfilePage({
     { key: "edit", label: "Edit Profile", icon: <Edit3 size={15} /> },
     { key: "quotes" as ProfileTab, label: "My Quotations", icon: <FileText size={15} /> },
     { key: "po" as ProfileTab, label: "Purchase Orders (PO)", icon: <FileSpreadsheet size={15} />, badge: purchaseOrders.length > 0 ? purchaseOrders.length : undefined },
-    ...(isB2B ? [{
-      key: "proforma" as ProfileTab,
-      label: "Proforma Invoices (PI)",
-      icon: <Receipt size={15} />,
-      badge: proformaInvoices.length > 0 ? proformaInvoices.length : undefined,
-    }] : []),
+    ...(isB2B ? [
+      {
+        key: "b2b-orders" as ProfileTab,
+        label: "B2B Orders",
+        icon: <Boxes size={15} />,
+        badge: b2bOrders.length > 0 ? b2bOrders.length : undefined,
+      },
+      {
+        key: "proforma" as ProfileTab,
+        label: "Proforma Invoices (PI)",
+        icon: <Receipt size={15} />,
+        badge: proformaInvoices.length > 0 ? proformaInvoices.length : undefined,
+      }
+    ] : []),
     { key: "orders", label: "My Orders", icon: <Package size={15} /> },
     { key: "cart", label: "My Cart", icon: <ShoppingCart size={15} />, badge: cart.reduce((s, i) => s + i.qty, 0) },
     { key: "wishlist", label: "Wishlist", icon: <Heart size={15} />, badge: wishlist.size },
@@ -822,27 +939,34 @@ export function UserProfilePage({
                       </div>
                     ))}
                   </dl>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => switchTab("b2b-orders")}
+                      className="flex items-center justify-center gap-1.5 bg-[#D39858] text-[#34150F] font-black text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all shadow-xs cursor-pointer"
+                    >
+                      <Boxes size={13} /> B2B Orders →
+                    </button>
                     <button
                       type="button"
                       onClick={() => switchTab("quotes")}
-                      className="flex items-center justify-center gap-1.5 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all shadow-xs"
+                      className="flex items-center justify-center gap-1.5 bg-[#EACEAA] text-[#34150F] border border-[#34150F]/20 font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all shadow-xs cursor-pointer"
                     >
-                      <FileText size={13} /> Quotations →
+                      <FileText size={13} /> Quotes →
                     </button>
                     <button
                       type="button"
                       onClick={() => switchTab("po")}
-                      className="flex items-center justify-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs"
+                      className="flex items-center justify-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#85431E] transition-all shadow-xs cursor-pointer"
                     >
                       <FileSpreadsheet size={13} /> PO Orders →
                     </button>
                     <button
                       type="button"
                       onClick={() => switchTab("proforma")}
-                      className="flex items-center justify-center gap-1.5 bg-[#D39858] text-[#34150F] font-black text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#EACEAA] transition-all shadow-xs"
+                      className="flex items-center justify-center gap-1.5 bg-[#EACEAA]/70 text-[#34150F] border border-[#34150F]/15 font-bold text-xs py-2 rounded-tr-xl rounded-bl-xl hover:bg-[#D39858] transition-all shadow-xs cursor-pointer"
                     >
-                      <Receipt size={13} /> Proformas (PI) →
+                      <Receipt size={13} /> Proformas →
                     </button>
                   </div>
                 </div>
@@ -870,16 +994,17 @@ export function UserProfilePage({
                 ].map((i) => (
                   <div key={i.label} className="flex items-center justify-between py-2.5 border-b border-[#34150F]/5">
                     <span className="text-xs text-[#85431E] font-semibold">{i.label}</span>
-                    <span className={`text-xs font-bold ${i.ok ? "text-emerald-600" : "text-red-600"}`}>{i.value}</span>
+                    <span className={`text-xs font-bold ${i.ok ? "text-emerald-700" : "text-amber-700"}`}>{i.value}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-xs text-[#85431E] font-semibold">Password</span>
-                  <button type="button" onClick={() => switchTab("security")} className="text-xs font-bold text-[#D39858] hover:underline">
-                    Change →
-                  </button>
-                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => switchTab("security")}
+                className="mt-4 w-full text-center text-xs font-bold text-[#85431E] hover:text-[#34150F] hover:underline py-1.5"
+              >
+                Manage Security Settings →
+              </button>
             </div>
 
             {/* Quick Actions */}
@@ -890,6 +1015,9 @@ export function UserProfilePage({
               <div className="space-y-2">
                 {([
                   { icon: <Edit3 size={13} />, label: "Edit My Profile", action: () => switchTab("edit") },
+                  ...(isB2B ? [
+                    { icon: <Boxes size={13} />, label: "B2B Orders & Reservations", action: () => switchTab("b2b-orders") },
+                  ] : []),
                   { icon: <Clock size={13} />, label: "My Quotations & Tracking", action: () => switchTab("quotes") },
                   ...(isB2B ? [
                     { icon: <FileSpreadsheet size={13} />, label: "My Purchase Orders (PO)", action: () => switchTab("po") },
@@ -1164,6 +1292,242 @@ export function UserProfilePage({
         {/* ═══════════════ B2B QUOTATIONS (EXCLUSIVE) ═══════════════ */}
         {activeTab === "quotes" && (
           <B2BQuotationManager onGoToProfileEdit={() => switchTab("edit")} />
+        )}
+
+        {/* ═══════════════ B2B COMMERCIAL ORDERS (EXCLUSIVE) ═══════════════ */}
+        {activeTab === "b2b-orders" && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-[#34150F] text-xs uppercase tracking-widest flex items-center gap-2">
+                  <Boxes size={15} className="text-[#D39858]" /> Commercial B2B Orders
+                  {b2bOrders.length > 0 && (
+                    <span className="bg-[#34150F] text-[#EACEAA] text-[10px] font-black px-2 py-0.5 rounded-full font-mono">
+                      {b2bOrders.length}
+                    </span>
+                  )}
+                </h3>
+                <p className="text-[11px] text-[#85431E]">
+                  Authorized wholesale pipeline, live facility stock reservations, and dispatch tracking.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => switchTab("quotes")}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#85431E] hover:text-[#34150F] bg-white border border-[#34150F]/15 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                >
+                  <FileText size={12} className="text-[#D39858]" />
+                  <span>Approved Quotations</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setB2bOrdersLoading(true);
+                    const res = await b2bOrderService.getMyB2BOrders();
+                    if (res.success && res.data?.items) setB2bOrders(res.data.items);
+                    setB2bOrdersLoading(false);
+                  }}
+                  className="p-1.5 text-[#85431E] hover:text-[#34150F] bg-white border border-[#34150F]/15 rounded-xl transition-colors cursor-pointer"
+                  title="Refresh Orders"
+                >
+                  <RefreshCw size={13} className={b2bOrdersLoading ? "animate-spin" : ""} />
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1.5 bg-white/70 p-1.5 rounded-2xl border border-[#34150F]/10 overflow-x-auto no-scrollbar">
+              {[
+                { key: "ALL", label: `All (${b2bOrders.length})` },
+                { key: "pending_approval", label: `Pending Approval (${b2bOrders.filter(o => o.status === "pending_approval").length})` },
+                { key: "confirmed", label: `Confirmed (${b2bOrders.filter(o => o.status === "confirmed").length})` },
+                { key: "processing", label: `Processing (${b2bOrders.filter(o => o.status === "processing" || o.status === "ready").length})` },
+                { key: "completed", label: `Completed (${b2bOrders.filter(o => o.status === "completed").length})` },
+                { key: "cancelled", label: `Cancelled (${b2bOrders.filter(o => o.status === "cancelled" || o.status === "rejected").length})` },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setB2bStatusFilter(f.key)}
+                  className={`text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all whitespace-nowrap cursor-pointer ${
+                    b2bStatusFilter === f.key
+                      ? "bg-[#34150F] text-[#EACEAA] shadow-xs"
+                      : "text-[#85431E] hover:text-[#34150F]"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {b2bOrdersLoading ? (
+              <div className="flex justify-center py-16">
+                <div className="w-8 h-8 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : b2bOrders.length === 0 ? (
+              <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-8 sm:p-12 text-center border border-[#34150F]/10 shadow-xs space-y-3">
+                <div className="w-16 h-16 rounded-2xl bg-[#EACEAA]/50 flex items-center justify-center mx-auto">
+                  <Boxes size={28} className="text-[#D39858]" />
+                </div>
+                <h4 className="text-sm font-black text-[#34150F]">No B2B Commercial Orders Yet</h4>
+                <p className="text-xs text-[#85431E] max-w-sm mx-auto">
+                  Orders converted from approved quotations or directly authorized by management will appear here with live stock reservations.
+                </p>
+                <div className="pt-2 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => switchTab("quotes")}
+                    className="inline-flex items-center gap-1.5 bg-[#34150F] text-[#EACEAA] font-bold text-xs px-4 py-2 rounded-xl hover:bg-[#D39858] hover:text-[#34150F] transition-all shadow-xs cursor-pointer"
+                  >
+                    <FileText size={13} /> View Quotations
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {b2bOrders
+                  .filter((o) => {
+                    if (b2bStatusFilter === "ALL") return true;
+                    if (b2bStatusFilter === "processing") return o.status === "processing" || o.status === "ready";
+                    if (b2bStatusFilter === "cancelled") return o.status === "cancelled" || o.status === "rejected";
+                    return o.status === b2bStatusFilter;
+                  })
+                  .map((bOrder) => {
+                    const badge = getB2bStatusBadge(bOrder.status);
+                    return (
+                      <div
+                        key={bOrder.id}
+                        className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-4 sm:p-5 shadow-2xs border border-[#34150F]/10 hover:shadow-xs transition-shadow space-y-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#34150F]/8 pb-2.5">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-black uppercase bg-[#D39858] text-[#34150F] px-2 py-0.5 rounded tracking-wider font-mono">
+                                B2B ORDER
+                              </span>
+                              <span className="text-xs sm:text-sm font-black text-[#34150F] font-mono">
+                                {bOrder.orderNumber}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(bOrder.orderNumber);
+                                  setSuccessMsg("Order reference copied!");
+                                  setTimeout(clearFeedback, 3000);
+                                }}
+                                className="text-[#85431E] hover:text-[#34150F] p-1 rounded cursor-pointer"
+                                title="Copy Order Reference"
+                              >
+                                <Copy size={11} />
+                              </button>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] sm:text-[11px] text-[#85431E]">
+                              <span>Facility: <strong>{bOrder.branch?.name || bOrder.branch?.code || "Delhi HQ"}</strong></span>
+                              <span>•</span>
+                              <span>{new Date(bOrder.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="inline-flex flex-col items-end">
+                              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${badge.bg}`}>
+                                {badge.label}
+                              </span>
+                              {badge.sublabel && (
+                                <span className="text-[9px] font-bold text-[#85431E] mt-0.5">
+                                  {badge.sublabel}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Line Items Preview */}
+                        <div className="space-y-1.5 bg-[#FAF5EE] p-3 rounded-xl border border-[#34150F]/6 text-xs">
+                          {bOrder.items && bOrder.items.slice(0, 3).map((item) => (
+                            <div key={item.id} className="flex items-center justify-between gap-2">
+                              <span className="text-[#34150F] font-semibold truncate flex-1">
+                                {item.product?.name || item.sku}
+                              </span>
+                              <span className="text-[#85431E] font-mono whitespace-nowrap">
+                                {item.quantity} × ₹{Number(item.unitPrice).toLocaleString("en-IN")}
+                              </span>
+                              <span className="font-mono font-bold text-[#34150F] whitespace-nowrap">
+                                ₹{Number(item.lineTotal).toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          ))}
+                          {bOrder.items && bOrder.items.length > 3 && (
+                            <p className="text-[10px] text-[#85431E] font-bold pt-1">
+                              +{bOrder.items.length - 3} more item(s)...
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Rejection or Cancellation Explanation */}
+                        {bOrder.status === "rejected" && bOrder.rejectedReason && (
+                          <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2">
+                            <AlertCircle size={14} className="text-rose-600 shrink-0 mt-0.5" />
+                            <span><strong>Rejection Reason:</strong> {bOrder.rejectedReason}</span>
+                          </div>
+                        )}
+                        {bOrder.status === "cancelled" && bOrder.cancellationReason && (
+                          <div className="p-2.5 bg-zinc-100 border border-zinc-200 rounded-xl text-xs text-zinc-700 flex items-start gap-2">
+                            <AlertCircle size={14} className="text-zinc-600 shrink-0 mt-0.5" />
+                            <span><strong>Cancellation Reason:</strong> {bOrder.cancellationReason}</span>
+                          </div>
+                        )}
+
+                        {/* Financial Summary & Actions */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#34150F]/8">
+                          <div className="flex items-center gap-3 text-xs">
+                            <div>
+                              <span className="text-[10px] text-[#85431E] block">Grand Total</span>
+                              <span className="font-mono font-black text-sm text-[#34150F]">
+                                ₹{Number(bOrder.grandTotal).toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-[#85431E] block">Payment</span>
+                              <span className="font-bold text-[11px] text-[#34150F] uppercase">
+                                {bOrder.paymentMethod || "NEFT"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {bOrder.status === "pending_approval" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCancellingB2bOrderId(bOrder.id);
+                                  setB2bCancelReason("");
+                                }}
+                                className="text-[11px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                              >
+                                Cancel Order
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedB2bOrder(bOrder)}
+                              className="inline-flex items-center gap-1 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-3.5 py-1.5 rounded-lg transition-all shadow-2xs cursor-pointer"
+                            >
+                              <span>View Dossier</span>
+                              <ChevronRight size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ═══════════════ B2B PROFORMA INVOICES (EXCLUSIVE) ═══════════════ */}
@@ -2248,18 +2612,19 @@ export function UserProfilePage({
             </div>
 
             {/* Sub-tab Filter Switcher */}
-            {(isB2B || purchaseOrders.length > 0) && (
+            {(isB2B || purchaseOrders.length > 0 || b2bOrders.length > 0) && (
               <div className="flex items-center gap-1 bg-white/70 p-1 rounded-xl border border-[#34150F]/10 w-fit overflow-x-auto no-scrollbar">
                 {[
-                  { key: "ALL", label: `All (${orders.length + purchaseOrders.length})` },
+                  { key: "ALL", label: `All (${orders.length + purchaseOrders.length + b2bOrders.length})` },
+                  ...(isB2B || b2bOrders.length > 0 ? [{ key: "B2B", label: `B2B Orders (${b2bOrders.length})` }] : []),
                   { key: "RETAIL", label: `Retail (${orders.length})` },
-                  { key: "PO", label: `PO (${purchaseOrders.length})` },
+                  ...(purchaseOrders.length > 0 ? [{ key: "PO", label: `PO (${purchaseOrders.length})` }] : []),
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => setOrdersFilter(tab.key as any)}
-                    className={`text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
+                    className={`text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                       ordersFilter === tab.key
                         ? "bg-[#34150F] text-[#EACEAA] shadow-2xs"
                         : "text-[#85431E] hover:text-[#34150F]"
@@ -2275,7 +2640,7 @@ export function UserProfilePage({
               <div className="flex justify-center py-10 sm:py-16">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-[#D39858] border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : orders.length === 0 && purchaseOrders.length === 0 ? (
+            ) : orders.length === 0 && purchaseOrders.length === 0 && b2bOrders.length === 0 ? (
               <div className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-6 sm:p-10 text-center border border-[#34150F]/6 shadow-2xs">
                 <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl bg-[#EACEAA]/60 flex items-center justify-center mx-auto mb-3">
                   <Package size={28} className="text-[#D39858]/50" />
@@ -2309,6 +2674,87 @@ export function UserProfilePage({
             ) : (
               <div className="space-y-3">
                 
+                {/* ─── B2B COMMERCIAL ORDERS ─── */}
+                {(ordersFilter === "ALL" || ordersFilter === "B2B") && b2bOrders.length > 0 && (
+                  <div className="space-y-2.5">
+                    {ordersFilter === "ALL" && (
+                      <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs font-black text-[#85431E] uppercase tracking-wider pt-0.5">
+                        <Boxes size={12} className="text-[#D39858]" />
+                        <span>Commercial B2B Orders ({b2bOrders.length})</span>
+                      </div>
+                    )}
+                    {b2bOrders.map((bOrder) => {
+                      const badge = getB2bStatusBadge(bOrder.status);
+                      return (
+                        <div
+                          key={bOrder.id}
+                          className="bg-white rounded-tr-xl rounded-bl-xl sm:rounded-tr-2xl sm:rounded-bl-2xl p-3.5 sm:p-5 shadow-2xs border border-[#34150F]/10 hover:shadow-xs transition-shadow space-y-2.5"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-1.5 border-b border-[#34150F]/8 pb-2">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] font-black uppercase bg-[#D39858] text-[#34150F] px-1.5 py-0.2 rounded tracking-wider font-mono">
+                                  B2B
+                                </span>
+                                <p className="text-xs font-black text-[#34150F] font-mono">
+                                  {bOrder.orderNumber}
+                                </p>
+                              </div>
+                              <p className="text-[10px] text-[#85431E] mt-0.5">
+                                Facility: <strong className="text-[#34150F]">{bOrder.branch?.name || bOrder.branch?.code || "Delhi HQ"}</strong> • {new Date(bOrder.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className={`text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border ${badge.bg}`}>
+                                {badge.label}
+                              </span>
+                              {badge.sublabel && (
+                                <p className="text-[9px] font-bold text-[#85431E] mt-0.5">
+                                  {badge.sublabel}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs bg-[#FAF5EE] p-2 sm:p-3 rounded-lg sm:rounded-xl border border-[#34150F]/6">
+                            <div>
+                              <span className="text-[9px] text-[#85431E] block">Items</span>
+                              <span className="font-bold text-[#34150F]">{bOrder.items?.length || 0} Products</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[9px] text-[#85431E] block">Grand Total</span>
+                              <span className="font-bold font-mono text-[#34150F]">₹{Number(bOrder.grandTotal).toLocaleString("en-IN")}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-1">
+                            {bOrder.status === "pending_approval" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCancellingB2bOrderId(bOrder.id);
+                                  setB2bCancelReason("");
+                                }}
+                                className="text-[10.5px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                              >
+                                Cancel Order
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedB2bOrder(bOrder)}
+                              className="inline-flex items-center gap-1 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-[10.5px] px-3 py-1 rounded-lg transition-all shadow-2xs cursor-pointer"
+                            >
+                              <span>View Dossier</span>
+                              <ChevronRight size={11} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* ─── B2B PURCHASE ORDERS ─── */}
                 {(ordersFilter === "ALL" || ordersFilter === "PO") && purchaseOrders.length > 0 && (
                   <div className="space-y-2.5">
@@ -2505,6 +2951,13 @@ export function UserProfilePage({
                   <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-8 text-center border border-[#34150F]/6">
                     <p className="text-xs font-bold text-[#34150F]">No Purchase Orders found.</p>
                     <p className="text-[11px] text-[#85431E] mt-1">Accept an approved quotation to submit your first PO.</p>
+                  </div>
+                )}
+
+                {ordersFilter === "B2B" && b2bOrders.length === 0 && (
+                  <div className="bg-white rounded-tr-2xl rounded-bl-2xl p-8 text-center border border-[#34150F]/6">
+                    <p className="text-xs font-bold text-[#34150F]">No Commercial B2B Orders found.</p>
+                    <p className="text-[11px] text-[#85431E] mt-1">Orders converted from approved quotations will appear here.</p>
                   </div>
                 )}
 
@@ -2908,6 +3361,196 @@ export function UserProfilePage({
         )}
 
       </div>
+
+      {/* ─── MODAL: CANCEL B2B ORDER ─── */}
+      {cancellingB2bOrderId && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl border border-[#34150F]/15 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-[#34150F]/10 pb-3">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300">
+                  Self-Service Cancellation
+                </span>
+                <h3 className="text-base font-black text-[#34150F] mt-1">
+                  Cancel Commercial Order
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancellingB2bOrderId(null)}
+                className="p-1 text-[#85431E] hover:text-[#34150F] rounded-lg cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+              <Clock size={15} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                Your order is currently <strong>Pending Approval</strong>. Cancelling will immediately release all held stock reservations at the facility. No penalties or fees apply.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#34150F] block">
+                Reason for Cancellation <span className="text-rose-600">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={b2bCancelReason}
+                onChange={(e) => setB2bCancelReason(e.target.value)}
+                placeholder="e.g. Scope changed, client postponed project, duplicate order..."
+                className="w-full px-3 py-2 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F] resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#34150F]/10">
+              <button
+                type="button"
+                onClick={() => setCancellingB2bOrderId(null)}
+                className="px-4 py-2 bg-[#EACEAA]/30 text-[#34150F] font-bold text-xs rounded-xl hover:bg-[#EACEAA]/60 transition-colors cursor-pointer"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                disabled={b2bCancellingLoading || !b2bCancelReason.trim()}
+                onClick={() => handleCancelB2bOrder(cancellingB2bOrderId)}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {b2bCancellingLoading ? "Cancelling..." : "Confirm Cancellation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: B2B ORDER DOSSIER ─── */}
+      {selectedB2bOrder && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-white rounded-3xl border border-[#34150F]/15 p-6 sm:p-8 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-[#34150F]/10 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-[#D39858] text-[#34150F] px-2 py-0.5 rounded font-mono">
+                    B2B DOSSIER
+                  </span>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getB2bStatusBadge(selectedB2bOrder.status).bg}`}>
+                    {getB2bStatusBadge(selectedB2bOrder.status).label}
+                  </span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-[#34150F] mt-1 font-mono">
+                  {selectedB2bOrder.orderNumber}
+                </h3>
+                <p className="text-xs text-[#85431E]">
+                  Placed on {new Date(selectedB2bOrder.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedB2bOrder(null)}
+                className="p-1.5 text-[#85431E] hover:text-[#34150F] hover:bg-[#EACEAA]/30 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Lifecycle Stepper */}
+            <div className="bg-[#FAF5EE] p-3.5 rounded-2xl border border-[#34150F]/10 space-y-2">
+              <span className="text-[10px] font-bold text-[#85431E] uppercase tracking-wider block">
+                Fulfillment Milestone Progression
+              </span>
+              <div className="grid grid-cols-5 gap-1 text-center text-[10px] font-bold">
+                {[
+                  { label: "Submitted", sub: "Stock Reserved", done: true },
+                  { label: "Approved", sub: "Stock Deducted", done: ["confirmed", "processing", "ready", "completed"].includes(selectedB2bOrder.status) },
+                  { label: "Processing", sub: "Warehouse", done: ["processing", "ready", "completed"].includes(selectedB2bOrder.status) },
+                  { label: "Ready", sub: "Dispatched", done: ["ready", "completed"].includes(selectedB2bOrder.status) },
+                  { label: "Completed", sub: "Fulfilled", done: selectedB2bOrder.status === "completed" },
+                ].map((step, idx) => (
+                  <div key={idx} className="flex flex-col items-center">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-1 ${
+                      selectedB2bOrder.status === "rejected" || selectedB2bOrder.status === "cancelled"
+                        ? "bg-zinc-200 text-zinc-600"
+                        : step.done
+                        ? "bg-emerald-600 text-white"
+                        : "bg-zinc-200 text-zinc-500"
+                    }`}>
+                      {step.done && selectedB2bOrder.status !== "rejected" && selectedB2bOrder.status !== "cancelled" ? "✓" : idx + 1}
+                    </div>
+                    <span className="text-[#34150F] leading-tight">{step.label}</span>
+                    <span className="text-[8.5px] text-[#85431E]">{step.sub}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Facility & Customer Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-[#EACEAA]/15 rounded-xl border border-[#34150F]/10">
+                <span className="text-[10px] text-[#85431E] block font-bold uppercase">Fulfillment Branch</span>
+                <p className="font-bold text-[#34150F] mt-0.5">{selectedB2bOrder.branch?.name || "Delhi HQ"}</p>
+                <p className="text-[11px] text-[#85431E] font-mono">Code: {selectedB2bOrder.branch?.code || "DEL"} • City: {selectedB2bOrder.branch?.city || "Delhi"}</p>
+              </div>
+              <div className="p-3 bg-[#EACEAA]/15 rounded-xl border border-[#34150F]/10">
+                <span className="text-[10px] text-[#85431E] block font-bold uppercase">Payment & Terms</span>
+                <p className="font-bold text-[#34150F] mt-0.5">Method: {selectedB2bOrder.paymentMethod || "NEFT"}</p>
+                <p className="text-[11px] text-[#85431E]">Status: <strong className="uppercase">{selectedB2bOrder.paymentStatus || "PENDING"}</strong></p>
+              </div>
+            </div>
+
+            {/* Line Items Table */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold text-[#34150F] block">
+                Itemized Line Breakdown ({selectedB2bOrder.items?.length || 0})
+              </span>
+              <div className="border border-[#34150F]/10 rounded-2xl overflow-hidden divide-y divide-[#34150F]/10 max-h-60 overflow-y-auto">
+                {selectedB2bOrder.items?.map((item) => (
+                  <div key={item.id} className="p-3 bg-white flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-[#34150F] truncate">{item.product?.name || item.sku}</p>
+                      <p className="text-[10px] text-[#85431E] font-mono">SKU: {item.sku}</p>
+                    </div>
+                    <div className="text-right whitespace-nowrap">
+                      <span className="font-mono text-[#34150F]">{item.quantity} units × ₹{Number(item.unitPrice).toLocaleString("en-IN")}</span>
+                      <div className="font-mono font-black text-[#34150F]">
+                        ₹{Number(item.lineTotal).toLocaleString("en-IN")}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Total summary */}
+            <div className="p-4 bg-[#FAF5EE] rounded-2xl border border-[#34150F]/10 space-y-1.5 text-xs">
+              <div className="flex justify-between text-[#85431E]">
+                <span>Taxable Subtotal</span>
+                <span className="font-mono font-bold text-[#34150F]">₹{Number(selectedB2bOrder.subtotal).toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-[#85431E]">
+                <span>GST (18%)</span>
+                <span className="font-mono font-bold text-[#34150F]">₹{Number(selectedB2bOrder.taxTotal).toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-sm font-black text-[#34150F] pt-2 border-t border-[#34150F]/10">
+                <span>Grand Total</span>
+                <span className="font-mono text-base text-[#34150F]">₹{Number(selectedB2bOrder.grandTotal).toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-[#34150F]/10">
+              <button
+                type="button"
+                onClick={() => setSelectedB2bOrder(null)}
+                className="px-5 py-2.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Close Dossier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

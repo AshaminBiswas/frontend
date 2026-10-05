@@ -214,8 +214,26 @@ export function QuickViewModal({
               {/* Dynamic Material, Stock Status & Review Rating */}
               <div className="flex items-center gap-2.5 mb-4 flex-wrap">
                 <span className="inline-block bg-[#34150F]/10 text-[#85431E] text-xs font-bold px-3 py-1 rounded-full">
-                  Material: {product.material || (product as any).finish || ((product as any).specifications?.material) || "Solid Brass / Stainless Steel"}
+                  Material: {product.material || ((product as any).specifications?.material) || "Solid Brass / Stainless Steel"}
                 </span>
+
+                {(product.finish || (product as any).attributes?.finish) && (
+                  <span className="inline-block bg-[#34150F]/10 text-[#34150F] text-xs font-bold px-3 py-1 rounded-full border border-[#34150F]/20">
+                    Finish: {product.finish || (product as any).attributes?.finish}
+                  </span>
+                )}
+
+                {(product.colour || (product as any).attributes?.colour) && (
+                  <span className="inline-block bg-[#D39858]/15 text-[#85431E] text-xs font-semibold px-3 py-1 rounded-full border border-[#D39858]/30">
+                    Colour: {product.colour || (product as any).attributes?.colour}
+                  </span>
+                )}
+
+                {product.dimensions && (product.dimensions.height || product.dimensions.width || product.dimensions.length) && (
+                  <span className="inline-block bg-[#EACEAA]/50 text-[#34150F] text-xs font-mono font-bold px-3 py-1 rounded-full border border-[#D39858]/30">
+                    Dims: {[product.dimensions.height, product.dimensions.width, product.dimensions.length].filter(Boolean).join(' × ')}mm
+                  </span>
+                )}
 
                 <span className={`inline-block text-xs font-extrabold px-3 py-1 rounded-full border ${stockInfo.badgeClass}`}>
                   {stockInfo.label}

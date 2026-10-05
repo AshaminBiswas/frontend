@@ -253,19 +253,37 @@ export function ProductDetailPage({
 
   // Schema specifications & attributes map
   const specificationsMap: Record<string, string> = {
-    "Material Grade": typeof (product as any).material === 'object'
+    "Material Grade": typeof (product as any).material === 'object' && (product as any).material !== null
       ? String((product as any).material?.name || "304 Grade Stainless Steel")
       : String((product as any).material || "304 Grade Solid Stainless Steel"),
-    "Surface Finish": typeof (product as any).attributes?.Finish === 'object'
-      ? String((product as any).attributes.Finish.name || selectedColor || "PVD Brushed Gold")
-      : String((product as any).attributes?.Finish || selectedColor || "PVD Brushed Gold"),
-    "Mounting Type": typeof (product as any).attributes?.MountingType === 'object'
-      ? String((product as any).attributes.MountingType.name || "Concealed Screw Fastening")
+    "Hardware Finish": String(
+      (product as any).finish ||
+      (product as any).attributes?.finish ||
+      (product as any).attributes?.Finish ||
+      "SS"
+    ),
+    "Surface Colour": String(
+      (product as any).colour ||
+      (product as any).attributes?.colour ||
+      selectedColor ||
+      "Golden"
+    ),
+    "Dimensions (H × W × L)": (product as any).dimensions ? (
+      [
+        (product as any).dimensions?.height ? `H: ${(product as any).dimensions.height}mm` : null,
+        (product as any).dimensions?.width ? `W: ${(product as any).dimensions.width}mm` : null,
+        (product as any).dimensions?.length ? `L: ${(product as any).dimensions.length}mm` : null,
+      ].filter(Boolean).join(" × ") || "Standard"
+    ) : "Standard",
+    "Mounting Type": typeof (product as any).attributes?.MountingType === 'object' && (product as any).attributes?.MountingType !== null
+      ? String((product as any).attributes.MountingType?.name || "Concealed Screw Fastening")
       : String((product as any).attributes?.MountingType || "Concealed Screw Fastening"),
-    "Weight": typeof product.weight === 'object'
-      ? String((product.weight as any).value || "450 g")
-      : (product.weight ? (Number(product.weight) < 10 ? `${Math.round(Number(product.weight) * 1000)} g` : `${product.weight} g`) : "450 g"),
-    "Warranty": typeof product.warranty === 'object' ? String((product.warranty as any).name || "2 Years Guarantee") : String(product.warranty || "2 Years Manufacturer Guarantee"),
+    "Weight": typeof product.weight === 'object' && product.weight !== null
+      ? String((product.weight as any)?.value || (product.weight as any)?.weight || "450 g")
+      : (product.weight && typeof product.weight !== 'object' ? (Number(product.weight) < 10 ? `${Math.round(Number(product.weight) * 1000)} g` : `${product.weight} g`) : "450 g"),
+    "Warranty": typeof product.warranty === 'object' && product.warranty !== null
+      ? String((product.warranty as any)?.name || "2 Years Guarantee")
+      : String(product.warranty || "2 Years Manufacturer Guarantee"),
   };
 
   const handleAddToCart = () => {
@@ -366,16 +384,33 @@ export function ProductDetailPage({
           {/* ── Right Column: Details & Actions ── */}
           <div className="lg:col-span-6 flex flex-col justify-between">
             <div>
-              {/* Category & SKU */}
-              <div className="flex items-center justify-between mb-1 sm:mb-2">
+              {/* Category & SKU Header */}
+              <div className="flex items-center justify-between mb-1 sm:mb-2 flex-wrap gap-2">
                 <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#85431E] bg-[#EACEAA]/60 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-[rgba(52,21,15,0.08)]">
-                  {typeof product.category === 'object'
-                    ? (product.category as any).name || "Architectural Hardware"
+                  {typeof product.category === 'object' && product.category !== null
+                    ? (product.category as any)?.name || "Architectural Hardware"
                     : (product.category || "Architectural Hardware")}
                 </span>
-                <span className="text-[9px] sm:text-[10px] font-mono text-[#85431E]/70">
-                  SKU: {product.sku || `PRC-HD-${product.id}`}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(product.finish || (product as any).attributes?.finish) && (
+                    <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#34150F]/10 text-[#34150F] border border-[#34150F]/15">
+                      Finish: {product.finish || (product as any).attributes?.finish}
+                    </span>
+                  )}
+                  {(product.colour || (product as any).attributes?.colour) && (
+                    <span className="text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#D39858]/15 text-[#85431E] border border-[#D39858]/30">
+                      Colour: {product.colour || (product as any).attributes?.colour}
+                    </span>
+                  )}
+                  {product.dimensions && (product.dimensions.height || product.dimensions.width || product.dimensions.length) && (
+                    <span className="text-[9px] sm:text-[10px] font-mono text-[#85431E]/80 font-bold px-2 py-0.5 rounded-full bg-[#EACEAA]/50 border border-[rgba(52,21,15,0.08)]">
+                      {[product.dimensions.height, product.dimensions.width, product.dimensions.length].filter(Boolean).join('×')}mm
+                    </span>
+                  )}
+                  <span className="text-[9px] sm:text-[10px] font-mono text-[#85431E]/70 ml-1">
+                    SKU: {product.sku || `PRC-HD-${product.id}`}
+                  </span>
+                </div>
               </div>
 
               {/* Title */}

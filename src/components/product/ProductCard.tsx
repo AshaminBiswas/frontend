@@ -176,11 +176,26 @@ export const ProductCard = memo(function ProductCard({
               </p>
             )}
 
-            {/* Dynamic Stock Status Badge */}
-            <div className="mb-1 sm:mb-1.5">
+            {/* Dynamic Stock Status Badge & Hardware Attributes */}
+            <div className="flex items-center gap-1 flex-wrap mb-1 sm:mb-1.5">
               <span className={`inline-flex items-center text-[7.5px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded border ${stockInfo.badgeClass}`}>
                 {stockInfo.label}
               </span>
+              {(product.finish || (product as any).attributes?.finish) && (
+                <span className="inline-flex items-center text-[7px] sm:text-[8px] font-bold px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded bg-[#34150F]/5 text-[#34150F] border border-[#34150F]/15">
+                  {product.finish || (product as any).attributes?.finish}
+                </span>
+              )}
+              {(product.colour || (product as any).attributes?.colour) && (
+                <span className="inline-flex items-center text-[7px] sm:text-[8px] font-semibold px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded bg-[#D39858]/10 text-[#85431E] border border-[#D39858]/25">
+                  {product.colour || (product as any).attributes?.colour}
+                </span>
+              )}
+              {product.dimensions && (product.dimensions.height || product.dimensions.width || product.dimensions.length) && (
+                <span className="inline-flex items-center text-[7px] sm:text-[8px] font-mono text-[#85431E]/70 font-semibold">
+                  {[product.dimensions.height, product.dimensions.width, product.dimensions.length].filter(Boolean).join('×')}mm
+                </span>
+              )}
             </div>
 
             {/* Price Row: salePrice + price line-through + discount percentage */}

@@ -4,9 +4,11 @@ import {
   Building2, CheckCircle2, XCircle, Printer, Download,
   Clock, AlertCircle, ArrowLeft, ShieldCheck, QrCode,
   FileText, Send, RefreshCw, Copy, Check, Edit3, Percent,
-  History, X, HelpCircle, Sparkles
+  History, X, HelpCircle, Sparkles, Boxes, CheckCircle
 } from "lucide-react";
 import { quotationService, QuotationDetail } from "../services/quotationService";
+import { b2bOrderService } from "../services/b2bOrderService";
+import { B2BBranch } from "../types/b2bOrder";
 import { AsyncActionButton } from "../components/common/AsyncActionButton";
 
 export function CustomerQuoteApprovalPage() {
@@ -37,6 +39,17 @@ export function CustomerQuoteApprovalPage() {
 
   // PDF Download State
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // B2B Order Conversion States
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [branches, setBranches] = useState<B2BBranch[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [convertNotes, setConvertNotes] = useState("");
+  const [stockInfo, setStockInfo] = useState<Record<string, { physicalStock: number; reservedStock: number; availableStock: number }>>({});
+  const [stockLoading, setStockLoading] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [convertSuccess, setConvertSuccess] = useState<{ orderNumber: string; id: string } | null>(null);
+  const [convertError, setConvertError] = useState("");
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +143,91 @@ export function CustomerQuoteApprovalPage() {
       setSubmittingDecision(false);
     }
   };
+
+  // Handle Opening B2B Order Conversion Modal
+  const handleOpenConvertModal = async () => {
+    setIsConvertModalOpen(true);
+    setConvertError("");
+    setConvertSuccess(null);
+    try {
+      const res = await b2bOrderService.getActiveBranches();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        setBranches(res.data);
+        const branchId = res.data[0].id;
+        setSelectedBranchId(branchId);
+        loadStock(branchId);
+      }
+    } catch (err: any) {
+      console.warn("Failed to load branches for B2B order conversion:", err);
+    }
+  };
+
+  const loadStock = async (branchId: string) => {
+    if (!quote?.items || quote.items.length === 0 || !branchId) return;
+    setStockLoading(true);
+    try {
+      const productIds = quote.items.map((i) => i.productId);
+      const res = await b2bOrderService.checkStock(branchId, productIds);
+      if (res.success && Array.isArray(res.data)) {
+        const map: Record<string, { physicalStock: number; reservedStock: number; availableStock: number }> = {};
+        for (const item of res.data) {
+          map[item.productId] = item;
+        }
+        setStockInfo(map);
+      }
+    } catch (err) {
+      console.warn("Failed to check stock:", err);
+    } finally {
+      setStockLoading(false);
+    }
+  };
+
+  const handleBranchChange = (newBranchId: string) => {
+    setSelectedBranchId(newBranchId);
+    loadStock(newBranchId);
+  };
+
+  const handleConfirmConvert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quote || !selectedBranchId) return;
+
+    setConverting(true);
+    setConvertError("");
+    try {
+      const payload = {
+        clientRequestId: crypto.randomUUID(),
+        branchId: selectedBranchId,
+        sourceQuotationId: quote.id,
+        notes: convertNotes.trim() || `Generated from approved quotation ${quote.referenceNo}`,
+        items: quote.items.map((item) => {
+          const quoteTaxRate = quote.basicPrice > 0 && quote.gstAmount
+            ? Math.round((quote.gstAmount / quote.basicPrice) * 100)
+            : 18;
+          return {
+            productId: item.productId,
+            sku: item.product?.sku || item.productId,
+            quantity: item.quantity,
+            unitPrice: item.rate,
+            discount: 0,
+            taxRate: quoteTaxRate,
+            taxPercent: quoteTaxRate,
+          };
+        }),
+      };
+
+      const res = await b2bOrderService.submitB2BOrder(payload);
+      if (res.success && res.data) {
+        setConvertSuccess({ orderNumber: res.data.orderNumber, id: res.data.id });
+      } else {
+        setConvertError(res.error?.message || "Failed to convert quotation to B2B Order.");
+      }
+    } catch (err: any) {
+      setConvertError(err?.message || "Error submitting B2B order.");
+    } finally {
+      setConverting(false);
+    }
+  };
+
 
   const handlePrint = () => {
     window.print();
@@ -466,7 +564,9 @@ export function CustomerQuoteApprovalPage() {
               </div>
 
               <div className="flex items-center justify-between text-[11px] sm:text-xs">
-                <span className="text-[#85431E] font-semibold">GST (18% Flat Rate)</span>
+                <span className="text-[#85431E] font-semibold">
+                  GST ({quote.basicPrice > 0 && quote.gstAmount ? `${Math.round((quote.gstAmount / quote.basicPrice) * 100)}%` : "18%"})
+                </span>
                 <span className="font-mono font-bold text-[#34150F]">₹{quote.gstAmount.toLocaleString("en-IN")}</span>
               </div>
 
@@ -627,18 +727,26 @@ export function CustomerQuoteApprovalPage() {
 
               {quote.customerResponse === "accepted" && (
                 <div className="pt-1.5 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleOpenConvertModal}
+                    className="bg-[#D39858] hover:bg-[#b87d3e] text-[#34150F] font-black text-xs px-4 py-2.5 rounded-lg sm:rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-[#34150F]/20 cursor-pointer"
+                  >
+                    <Boxes size={14} />
+                    <span>Convert to Official B2B Order →</span>
+                  </button>
                   <Link
                     to={`/submit-po?quoteNumber=${encodeURIComponent(quote.referenceNo)}&quoteId=${encodeURIComponent(quote.id)}`}
                     className="bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs px-4 py-2.5 rounded-lg sm:rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
                   >
                     <FileText size={13} />
-                    <span>Submit PO against Quotation →</span>
+                    <span>Submit PO against Quotation</span>
                   </Link>
                   <Link
-                    to="/profile?tab=po"
+                    to="/profile?tab=b2b-orders"
                     className="bg-[#EACEAA]/40 hover:bg-[#D39858]/30 text-[#34150F] font-bold text-xs px-3.5 py-2.5 rounded-lg sm:rounded-xl transition-all border border-[#34150F]/15 flex items-center gap-1.5"
                   >
-                    <span>View Submitted POs</span>
+                    <span>View B2B Orders</span>
                   </Link>
                 </div>
               )}
@@ -692,6 +800,15 @@ export function CustomerQuoteApprovalPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleOpenConvertModal}
+                  className="flex-1 bg-[#D39858] hover:bg-[#b87d3e] text-[#34150F] font-black text-xs py-2.5 sm:py-3.5 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 border border-[#34150F]/20 cursor-pointer"
+                >
+                  <Boxes size={14} />
+                  <span>Convert Directly to B2B Order</span>
+                </button>
+
                 <button
                   type="button"
                   disabled={submittingDecision}
@@ -905,6 +1022,197 @@ export function CustomerQuoteApprovalPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: CONVERT QUOTATION TO B2B ORDER ─── */}
+      {isConvertModalOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-white rounded-3xl border border-[#34150F]/15 p-6 sm:p-8 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-[#34150F]/10 pb-3">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                  Instant Commercial Checkout
+                </span>
+                <h3 className="text-xl font-black text-[#34150F] mt-1" style={{ fontFamily: "'Gilda Display', serif" }}>
+                  Convert Quotation to B2B Order
+                </h3>
+                <p className="text-xs text-[#85431E] font-mono">Ref: {quote.referenceNo}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsConvertModalOpen(false)}
+                className="p-1.5 text-[#85431E] hover:text-[#34150F] hover:bg-[#EACEAA]/30 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {convertSuccess ? (
+              <div className="py-6 text-center space-y-4">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle size={32} />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-lg font-black text-[#34150F]">B2B Order Placed Successfully!</h4>
+                  <p className="text-xs text-[#85431E]">
+                    Order Reference: <strong className="text-[#34150F] font-mono text-sm">{convertSuccess.orderNumber}</strong>
+                  </p>
+                  <p className="text-[11px] text-[#85431E]/80 max-w-md mx-auto pt-2">
+                    Your order has been recorded in <strong>Pending Approval</strong> status. Inventory has been securely reserved at the selected facility.
+                  </p>
+                </div>
+                <div className="pt-4 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsConvertModalOpen(false);
+                      navigate('/profile?tab=b2b-orders');
+                    }}
+                    className="px-6 py-2.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  >
+                    <Boxes size={14} />
+                    <span>View in B2B Orders</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConvertModalOpen(false)}
+                    className="px-4 py-2.5 bg-[#EACEAA]/30 text-[#34150F] font-bold text-xs rounded-xl hover:bg-[#EACEAA]/60 transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleConfirmConvert} className="space-y-4 text-xs">
+                {convertError && (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 flex items-center gap-2">
+                    <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                    <span>{convertError}</span>
+                  </div>
+                )}
+
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5">
+                  <Clock size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    Submitting this order will immediately place stock on <strong>hold (reserved)</strong> at your chosen branch facility. Once authorized by Super Admin, physical stock is deducted and fulfillment begins.
+                  </p>
+                </div>
+
+                {/* Fulfillment Facility */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-[#34150F] block">
+                    Fulfillment Facility / Branch <span className="text-rose-600">*</span>
+                  </label>
+                  <select
+                    value={selectedBranchId}
+                    onChange={(e) => handleBranchChange(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl font-bold text-xs text-[#34150F] focus:outline-none focus:border-[#34150F]"
+                  >
+                    {branches.length === 0 ? (
+                      <option value="">Loading facilities...</option>
+                    ) : (
+                      branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code}) — {b.city || 'India'}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                {/* Line Items & Stock Availability */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-[#34150F] block">
+                      Quotation Line Items ({quote.items?.length || 0})
+                    </label>
+                    {stockLoading && (
+                      <span className="text-[10px] text-amber-700 flex items-center gap-1 font-bold">
+                        <RefreshCw size={10} className="animate-spin" /> Checking facility inventory...
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="border border-[#34150F]/10 rounded-2xl overflow-hidden divide-y divide-[#34150F]/10 max-h-56 overflow-y-auto">
+                    {quote.items?.map((item) => {
+                      const stock = stockInfo[item.productId];
+                      const isLow = stock && stock.availableStock < item.quantity;
+                      return (
+                        <div key={item.id} className="p-3 bg-white flex items-center justify-between gap-3 text-[11px]">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-[#34150F] truncate">{item.productNameSnapshot || item.product?.name || 'Product'}</p>
+                            <p className="text-[10px] text-[#85431E] font-mono">SKU: {item.product?.sku || item.productId}</p>
+                          </div>
+                          <div className="text-right whitespace-nowrap">
+                            <span className="font-mono font-bold text-[#34150F]">{item.quantity} {item.unit || 'units'}</span>
+                            <span className="text-[#85431E] mx-1">×</span>
+                            <span className="font-mono text-[#34150F]">₹{item.rate.toLocaleString('en-IN')}</span>
+                            <div className="text-[10px] font-mono font-extrabold text-[#34150F]">
+                              ₹{(item.quantity * item.rate).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                          {stock && (
+                            <div className="shrink-0 text-right">
+                              <span
+                                className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                                  isLow
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                    : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                }`}
+                              >
+                                {isLow ? 'Shortage' : `${stock.availableStock} avail`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="p-3.5 bg-[#EACEAA]/20 rounded-2xl border border-[#34150F]/10 flex items-center justify-between text-xs">
+                  <span className="text-[#85431E] font-bold">Estimated Order Grand Total (incl. GST):</span>
+                  <span className="font-mono font-black text-[#34150F] text-base">
+                    ₹{quote.grandTotal.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-[#34150F] block">Order Notes / Project Delivery Site</label>
+                  <input
+                    type="text"
+                    value={convertNotes}
+                    onChange={(e) => setConvertNotes(e.target.value)}
+                    placeholder="e.g. Commercial dispatch instructions or site contact person..."
+                    className="w-full px-4 py-2 bg-[#EACEAA]/15 border border-[#34150F]/15 rounded-xl text-xs text-[#34150F] placeholder-[#85431E]/40 focus:outline-none focus:border-[#34150F]"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#34150F]/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsConvertModalOpen(false)}
+                    className="px-5 py-2.5 bg-[#EACEAA]/30 text-[#34150F] font-bold rounded-xl hover:bg-[#EACEAA]/60 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={converting || !selectedBranchId}
+                    className="px-6 py-2.5 bg-[#34150F] hover:bg-[#D39858] text-[#EACEAA] hover:text-[#34150F] font-bold rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Boxes size={14} />
+                    <span>{converting ? 'Placing B2B Order...' : 'Confirm & Place B2B Order'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
